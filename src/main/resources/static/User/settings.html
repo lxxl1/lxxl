@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Music Resource Management</title>
+
+    <!-- Favicon -->
+    <link rel="shortcut icon" href="assets/media/image/favicon.png"/>
+
+    <!-- Plugin styles -->
+    <link rel="stylesheet" href="vendors/bundle.css" type="text/css">
+
+    <!-- Slick -->
+    <link rel="stylesheet" href="vendors/slick/slick.css" type="text/css">
+    <link rel="stylesheet" href="vendors/slick/slick-theme.css" type="text/css">
+
+    <!-- Daterangepicker -->
+    <link rel="stylesheet" href="vendors/datepicker/daterangepicker.css" type="text/css">
+
+    <!-- DataTable -->
+    <link rel="stylesheet" href="vendors/dataTable/datatables.min.css" type="text/css">
+
+    <!-- App styles -->
+    <link rel="stylesheet" href="assets/css/app.css" type="text/css">
+</head>
+<body>
+    <!-- begin::preloader-->
+    <div class="preloader">
+        <div class="preloader-icon"></div>
+    </div>
+    <!-- end::preloader -->
+
+    <!-- begin::header -->
+    <div class="header">
+        <div class="header-left">
+            <div class="navigation-toggler">
+                <a href="#" data-action="navigation-toggler">
+                    <i data-feather="menu"></i>
+                </a>
+            </div>
+            <div class="header-logo">
+                <a href="index.html">
+                    <img class="logo" src="assets/media/image/music-logo.png" alt="Music Resource Management">
+                    <img class="logo-light" src="assets/media/image/music-logo-light.png" alt="Music Resource Management">
+                </a>
+            </div>
+        </div>
+
+        <div class="header-body">
+            <div class="header-body-left">
+                <div class="page-title">
+                    <h4>Music Resource Management</h4>
+                </div>
+            </div>
+            <div class="header-body-right">
+                <ul class="navbar-nav">
+                    <!-- begin::header fullscreen -->
+                    <li class="nav-item dropdown">
+                        <a href="#" class="nav-link" title="Fullscreen" data-toggle="fullscreen">
+                            <i class="maximize" data-feather="maximize"></i>
+                            <i class="minimize" data-feather="minimize"></i>
+                        </a>
+                    </li>
+                    <!-- end::header fullscreen -->
+
+                    <!-- begin::user menu -->
+                    <li class="nav-item dropdown">
+                        <a href="#" class="nav-link" title="User menu" data-toggle="dropdown">
+                            <span class="mr-2 d-sm-inline d-none">User Name</span>
+                            <figure class="avatar avatar-sm">
+                                <img src="assets/media/image/user/women_avatar1.jpg" class="rounded-circle" alt="avatar">
+                            </figure>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-right">
+                            <a class="dropdown-item" href="profile.html">
+                                <i class="mr-2" data-feather="user"></i> Personal Info
+                            </a>
+                            <a class="dropdown-item" href="change-password.html">
+                                <i class="mr-2" data-feather="lock"></i> Change Password
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" href="../login.html">
+                                <i class="mr-2" data-feather="log-out"></i> Logout
+                            </a>
+                        </div>
+                    </li>
+                    <!-- end::user menu -->
+                </ul>
+            </div>
+        </div>
+    </div>
+    <!-- end::header -->
+
+    <!-- begin::main -->
+    <div id="main">
+        <!-- begin::navigation -->
+        <div class="navigation">
+            <div class="navigation-menu-tab">
+                <div class="flex-grow-1">
+                    <ul>
+                        <li>
+                            <a href="#" data-toggle="tooltip" data-placement="right" title="Dashboard" data-nav-target="#dashboards">
+                                <i data-feather="home"></i>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" data-toggle="tooltip" data-placement="right" title="My Music" data-nav-target="#my-music">
+                                <i data-feather="music"></i>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" data-toggle="tooltip" data-placement="right" title="Categories" data-nav-target="#categories">
+                                <i data-feather="folder"></i>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" data-toggle="tooltip" data-placement="right" title="Upload Music" data-nav-target="#upload">
+                                <i data-feather="upload"></i>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="active" href="#" data-toggle="tooltip" data-placement="right" title="Settings" data-nav-target="#settings">
+                                <i data-feather="settings"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div>
+                    <ul>
+                        <li>
+                            <a href="../login.html" data-toggle="tooltip" data-placement="right" title="Logout">
+                                <i data-feather="log-out"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="navigation-menu-body">
+                <div class="navigation-menu-group">
+                    <div id="dashboards">
+                        <ul>
+                            <li class="navigation-divider">Dashboard</li>
+                            <li><a href="index.html">Overview</a></li>
+                        </ul>
+                    </div>
+                    <div id="my-music">
+                        <ul>
+                            <li class="navigation-divider">My Music</li>
+                            <li><a href="my-music.html">All Songs</a></li>
+                            <li><a href="playlists.html">Playlists</a></li>
+                            <li><a href="favorites.html">Favorites</a></li>
+                        </ul>
+                    </div>
+                    <div id="categories">
+                        <ul>
+                            <li class="navigation-divider">Categories</li>
+                            <li><a href="categories.html">Manage Categories</a></li>
+                            <li><a href="category-songs.html">Browse by Category</a></li>
+                        </ul>
+                    </div>
+                    <div id="upload">
+                        <ul>
+                            <li class="navigation-divider">Upload</li>
+                            <li><a href="upload-music.html">Upload Music</a></li>
+                            <li><a href="upload-history.html">Upload History</a></li>
+                        </ul>
+                    </div>
+                    <div class="open" id="settings">
+                        <ul>
+                            <li class="navigation-divider">Settings</li>
+                            <li><a class="active" href="profile.html">Profile</a></li>
+                            <li><a href="account-settings.html">Account Settings</a></li>
+                            <li><a href="notification-settings.html">Notifications</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- end::navigation -->
+
+        <!-- begin::main-content -->
+        <div class="main-content">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Settings</li>
+                </ol>
+            </nav>
+
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="nav flex-column nav-pills">
+                                <a class="nav-link active" data-toggle="pill" href="#profile">
+                                    <i data-feather="user" class="mr-2"></i> Profile
+                                </a>
+                                <a class="nav-link" data-toggle="pill" href="#security">
+                                    <i data-feather="shield" class="mr-2"></i> Security
+                                </a>
+                                <a class="nav-link" data-toggle="pill" href="#notifications">
+                                    <i data-feather="bell" class="mr-2"></i> Notifications
+                                </a>
+                                <a class="nav-link" data-toggle="pill" href="#connected-apps">
+                                    <i data-feather="link" class="mr-2"></i> Connected Apps
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-9">
+                    <div class="tab-content">
+                        <!-- Profile Settings -->
+                        <div class="tab-pane fade show active" id="profile">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">Profile Information</h6>
+                                    <form>
+                                        <div class="d-flex align-items-center mb-4">
+                                            <div class="avatar avatar-xl">
+                                                <img src="assets/media/image/user/women_avatar1.jpg" class="rounded-circle" alt="avatar">
+                                            </div>
+                                            <div class="ml-3">
+                                                <button class="btn btn-primary">Change Avatar</button>
+                                                <button class="btn btn-light ml-2">Remove</button>
+                                            </div>
+                                        </div>
+
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="form-group">
+                                                    <label>First Name</label>
+                                                    <input type="text" class="form-control" value="John">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-group">
+                                                    <label>Last Name</label>
+                                                    <input type="text" class="form-control" value="Doe">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label>Email</label>
+                                            <input type="email" class="form-control" value="johndoe@example.com">
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label>Bio</label>
+                                            <textarea class="form-control" rows="4"></textarea>
+                                        </div>
+
+                                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Other tab panes... -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- begin::footer -->
+            <footer>
+                <div class="container-fluid">
+                    <div>© Music Resource Management - <a href="" target="_blank">MusicWebsite</a></div>
+                </div>
+            </footer>
+            <!-- end::footer -->
+
+        </div>
+        <!-- end::main-content -->
+    </div>
+    <!-- end::main -->
+
+    <!-- Plugin scripts -->
+    <script src="vendors/bundle.js"></script>
+    <script src="vendors/slick/slick.min.js"></script>
+    <script src="vendors/charts/chartjs/chart.min.js"></script>
+    <script src="https://apexcharts.com/samples/assets/irregular-data-series.js"></script>
+    <script src="vendors/charts/apex/apexcharts.min.js"></script>
+    <script src="vendors/datepicker/daterangepicker.js"></script>
+    <script src="vendors/dataTable/datatables.min.js"></script>
+    <script src="assets/js/examples/dashboard.js"></script>
+    <script src="assets/js/app.js"></script>
+</body>
+</html> 
