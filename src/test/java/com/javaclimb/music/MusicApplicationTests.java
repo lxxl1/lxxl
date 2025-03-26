@@ -1,7 +1,7 @@
 package com.javaclimb.music;
 
 import cn.dev33.satoken.secure.SaSecureUtil;
-import com.javaclimb.music.utils.CipherBean;
+import com.cpt202.utils.CipherBean;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

@@ -1,31 +1,91 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE mapper PUBLIC
-        "-//mybatis.org//DTD Mapper 3.0//EN"
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.javaclimb.music.dao.AdminMapper">
-    <resultMap id="BaseResultMap" type="com.javaclimb.music.domain.Admin">
-        <id column="id" jdbcType="INTEGER" property="id"/>
-        <result column="name" jdbcType="VARCHAR" property="name"/>
-        <result column="password" jdbcType="VARCHAR" property="password"/>
-    </resultMap>
+<mapper namespace="com.cpt202.mapper.AdminMapper">
 
-    <select id="verifyPassword" resultType="java.lang.Integer">
-        select count(*)
+    <sql id="Base_Column_List">
+        id,username,password,name,phone,email,avatar,role
+    </sql>
+
+    <select id="selectAll" resultType="com.cpt202.domain.Admin">
+        select
+        <include refid="Base_Column_List" />
         from admin
-        where name = #{username}
-          and password = #{password}
+        <where>
+            <if test="id != null"> and id= #{id}</if>
+            <if test="username != null"> and username like concat('%', #{username}, '%')</if>
+            <if test="password != null"> and password= #{password}</if>
+            <if test="name != null"> and name= #{name}</if>
+            <if test="phone != null"> and phone= #{phone}</if>
+            <if test="email != null"> and email= #{email}</if>
+            <if test="avatar != null"> and avatar= #{avatar}</if>
+            <if test="role != null"> and role= #{role}</if>
+        </where>
     </select>
-    <select id="getAdmin"
-            resultType="com.javaclimb.music.domain.Admin">
-        SELECT id, `name`, phone_num
-        FROM admin
-        WHERE `name` = #{username}
-          AND password = #{password}
+
+    <select id="selectById" resultType="com.cpt202.domain.Admin">
+        select
+        <include refid="Base_Column_List" />
+        from admin
+        where id = #{id}
     </select>
-    <select id="getAdminWithPhoneNum"
-            resultType="com.javaclimb.music.domain.Admin">
-        SELECT id, `name`, phone_num
-        FROM admin
-        WHERE phone_num = #{phoneNum}
-    </select>
+
+    <delete id="deleteById">
+        delete from cpt202.admin
+        where  id = #{id}
+    </delete>
+
+    <insert id="insert" parameterType="com.cpt202.domain.Admin" useGeneratedKeys="true">
+        insert into admin
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+                <if test="id != null">id,</if>
+                <if test="username != null">username,</if>
+                <if test="password != null">password,</if>
+                <if test="name != null">name,</if>
+                <if test="phone != null">phone,</if>
+                <if test="email != null">email,</if>
+                <if test="avatar != null">avatar,</if>
+                <if test="role != null">role,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+                <if test="id != null">#{id},</if>
+                <if test="username != null">#{username},</if>
+                <if test="password != null">#{password},</if>
+                <if test="name != null">#{name},</if>
+                <if test="phone != null">#{phone},</if>
+                <if test="email != null">#{email},</if>
+                <if test="avatar != null">#{avatar},</if>
+                <if test="role != null">#{role},</if>
+        </trim>
+    </insert>
+
+    <update id="updateById" parameterType="com.cpt202.domain.Admin">
+        update admin
+        <set>
+            <if test="username != null">
+                username = #{username},
+            </if>
+            <if test="password != null">
+                password = #{password},
+            </if>
+            <if test="name != null">
+                name = #{name},
+            </if>
+            <if test="phone != null">
+                phone = #{phone},
+            </if>
+            <if test="email != null">
+                email = #{email},
+            </if>
+            <if test="avatar != null">
+                avatar = #{avatar},
+            </if>
+            <if test="role != null">
+                role = #{role},
+            </if>
+        </set>
+        where id = #{id} 
+    </update>
+
 </mapper>

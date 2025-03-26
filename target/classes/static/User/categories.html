@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<!-- ... 保持head部分与index.html相同 ... -->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Music Resource Management</title>
+
+    <!-- Favicon -->
+    <link rel="shortcut icon" href="assets/media/image/favicon.png"/>
+
+    <!-- Plugin styles -->
+    <link rel="stylesheet" href="vendors/bundle.css" type="text/css">
+
+    <!-- Slick -->
+    <link rel="stylesheet" href="vendors/slick/slick.css" type="text/css">
+    <link rel="stylesheet" href="vendors/slick/slick-theme.css" type="text/css">
+
+    <!-- Daterangepicker -->
+    <link rel="stylesheet" href="vendors/datepicker/daterangepicker.css" type="text/css">
+
+    <!-- DataTable -->
+    <link rel="stylesheet" href="vendors/dataTable/datatables.min.css" type="text/css">
+
+    <!-- App styles -->
+    <link rel="stylesheet" href="assets/css/app.css" type="text/css">
+</head>
+
+<body>
+    <!-- begin::preloader-->
+    <div class="preloader">
+        <div class="preloader-icon"></div>
+    </div>
+    <!-- end::preloader -->
+
+    <!-- begin::header -->
+    <div class="header">
+        <div class="header-left">
+            <div class="navigation-toggler">
+                <a href="#" data-action="navigation-toggler">
+                    <i data-feather="menu"></i>
+                </a>
+            </div>
+            <div class="header-logo">
+                <a href="index.html">
+                    <img class="logo" src="assets/media/image/music-logo.png" alt="Music Resource Management">
+                    <img class="logo-light" src="assets/media/image/music-logo-light.png" alt="Music Resource Management">
+                </a>
+            </div>
+        </div>
+        <!-- ... 其余header内容 ... -->
+    </div>
+    <!-- end::header -->
+
+    <!-- begin::main -->
+    <div id="main">
+        <!-- begin::navigation -->
+        <div class="navigation">
+            <div class="navigation-menu-tab">
+                <div class="flex-grow-1">
+                    <ul>
+                        <li>
+                            <a href="#" data-toggle="tooltip" data-placement="right" title="Dashboard" data-nav-target="#dashboards">
+                                <i data-feather="home"></i>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" data-toggle="tooltip" data-placement="right" title="My Music" data-nav-target="#my-music">
+                                <i data-feather="music"></i>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="active" href="#" data-toggle="tooltip" data-placement="right" title="Categories" data-nav-target="#categories">
+                                <i data-feather="folder"></i>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" data-toggle="tooltip" data-placement="right" title="Upload Music" data-nav-target="#upload">
+                                <i data-feather="upload"></i>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" data-toggle="tooltip" data-placement="right" title="Settings" data-nav-target="#settings">
+                                <i data-feather="settings"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div>
+                    <ul>
+                        <li>
+                            <a href="../login.html" data-toggle="tooltip" data-placement="right" title="Logout">
+                                <i data-feather="log-out"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="navigation-menu-body">
+                <div class="navigation-menu-group">
+                    <div id="dashboards">
+                        <ul>
+                            <li class="navigation-divider">Dashboard</li>
+                            <li><a href="index.html">Overview</a></li>
+                        </ul>
+                    </div>
+                    <div id="my-music">
+                        <ul>
+                            <li class="navigation-divider">My Music</li>
+                            <li><a href="my-music.html">All Songs</a></li>
+                            <li><a href="playlists.html">Playlists</a></li>
+                            <li><a href="favorites.html">Favorites</a></li>
+                        </ul>
+                    </div>
+                    <div class="open" id="categories">
+                        <ul>
+                            <li class="navigation-divider">Categories</li>
+                            <li><a class="active" href="categories.html">Manage Categories</a></li>
+                            <li><a href="category-songs.html">Browse by Category</a></li>
+                        </ul>
+                    </div>
+                    <div id="upload">
+                        <ul>
+                            <li class="navigation-divider">Upload</li>
+                            <li><a href="upload-music.html">Upload Music</a></li>
+                            <li><a href="upload-history.html">Upload History</a></li>
+                        </ul>
+                    </div>
+                    <div id="settings">
+                        <ul>
+                            <li class="navigation-divider">Settings</li>
+                            <li><a href="settings.html">Profile</a></li>
+                            <li><a href="account-settings.html">Account Settings</a></li>
+                            <li><a href="notification-settings.html">Notifications</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- end::navigation -->
+
+        <!-- 将现有的 main-content 移到这里 -->
+        <div class="main-content">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Categories</li>
+                </ol>
+            </nav>
+
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title">Add New Category</h6>
+                            <form>
+                                <div class="form-group">
+                                    <label>Category Name</label>
+                                    <input type="text" class="form-control" placeholder="Enter category name">
+                                </div>
+                                <div class="form-group">
+                                    <label>Description</label>
+                                    <textarea class="form-control" rows="3"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label>Icon</label>
+                                    <div class="custom-file">
+                                        <input type="file" class="custom-file-input" id="categoryIcon">
+                                        <label class="custom-file-label" for="categoryIcon">Choose file</label>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Create Category</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title">My Categories</h6>
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Category</th>
+                                            <th>Songs</th>
+                                            <th>Created Date</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <i data-feather="music" class="mr-2"></i>
+                                                    <span>Pop Music</span>
+                                                </div>
+                                            </td>
+                                            <td>24</td>
+                                            <td>2024-03-20</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-info mr-2"><i data-feather="edit"></i></button>
+                                                <button class="btn btn-sm btn-danger"><i data-feather="trash"></i></button>
+                                            </td>
+                                        </tr>
+                                        <!-- Add more category rows as needed -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+     
+
+    <!-- end::main -->
+    <!-- begin::footer -->
+    <footer>
+        <div class="container-fluid">
+            <div>© Music Resource Management - <a href="" target="_blank">MusicWebsite</a></div>
+        </div>
+    </footer>
+    <!-- end::footer -->
+</div>
+<!-- end::main-content -->
+
+</div>
+
+<!-- end::main-content -->
+
+
+
+<!-- Plugin scripts -->
+<script src="vendors/bundle.js"></script>
+
+<!-- Slick -->
+<script src="vendors/slick/slick.min.js"></script>
+
+<!-- Chartjs -->
+<script src="vendors/charts/chartjs/chart.min.js"></script>
+
+<!-- Apex chart -->
+<script src="https://apexcharts.com/samples/assets/irregular-data-series.js"></script>
+<script src="vendors/charts/apex/apexcharts.min.js"></script>
+
+<!-- Daterangepicker -->
+<script src="vendors/datepicker/daterangepicker.js"></script>
+
+<!-- DataTable -->
+<script src="vendors/dataTable/datatables.min.js"></script>
+
+<!-- Dashboard scripts -->
+<script src="assets/js/examples/dashboard.js"></script>
+
+<!-- App scripts -->
+<script src="assets/js/app.js"></script>
+
+</body>
+</html>

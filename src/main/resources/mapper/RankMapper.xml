@@ -2,15 +2,15 @@
 <!DOCTYPE mapper PUBLIC
         "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.javaclimb.music.dao.RankMapper">
-    <resultMap id="BaseResultMap" type="com.javaclimb.music.domain.Rank" >
+<mapper namespace="com.cpt202.mapper.RankMapper">
+    <resultMap id="BaseResultMap" type="com.cpt202.domain.Rank" >
         <id column="id" jdbcType="INTEGER" property="id"/>
         <result column="song_list_id" jdbcType="INTEGER" property="songListId"/>
         <result column="consumer_id" jdbcType="INTEGER" property="consumerId"/>
         <result column="score" jdbcType="INTEGER" property="score"/>
     </resultMap>
 
-    <insert id="insert" parameterType="com.javaclimb.music.domain.Rank">
+    <insert id="insert" parameterType="com.cpt202.domain.Rank">
         insert into rank
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="id != null">

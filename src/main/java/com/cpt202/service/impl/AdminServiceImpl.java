@@ -10,7 +10,7 @@ import com.cpt202.domain.Account;
 import com.cpt202.domain.Admin;
 import com.cpt202.utils.exception.BusinessException;
 import com.cpt202.utils.exception.CustomException;
-import com.cpt202.dao.AdminMapper;
+import com.cpt202.mapper.AdminMapper;
 import com.cpt202.service.AdminService;
 import com.cpt202.utils.TokenUtils;
 import com.github.pagehelper.PageHelper;
