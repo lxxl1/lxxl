@@ -2,8 +2,8 @@
 <!DOCTYPE mapper PUBLIC
         "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.javaclimb.music.dao.SingerMapper">
-    <resultMap id="BaseResultMap" type="com.javaclimb.music.domain.Singer" >
+<mapper namespace="com.cpt202.mapper.SingerMapper">
+    <resultMap id="BaseResultMap" type="com.cpt202.domain.Singer" >
         <id column="id" jdbcType="INTEGER" property="id"/>
         <result column="name" jdbcType="VARCHAR" property="name"/>
         <result column="sex" jdbcType="TINYINT" property="sex"/>
@@ -17,7 +17,7 @@
         id,name,sex,pic,birth,location,introduction
     </sql>
 
-    <insert id="insert" parameterType="com.javaclimb.music.domain.Singer">
+    <insert id="insert" parameterType="com.cpt202.domain.Singer">
         insert into singer
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="id != null">
@@ -67,7 +67,7 @@
         </trim>        
     </insert>
     
-    <update id="update" parameterType="com.javaclimb.music.domain.Singer">
+    <update id="update" parameterType="com.cpt202.domain.Singer">
         update singer
         <set>
             <if test="name != null">
