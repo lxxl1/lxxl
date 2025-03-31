@@ -36,6 +36,6 @@ public interface AdminMapper extends BaseMapper<Admin> {
      */
     List<Admin> selectAll(Admin admin);
 
-    @Select("select * from cpt202.admin where username = #{username}")
+    @Select("select * from admin where username = #{username}")
     Admin selectByUsername(String username);
 }

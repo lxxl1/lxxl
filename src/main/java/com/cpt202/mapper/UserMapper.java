@@ -36,21 +36,11 @@ public interface UserMapper extends BaseMapper<User> {
      */
     List<User> selectAll(User user);
 
-    @Select("select * from cpt202.user where username = #{username}")
+    @Select("select * from user where username = #{username}")
     User selectByUsername(String username);
 
-    int updateLevel(User user);
-    @Select("select cpt202.mail.code from cpt202.mail where cpt202.mail.email = #{email}")
+
     String selectEmail(String email);
-
-    @Select("select count(*) from cpt202.user where level = 'SILVER PLAN'")
-    Integer selectSilver();
-
-    @Select("select count(*) from cpt202.user where level = 'GOLD PLAN'")
-    Integer selectGolden();
-
-    @Select("select count(*) from cpt202.user where level = 'DIAMOND PLAN'")
-    Integer selectDiamond();
 
     int selectUserCount();
 

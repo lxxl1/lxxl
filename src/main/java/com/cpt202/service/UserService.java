@@ -26,14 +26,7 @@ public interface UserService {
 
     PageInfo<User> selectPage(User user, Integer pageNum, Integer pageSize);
 
-    void recharge(Double account, Integer id);
-
-
-    void updateLevel(User user);
-
     User selectByUserName(String userName);
-
-    List<Integer> selectNum();
 
     // 新添加的方法：查询总用户数量
     int getUserCount();

@@ -237,25 +237,6 @@ public class UserServiceImpl implements UserService {
     }
 
 
-    /**
-     * 充值
-     * @param account
-     * @param id
-     */
-
-
-    public void recharge(Double account,Integer id) {
-        // 1.根据用户id从数据库中查询出用户的详细信息
-        User user = userMapper.selectById(id);
-        // 2. 更新用户的余额
-        user.setAccount(user.getAccount() + account);
-        userMapper.updateById(user);
-    }
-
-    @Override
-    public void updateLevel(User user) {
-        userMapper.updateLevel(user);
-    }
 
 
     public User selectByUserName(String userName) {
@@ -263,17 +244,6 @@ public class UserServiceImpl implements UserService {
         return user2;
     }
 
-    @Override
-    public List<Integer> selectNum() {
-        Integer silverNum = userMapper.selectSilver();
-        Integer goldenNum = userMapper.selectGolden();
-        Integer diamondNum = userMapper.selectDiamond();
-        List<Integer> list = new ArrayList<>();
-        list.add(silverNum);
-        list.add(goldenNum);
-        list.add(diamondNum);
-        return list;
-    }
 
     public int getUserCount() {
         return userMapper.selectUserCount();
