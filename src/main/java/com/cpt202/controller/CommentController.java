@@ -36,8 +36,8 @@ public class CommentController {
         //保存到评论的对象中
         Comment comment = new Comment();
         comment.setUserId(Integer.parseInt(userId));
-        comment.setType(new Byte(type));
-        if(new Byte(type) ==0){
+        comment.setType(Byte.parseByte(type));
+        if(Byte.parseByte(type) ==0){
             comment.setSongId(Integer.parseInt(songId));
         }else{
             comment.setSongListId(Integer.parseInt(songListId));
@@ -71,7 +71,7 @@ public class CommentController {
         Comment comment = new Comment();
         comment.setId(Integer.parseInt(id));
         comment.setUserId(Integer.parseInt(userId));
-        comment.setType(new Byte(type));
+        comment.setType(Byte.parseByte(type));
         if(songId!=null&&songId.equals("")){
             songId = null;
         }else {
