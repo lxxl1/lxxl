@@ -44,6 +44,6 @@ public interface UserMapper extends BaseMapper<User> {
 
     int selectUserCount();
 
-    @Update("update cpt202.user set cpt202.user.avatar = #{url} where id =#{id}")
+    @Update("update user set user.avatar = #{url} where id =#{id}")
     void updateUrl(String url, Integer id);
 }
