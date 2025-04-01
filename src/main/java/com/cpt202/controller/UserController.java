@@ -71,11 +71,6 @@ public class UserController {
     }
 
 
-    @PostMapping("/recharge/{account}/{id}")
-    public Result recharge(@PathVariable Double account, @PathVariable Integer id) {
-        userService.recharge(account, id);
-        return Result.success();
-    }
 
     /**
      * 查询所有
