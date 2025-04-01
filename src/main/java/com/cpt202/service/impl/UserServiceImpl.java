@@ -54,7 +54,6 @@ public class UserServiceImpl implements UserService {
 
 
 
-
         if (StringUtils.isAnyBlank(username,password)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
         }
@@ -80,12 +79,12 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号重复");
         }
 
-        //邮箱验证码
-        String emailcode = userMapper.selectEmail(account.getEmail());
-        if (!Objects.equals(emailcode, account.getCode())){
-            throw new BusinessException(ErrorCode.CODE_ERROR, "验证码错误");
-
-        }
+//        //邮箱验证码
+//        String emailcode = userMapper.selectEmail(account.getEmail());
+//        if (!Objects.equals(emailcode, account.getCode())){
+//            throw new BusinessException(ErrorCode.CODE_ERROR, "验证码错误");
+//
+//        }
         // 2. 加密
         String encryptPassword = DigestUtils.md5DigestAsHex((SALT + password).getBytes());
 
