@@ -43,4 +43,7 @@ public interface UserMapper extends BaseMapper<User> {
 
     @Update("update user set user.avatar = #{url} where id =#{id}")
     void updateUrl(String url, Integer id);
+
+    @Select("select mail.code from mail where mail.email = #{email}")
+    String selectEmail(String email);
 }
