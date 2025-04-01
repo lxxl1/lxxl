@@ -38,33 +38,7 @@
         where  id = #{id}
     </delete>
 
-    <insert id="insert" parameterType="com.cpt202.domain.User" useGeneratedKeys="true">
-        insert into user
-        <trim prefix="(" suffix=")" suffixOverrides=",">
-                <if test="id != null">id,</if>
-                <if test="username != null">username,</if>
-                <if test="password != null">password,</if>
-                <if test="name != null">name,</if>
-                <if test="phone != null">phone,</if>
-                <if test="email != null">email,</if>
-                <if test="avatar != null">avatar,</if>
-                <if test="role != null">role,</if>
-                <if test="account != null">account,</if>
-                <if test="gender != null">  gender,</if>
-        </trim>
-        <trim prefix="values (" suffix=")" suffixOverrides=",">
-                <if test="id != null">#{id},</if>
-                <if test="username != null">#{username},</if>
-                <if test="password != null">#{password},</if>
-                <if test="name != null">#{name},</if>
-                <if test="phone != null">#{phone},</if>
-                <if test="email != null">#{email},</if>
-                <if test="avatar != null">#{avatar},</if>
-                <if test="role != null">#{role},</if>
-                <if test="account != null">#{account},</if>
-                <if test="gender != null">  #{gender},</if>
-        </trim>
-    </insert>
+
 
     <update id="updateById" parameterType="com.cpt202.domain.User">
         update user
@@ -102,18 +76,7 @@
         </set>
         where id = #{id} 
     </update>
-    <update id="updateLevel" >
-        update user
-        <set>
-            <if test="level != null">
-                level = #{level},
-            </if>
-            <if test="expiredDate != null">
-                expired_date = #{expired_date},
-            </if>
-        </set>
-        where id = #{id}
-    </update>
+
 
     <select id="selectUserCount" resultType="int">
         SELECT COUNT(*) FROM user

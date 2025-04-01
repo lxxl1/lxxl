@@ -39,9 +39,6 @@ public interface UserMapper extends BaseMapper<User> {
     @Select("select * from user where username = #{username}")
     User selectByUsername(String username);
 
-
-    String selectEmail(String email);
-
     int selectUserCount();
 
     @Update("update user set user.avatar = #{url} where id =#{id}")
