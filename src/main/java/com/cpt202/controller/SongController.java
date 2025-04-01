@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.bind.annotation.GetMapping;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.File;
@@ -140,7 +141,7 @@ public class SongController {
     /**
      * 删除歌曲
      */
-    @RequestMapping(value = "/delete",method = RequestMethod.GET)
+    @RequestMapping(value = "/delete", method = RequestMethod.GET)
     public Object deleteSinger(HttpServletRequest request){
         //-TODO 先查询到数据库中对应的文件地址，删除掉它再进行下面的代码
         String id = request.getParameter("id").trim();          //主键
