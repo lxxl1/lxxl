@@ -16,7 +16,6 @@ import com.github.pagehelper.PageInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
-
 import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +23,6 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-
 import static com.cpt202.common.enums.RoleEnum.USER;
 
 /**
@@ -53,7 +51,6 @@ public class UserServiceImpl implements UserService {
         String avatar = account.getAvatar();
 
 
-
         if (StringUtils.isAnyBlank(username,password)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
         }
@@ -79,12 +76,12 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号重复");
         }
 
-//        //邮箱验证码
-//        String emailcode = userMapper.selectEmail(account.getEmail());
-//        if (!Objects.equals(emailcode, account.getCode())){
-//            throw new BusinessException(ErrorCode.CODE_ERROR, "验证码错误");
-//
-//        }
+        //邮箱验证码
+        String emailcode = userMapper.selectEmail(account.getEmail());
+        if (!Objects.equals(emailcode, account.getCode())){
+            throw new BusinessException(ErrorCode.CODE_ERROR, "验证码错误");
+
+        }
         // 2. 加密
         String encryptPassword = DigestUtils.md5DigestAsHex((SALT + password).getBytes());
 
