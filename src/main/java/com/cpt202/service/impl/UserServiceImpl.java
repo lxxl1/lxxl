@@ -17,14 +17,13 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 import javax.annotation.Resource;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import static com.cpt202.common.enums.RoleEnum.USER;
-
+import java.util.ArrayList;
+import java.util.List;
 /**
  * 用户业务处理
  **/
