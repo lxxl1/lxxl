@@ -1,0 +1,59 @@
+# ===================
+# Java build files
+# ===================
+*.class
+*.jar
+*.war
+*.ear
+*.log
+
+# Ignore generated files
+hs_err_pid*
+replay_pid*
+
+# ===================
+# Maven
+# ===================
+target/
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+
+# ===================
+# Gradle (in case you switch later)
+# ===================
+.gradle/
+build/
+
+# ===================
+# IntelliJ IDEA
+# ===================
+.idea/
+*.iml
+*.iws
+out/
+
+# ===================
+# VSCode
+# ===================
+.vscode/
+
+# ===================
+# OS-specific files
+# ===================
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# ===================
+# Logs and temp files
+# ===================
+*.log
+*.tmp
+*.swp
+
+# ===================
+# Optional custom ignores
+# ===================
+/test/        # Only if this is a temporary test folder not part of src
