@@ -1,10 +1,10 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Music Resource Management</title>
+    <title>Song Details - Music Resource Management</title>
 
     <!-- Favicon -->
     <link rel="shortcut icon" href="assets/media/image/favicon.png"/>
@@ -175,11 +175,11 @@
         </div>
         <div class="navigation-menu-body">
             <div class="navigation-menu-group">
-                <div class="open" id="dashboards">
+                <div id="dashboards">
                     <ul>
                         <li class="navigation-divider">Dashboard</li>
                         <li>
-                            <a class="active" href="index.html">Overview</a>
+                            <a href="index.html">Overview</a>
                         </li>
                     </ul>
                 </div>
@@ -205,7 +205,7 @@
                         </li>
                     </ul>
                 </div>
-                <div id="explore">
+                <div class="open" id="explore">
                     <ul>
                         <li class="navigation-divider">Explore</li>
                         <li>
@@ -240,116 +240,96 @@
                 <li class="breadcrumb-item">
                     <a href="index.html">Home</a>
                 </li>
-                <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
+                <li class="breadcrumb-item">
+                    <a href="#">Explore</a>
+                </li>
+                <li class="breadcrumb-item active" id="song-title-breadcrumb">Song Details</li>
             </ol>
         </nav>
 
-        <!-- Music Search Section -->
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Find Your Favorite Music</h5>
-                <form id="main-search-form">
-                    <div class="input-group mb-3">
-                        <input type="text" class="form-control" id="main-search-input" placeholder="Search by song name...">
-                        <div class="input-group-append">
-                            <button class="btn btn-primary" type="submit">Search</button>
+        <!-- Loading spinner -->
+        <div id="loading-spinner" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+            <p class="mt-2">Loading song details...</p>
+        </div>
+
+        <!-- Song Details Card -->
+        <div id="song-details-container" class="d-none">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Song Image and Play Button -->
+                        <div class="col-md-4 text-center">
+                            <img id="song-cover" src="assets/media/image/default-cover.jpg" alt="Song Cover" class="img-fluid rounded shadow" style="max-height: 300px;">
+                            <div class="mt-4">
+                                <button id="play-song-btn" class="btn btn-lg btn-primary rounded-pill px-5">
+                                    <i data-feather="play" class="mr-2"></i> Play
+                                </button>
+                            </div>
+                            <div class="mt-3">
+                                <span class="badge badge-light">
+                                    <i data-feather="headphones" class="mr-1"></i>
+                                    <span id="play-count">0</span> plays
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <!-- Song Information -->
+                        <div class="col-md-8">
+                            <h2 id="song-name" class="mb-2">Song Name</h2>
+                            <h5 class="text-muted mb-4">
+                                Artist: <a id="artist-name" href="#" class="text-primary">Artist Name</a>
+                            </h5>
+                            
+                            <div class="card bg-light mb-4">
+                                <div class="card-body">
+                                    <h6 class="card-title">Description</h6>
+                                    <p id="song-description" class="card-text">Loading description...</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Lyrics -->
+                            <div class="card mb-0">
+                                <div class="card-header">
+                                    <h6 class="card-title mb-0">Lyrics</h6>
+                                </div>
+                                <div class="card-body">
+                                    <pre id="song-lyrics" class="bg-light p-3 rounded" style="white-space: pre-wrap; max-height: 300px; overflow-y: auto;">Loading lyrics...</pre>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </form>
+                </div>
             </div>
-        </div>
-
-        <!-- Top Statistics -->
-        <div class="row">
-            <div class="col-lg-3 col-md-6">
-                <div class="card bg-primary-gradient border-0">
-                    <div class="card-body text-center">
-                        <figure class="avatar mb-3 border-0">
-                            <span class="avatar-title bg-white text-primary rounded-circle">
-                                <i data-feather="music"></i>
-                            </span>
-                        </figure>
-                        <h2 class="font-weight-bold mb-3" id="total-songs-count">0</h2>
-                        <h5 class="mb-0">Total Songs</h5>
+            
+            <!-- Music Video Section (if available) -->
+            <div id="music-video-section" class="card mt-4 d-none">
+                <div class="card-body">
+                    <h5 class="card-title">Music Video</h5>
+                    <div class="ratio ratio-16x9 mt-3">
+                        <video id="music-video" controls class="rounded shadow" style="max-height: 500px; width: 100%;">
+                            <source id="music-video-source" src="" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
                     </div>
                 </div>
             </div>
-            <div class="col-lg-3 col-md-6">
-                <div class="card bg-warning-gradient border-0">
-                    <div class="card-body text-center">
-                        <figure class="avatar mb-3 border-0">
-                            <span class="avatar-title bg-white text-warning rounded-circle">
-                                <i data-feather="trending-up"></i>
-                            </span>
-                        </figure>
-                        <h2 class="font-weight-bold mb-3">10</h2>
-                        <h5 class="mb-0">Top Songs</h5>
+            
+            <!-- Related Songs Section -->
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h5 class="card-title">More Songs From This Artist</h5>
+                    <div class="row" id="related-songs-container">
+                        <!-- Will be populated via JavaScript -->
+                        <div class="col-12 text-center py-3">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="sr-only">Loading...</span>
+                            </div>
+                            <p class="mt-2">Loading related songs...</p>
+                        </div>
                     </div>
-                </div>
-            </div>
-            <div class="col-lg-3 col-md-6">
-                <div class="card bg-success-gradient border-0">
-                    <div class="card-body text-center">
-                        <figure class="avatar mb-3 border-0">
-                            <span class="avatar-title bg-white text-success rounded-circle">
-                                <i data-feather="folder"></i>
-                            </span>
-                        </figure>
-                        <h2 class="font-weight-bold mb-3">8</h2>
-                        <h5 class="mb-0">Categories</h5>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-3 col-md-6">
-                <div class="card bg-info-gradient border-0">
-                    <div class="card-body text-center">
-                        <figure class="avatar mb-3 border-0">
-                            <span class="avatar-title bg-white text-info rounded-circle">
-                                <i data-feather="users"></i>
-                            </span>
-                        </figure>
-                        <h2 class="font-weight-bold mb-3">12</h2>
-                        <h5 class="mb-0">Artists</h5>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Top Songs Section -->
-        <div class="card">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <h6 class="card-title">Top Songs</h6>
-                    <a href="top-songs.html" class="btn btn-sm btn-primary">View All</a>
-                </div>
-                <div class="table-responsive">
-                    <table class="table" id="top-songs-table">
-                        <thead>
-                            <tr>
-                                <th style="width: 50px">#</th>
-                                <th>Song Name</th>
-                                <th>Artist</th>
-                                <th>Plays</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Will be populated by AJAX -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- Latest Songs Section -->
-        <div class="card">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <h6 class="card-title">Latest Songs</h6>
-                    <a href="all-songs.html" class="btn btn-sm btn-primary">View All</a>
-                </div>
-                <div class="row" id="latest-songs-container">
-                    <!-- Will be populated by AJAX -->
                 </div>
             </div>
         </div>
@@ -413,16 +393,6 @@
 <!-- Slick -->
 <script src="vendors/slick/slick.min.js"></script>
 
-<!-- Chartjs -->
-<script src="vendors/charts/chartjs/chart.min.js"></script>
-
-<!-- Apex chart -->
-<script src="https://apexcharts.com/samples/assets/irregular-data-series.js"></script>
-<script src="vendors/charts/apex/apexcharts.min.js"></script>
-
-<!-- Daterangepicker -->
-<script src="vendors/datepicker/daterangepicker.js"></script>
-
 <!-- DataTable -->
 <script src="vendors/dataTable/datatables.min.js"></script>
 
@@ -431,6 +401,7 @@
 
 <!-- Custom scripts for song management -->
 <script src="assets/js/music-player.js"></script>
+<script src="assets/js/song-details.js"></script>
 
 </body>
-</html>
+</html> 
