@@ -235,29 +235,29 @@ public class ConsumerController {
         }
     }
 
-    /**
-     * 前端用户登录
-     */
-    @RequestMapping(value = "/login", method = RequestMethod.POST)
-    public SaResult login(HttpServletRequest request) {
-        StpUtil.logout();
-        String username = request.getParameter("username");     //账号
-        String passwordFont = request.getParameter("password");
-        //加密前端传入的 密码
-        String realPassword = SaSecureUtil.aesEncrypt(cipher.getKey(), passwordFont);
-        //根据用户名和密码获取数据库里面所有的信息
-        Consumer user = consumerService.getUserWithAccount(username, realPassword);
-        log.error("数据库中查到的user {}", user);
-        //如果查到了用户
-        if (ObjectUtil.isNotNull(user)) {
-            log.error("=============查询到了user {}", user);
-            user.setPassword("***");
-            //设置登录状态
-            StpUtil.login("user:" + user.getId());
-            return SaResult.ok("登录成功").setData(user);
-        }
-        return SaResult.error("用户名或密码错误-服务端");
-    }
+//    /**
+//     * 前端用户登录
+//     */
+//    @RequestMapping(value = "/login", method = RequestMethod.POST)
+//    public SaResult login(HttpServletRequest request) {
+//        StpUtil.logout();
+//        String username = request.getParameter("username");     //账号
+//        String passwordFont = request.getParameter("password");
+//        //加密前端传入的 密码
+//        String realPassword = SaSecureUtil.aesEncrypt(cipher.getKey(), passwordFont);
+//        //根据用户名和密码获取数据库里面所有的信息
+//        Consumer user = consumerService.getUserWithAccount(username, realPassword);
+//        log.error("数据库中查到的user {}", user);
+//        //如果查到了用户
+//        if (ObjectUtil.isNotNull(user)) {
+//            log.error("=============查询到了user {}", user);
+//            user.setPassword("***");
+//            //设置登录状态
+//            StpUtil.login("user:" + user.getId());
+//            return SaResult.ok("登录成功").setData(user);
+//        }
+//        return SaResult.error("用户名或密码错误-服务端");
+//    }
 
 
     /**

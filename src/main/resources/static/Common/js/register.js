@@ -133,13 +133,24 @@ export const register = async (username, password, name, role, email, verificati
   }
 
   try {
-    const response = await axios.post(`${API_URL}/register`, {
-      username,
-      password,
-      name,
-      role,
-      email,
-      code: verificationCode
+    // Create request body matching the Account class structure exactly
+    const requestData = {
+      username: username,
+      password: password,
+      name: name,
+      email: email,
+      code: verificationCode, // Changed to 'code' to match the backend expectation
+      role: role,
+      // Include empty values for optional fields to ensure they're included
+      phone: '',  
+      gender: '', 
+      avatar: ''  
+    };
+
+    const response = await axios.post(`${API_URL}/register`, requestData, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
     });
     return response.data;
   } catch (error) {

@@ -10,10 +10,25 @@ function showAlert(type, message) {
     // Clear existing content
     messageDiv.textContent = '';
     
-    // Set new message
+    // Set new message with icon
     messageDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} mt-3`;
-    messageDiv.textContent = message;
+    if (type === 'success') {
+        messageDiv.innerHTML = `
+            <i data-feather="check-circle" class="mr-2" style="width: 18px; height: 18px; vertical-align: middle;"></i>
+            ${message}
+        `;
+    } else {
+        messageDiv.innerHTML = `
+            <i data-feather="alert-circle" class="mr-2" style="width: 18px; height: 18px; vertical-align: middle;"></i>
+            ${message}
+        `;
+    }
     messageDiv.style.display = 'block';
+    
+    // Re-initialize feather icons
+    if (typeof feather !== 'undefined') {
+        feather.replace();
+    }
 }
 
 // Validation functions to match backend validation
@@ -101,8 +116,10 @@ function clearValidationError(input) {
 // Send verification code to email
 async function sendVerificationCode(email) {
     try {
+        // Send a request matching the Mail class structure exactly
         const response = await axios.post(`${API_URL}/sendEmail`, {
             email: email
+            // No need for 'type' parameter - not part of the Mail class
         });
         return response.data;
     } catch (error) {
@@ -162,9 +179,12 @@ async function handleRegister(event) {
         isValid = false;
     }
     
-    // Validate role
+    // Validate role - ensure only USER role is allowed
     if (!role) {
         showValidationError(document.getElementById('role'), 'Please select a role');
+        isValid = false;
+    } else if (role !== 'USER') {
+        showValidationError(document.getElementById('role'), 'Invalid role selected');
         isValid = false;
     }
     
@@ -179,11 +199,12 @@ async function handleRegister(event) {
     }
 
     try {
-        const result = await register(username, password, name, role, email, verificationCode);
+        // Always set role to USER for security, regardless of what was selected
+        const result = await register(username, password, name, 'USER', email, verificationCode);
         
         if (result.code === '1') {
             // Registration successful
-            showAlert('success', 'Registration successful! Redirecting to login...');
+            showAlert('success', 'Registration completed successfully! You will be redirected to the login page.');
             
             // Redirect to login page after 2 seconds
             setTimeout(() => {
