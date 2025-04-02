@@ -46,8 +46,8 @@
         <div class="form-group">
             <select class="form-control" id="role" required>
                 <option value="">Select Role</option>
-                <option value="user">User</option>
-                <option value="admin">Admin</option>
+                <option value="USER">User</option>
+                <option value="ADMIN">Admin</option>
             </select>
         </div>
         <div class="form-group d-flex justify-content-between">
@@ -58,6 +58,7 @@
             <a href="User/pages-recovery-password.html">Reset password</a>
         </div>
         <button type="submit" class="btn btn-primary btn-block">Sign in</button>
+        <div id="loginMessage" class="alert mt-3" style="display: none;"></div>
         <p class="text-muted">Don't have an account?</p>
         <a href="register.html" class="btn btn-outline-light btn-sm">Register now!</a>
     </form>
@@ -71,22 +72,57 @@
 
 <!-- App scripts -->
 <script src="User/assets/js/app.js"></script>
-<script>
-function handleLogin(event) {
+
+<script type="module">
+import { login } from './Common/js/login.js';
+
+window.handleLogin = async function(event) {
     event.preventDefault();
     
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
     const role = document.getElementById('role').value;
+    const messageDiv = document.getElementById('loginMessage');
     
-    // 简单的角色判断逻辑
-    if (role === 'admin') {
-        window.location.href = 'Admin/index.html';
-    } else if (role === 'user') {
-        window.location.href = 'User/index.html';
+    // Clear previous messages
+    messageDiv.style.display = 'none';
+    messageDiv.className = 'alert mt-3';
+    
+    if (!username || !password || !role) {
+        showMessage('Please fill in all fields', 'danger');
+        return false;
+    }
+    
+    try {
+        const response = await login(username, password, role);
+        
+        if (response.code === '1') {
+            showMessage('Login successful! Redirecting...', 'success');
+            
+            // Redirect based on role
+            setTimeout(() => {
+                if (role === 'ADMIN') {
+                    window.location.href = 'Admin/index.html';
+                } else if (role === 'USER') {
+                    window.location.href = 'User/index.html';
+                }
+            }, 1000);
+        } else {
+            showMessage(response.msg || 'Login failed. Please check your credentials.', 'danger');
+        }
+    } catch (error) {
+        console.error('Login error:', error);
+        showMessage('An error occurred. Please try again later.', 'danger');
     }
     
     return false;
+}
+
+function showMessage(message, type) {
+    const messageDiv = document.getElementById('loginMessage');
+    messageDiv.textContent = message;
+    messageDiv.className = `alert alert-${type} mt-3`;
+    messageDiv.style.display = 'block';
 }
 </script>
 </body>
