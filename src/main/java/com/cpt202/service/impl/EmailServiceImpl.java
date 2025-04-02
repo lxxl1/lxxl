@@ -43,18 +43,19 @@ public class EmailServiceImpl implements EmailService{
 
     @Override
     public boolean selectByEmail(String email) {
-        if (emailMapper.selectEmail(email) > 0){
-            return true;
-        }
-        else {
-            return false;
-        }
-
+        return emailMapper.selectEmail(email) > 0;
     }
 
     @Override
     public void save(Mail mail) {
-        emailMapper.insert(mail);
+        // 检查邮箱是否已经存在
+        if (selectByEmail(mail.getEmail())) {
+            // 如果存在，更新验证码
+            emailMapper.updateCodeByEmail(mail.getEmail(), mail.getCode());
+        } else {
+            // 如果不存在，插入新记录
+            emailMapper.insert(mail);
+        }
     }
 }
 
