@@ -1,68 +1,90 @@
 ﻿<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Music Resource Management - Register</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Music Resource Management - Register</title>
 
-    <!-- Favicon -->
-    <link rel="shortcut icon" href="User/assets/media/image/favicon.png"/>
+  <!-- Favicon -->
+  <link rel="shortcut icon" href="User/assets/media/image/favicon.png"/>
 
-    <!-- Plugin styles -->
-    <link rel="stylesheet" href="User/vendors/bundle.css" type="text/css">
+  <!-- Plugin styles -->
+  <link rel="stylesheet" href="User/vendors/bundle.css" type="text/css">
 
-    <!-- App styles -->
-    <link rel="stylesheet" href="User/assets/css/app.css" type="text/css">
+  <!-- App styles -->
+  <link rel="stylesheet" href="User/assets/css/app.css" type="text/css">
 </head>
 <body class="form-membership">
 
-<!-- begin::preloader-->
-<div class="preloader">
-    <div class="preloader-icon"></div>
-</div>
-<!-- end::preloader -->
+  <!-- begin::preloader-->
+  <div class="preloader">
+      <div class="preloader-icon"></div>
+  </div>
+  <!-- end::preloader -->
 
-<div class="form-wrapper">
+  <div class="form-wrapper">
+      <!-- logo -->
+      <div id="logo">
+          <img class="logo" src="User/assets/media/image/music-logo.png" alt="Music Resource Management">
+          <img class="logo-dark" src="User/assets/media/image/music-logo-light.png" alt="Music Resource Management">
+      </div>
+      <!-- ./ logo -->
 
-    
-    <!-- logo -->
-    <div id="logo">
-        <img class="logo" src="User/assets/media/image/music-logo.png" alt="Music Resource Management">
-        <img class="logo-dark" src="User/assets/media/image/music-logo-light.png" alt="Music Resource Management">
-    </div>
-    <!-- ./ logo -->
+      <h5>Create account</h5>
 
-    <h5>Create account</h5>
+      <!-- form -->
+      <form id="registerForm">
+          <div class="form-group">
+              <input type="text" class="form-control" id="username" placeholder="Username" required autofocus>
+              <small class="form-text text-muted">At least 4 characters, no special characters</small>
+          </div>
+          <div class="form-group">
+              <input type="text" class="form-control" id="name" placeholder="Name" required>
+          </div>
+          <div class="form-group">
+              <input type="password" class="form-control" id="password" placeholder="Password" required>
+              <small class="form-text text-muted">At least 8 characters</small>
+          </div>
+          <div class="form-group">
+              <input type="email" class="form-control" id="email" placeholder="Email" required>
+          </div>
+          <div class="form-group">
+              <div class="input-group">
+                  <input type="text" class="form-control" id="verificationCode" placeholder="Verification Code" required>
+                  <div class="input-group-append">
+                      <button type="button" class="btn btn-outline-primary" id="sendCodeBtn">Send Code</button>
+                  </div>
+              </div>
+              <small class="form-text text-muted">We'll send a verification code to your email</small>
+          </div>
+          <div class="form-group">
+              <select class="form-control" id="role" required>
+                  <option value="">Select Role</option>
+                  <option value="USER">User</option>
+                  <option value="ADMIN">Admin</option>
+              </select>
+          </div>
+          <div class="custom-control custom-checkbox mt-3 mb-3">
+              <input type="checkbox" class="custom-control-input" id="termsCheck" required>
+              <label class="custom-control-label" for="termsCheck">
+                  I accept the terms and conditions
+              </label>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">Register</button>
+          <div id="registerMessage" class="alert mt-3" style="display: none;"></div>
+          <hr>
+          <p class="text-muted">Already have an account?</p>
+          <a href="login.html" class="btn btn-outline-light btn-sm">Sign in!</a>
+      </form>
+      <!-- ./ form -->
+  </div>
 
-    <!-- form -->
-    <form>
-        <div class="form-group">
-            <input type="text" class="form-control" placeholder="Firstname" required autofocus>
-        </div>
-        <div class="form-group">
-            <input type="text" class="form-control" placeholder="Lastname" required>
-        </div>
-        <div class="form-group">
-            <input type="email" class="form-control" placeholder="Email" required>
-        </div>
-        <div class="form-group">
-            <input type="password" class="form-control" placeholder="Password" required>
-        </div>
-        <button class="btn btn-primary btn-block">Register</button>
-        <hr>
-        <p class="text-muted">Already have an account?</p>
-        <a href="login.html" class="btn btn-outline-light btn-sm">Sign in!</a>
-    </form>
-    <!-- ./ form -->
-
-
-</div>
-
-<!-- Plugin scripts -->
-<script src="User/vendors/bundle.js"></script>
-
-<!-- App scripts -->
-<script src="User/assets/js/app.js"></script>
+  <!-- Plugin scripts -->
+  <script src="User/vendors/bundle.js"></script>
+  <!-- App scripts -->
+  <script src="User/assets/js/app.js"></script>
+  <!-- Registration scripts -->
+  <script type="module" src="./Common/js/registerPage.js"></script>
 </body>
 </html>

@@ -29,20 +29,20 @@
                     <a href="users.html"><i class="fas fa-users"></i> User Management</a>
                 </li>
                 <li>
-                    <a href="resources.html"><i class="fas fa-music"></i> Music Resources</a>
+                    <a href="songManagement.html"><i class="fas fa-music"></i> Song Management</a>
                 </li>
                 <li>
                     <a href="reviews.html"><i class="fas fa-check-circle"></i> Resource Review</a>
                 </li>
                 <li>
-                    <a href="settings.html"><i class="fas fa-cog"></i> Settings</a>
+                    <a href="logs.html"><i class="fas fa-history"></i> Review Logs</a>
                 </li>
             </ul>
 
             <div class="sidebar-footer">
                 <div class="dropdown">
                     <button class="btn btn-outline-light dropdown-toggle w-100" type="button" id="profileDropdown" data-bs-toggle="dropdown">
-                        <i class="fas fa-user-circle"></i> Admin Name
+                        <i class="fas fa-user-circle"></i> <span id="adminName">Admin Name</span>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end">
                         <li><a class="dropdown-item" href="#"><i class="fas fa-user"></i> Profile</a></li>
@@ -235,10 +235,10 @@
                             </div>
                             <div class="card-body">
                                 <div class="d-grid gap-2">
-                                    <button class="btn btn-primary">
-                                        <i class="fas fa-plus"></i> Add New Resource
+                                    <button class="btn btn-primary" onclick="window.location.href='songManagement.html'">
+                                        <i class="fas fa-plus"></i> Add New Song
                                     </button>
-                                    <button class="btn btn-success">
+                                    <button class="btn btn-success" onclick="window.location.href='users.html'">
                                         <i class="fas fa-user-plus"></i> Add New User
                                     </button>
                                     <button class="btn btn-info">

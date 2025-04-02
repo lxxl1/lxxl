@@ -16,19 +16,19 @@ public class WebConfig implements WebMvcConfigurer {
     // 配置跨域请求
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**") // 允许访问的路径
-                .allowedOrigins("http://127.0.0.1:5500") // 允许跨域的来源地址（前端地址）
-                .allowedMethods("GET", "POST", "PUT", "DELETE") // 允许的请求方法
-                .allowedHeaders("*") // 允许所有的请求头
-                .allowCredentials(true); // 允许发送 Cookie
+        registry.addMapping("/**")
+                .allowedOrigins("*")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(false);
     }
 
-    // 配置拦截器
+    // 放开JWT拦截器，直接注释掉配置或移除
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        // 这里你可以根据需要拦截路径
-        registry.addInterceptor(jwtInterceptor)
-                .addPathPatterns("/**") // 拦截所有请求
-                .excludePathPatterns("/login", "/register", "/error", "/sendEmail"); // 排除特定路径
+        // 完全去掉jwt拦截器的配置，进行其他controller的测试
+        // registry.addInterceptor(jwtInterceptor)
+        //         .addPathPatterns("/**") // 拦截所有请求
+        //         .excludePathPatterns("/login", "/register", "/error", "/sendEmail"); // 排除特定路径
     }
 }
