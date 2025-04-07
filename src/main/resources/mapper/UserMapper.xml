@@ -21,7 +21,6 @@
             <if test="email != null"> and email= #{email}</if>
             <if test="avatar != null"> and avatar= #{avatar}</if>
             <if test="role != null"> and role= #{role}</if>
-            <if test="gender != null"> and gender= #{gender}</if>
         </where>
     </select>
 
