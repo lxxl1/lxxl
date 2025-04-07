@@ -8,6 +8,8 @@
         id,username,password,name,phone,email,avatar,role,account
     </sql>
 
+    
+
     <select id="selectAll" resultType="com.cpt202.domain.User">
         select
         <include refid="Base_Column_List" />
@@ -81,5 +83,34 @@
         SELECT COUNT(*) FROM user
     </select>
 
+    <insert id="insert" parameterType="com.cpt202.domain.User">
+        INSERT INTO user
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="username != null">username,</if>
+            <if test="password != null">password,</if>
+            <if test="name != null">name,</if>
+            <if test="phone != null">phone,</if>
+            <if test="email != null">email,</if>
+            <if test="avatar != null">avatar,</if>
+            <if test="role != null">role,</if>
+            <if test="account != null">account,</if>
+            <if test="level != null">level,</if>
+            <if test="expiredDate != null">expired_date,</if>
+            <if test="code != null">code,</if>
+        </trim>
+        <trim prefix="VALUES (" suffix=")" suffixOverrides=",">
+            <if test="username != null">#{username},</if>
+            <if test="password != null">#{password},</if>
+            <if test="name != null">#{name},</if>
+            <if test="phone != null">#{phone},</if>
+            <if test="email != null">#{email},</if>
+            <if test="avatar != null">#{avatar},</if>
+            <if test="role != null">#{role},</if>
+            <if test="account != null">#{account},</if>
+            <if test="level != null">#{level},</if>
+            <if test="expiredDate != null">#{expiredDate},</if>
+            <if test="code != null">#{code},</if>
+        </trim>
+    </insert>
 
 </mapper>
