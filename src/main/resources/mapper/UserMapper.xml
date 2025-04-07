@@ -33,7 +33,7 @@
 
 
     <delete id="deleteById">
-        delete from cpt202.user
+        delete from user
         where  id = #{id}
     </delete>
 
