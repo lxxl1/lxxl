@@ -13,6 +13,111 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="assets/css/main.css">
     <link rel="stylesheet" href="assets/css/sidebar.css">
+    <style>
+        /* Enhanced styles for User Management */
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            transition: transform 0.3s, box-shadow 0.3s;
+            overflow: hidden;
+            border: none;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        }
+        
+        .bg-primary {
+            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%) !important;
+        }
+        
+        .card-header {
+            background-color: #f8f9fc;
+            border-bottom: 1px solid #e3e6f0;
+            padding: 1rem 1.5rem;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+            border: none;
+            box-shadow: 0 2px 4px rgba(78, 115, 223, 0.3);
+            transition: all 0.3s;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(78, 115, 223, 0.4);
+        }
+        
+        .btn-info {
+            background-color: #36b9cc;
+            border: none;
+        }
+        
+        .fade-in {
+            opacity: 0;
+            animation: fadeIn 0.6s forwards;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .table {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        
+        .table th {
+            font-weight: 600;
+            background-color: #f8f9fc;
+            color: #5a5c69;
+        }
+        
+        .table td {
+            vertical-align: middle;
+        }
+        
+        .form-control, .form-select {
+            border-radius: 6px;
+            padding: 0.6rem 1rem;
+            border: 1px solid #e3e6f0;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: #4e73df;
+            box-shadow: 0 0 0 0.25rem rgba(78, 115, 223, 0.25);
+        }
+        
+        .icon-box {
+            width: 70px;
+            height: 70px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .badge {
+            padding: 0.5em 0.8em;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+        
+        .btn-group .btn {
+            margin-right: 4px;
+            border-radius: 6px !important;
+        }
+        
+        #sidebarCollapse {
+            background: linear-gradient(135deg, #36b9cc 0%, #1a8a98 100%);
+            border: none;
+        }
+    </style>
 </head>
 <body>
     <div class="wrapper">
@@ -44,7 +149,7 @@
             <div class="sidebar-footer">
                 <div class="dropdown">
                     <button class="btn btn-outline-light dropdown-toggle w-100" type="button" id="profileDropdown" data-bs-toggle="dropdown">
-                        <i class="fas fa-user-circle"></i> <span id="adminName">Admin Name</span>
+                        <i class="fas fa-user-circle"></i> <span id="adminName">Admin</span>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end">
                         <li><a class="dropdown-item" href="#"><i class="fas fa-user"></i> Profile</a></li>
@@ -60,17 +165,21 @@
         <!-- Page Content -->
         <div id="content">
             <!-- Top Navigation -->
-            <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
                 <div class="container-fluid">
                     <button type="button" id="sidebarCollapse" class="btn btn-info">
                         <i class="fas fa-bars"></i>
                     </button>
-                    <div class="ms-auto">
+                    <div class="ms-auto d-flex align-items-center">
                         <div class="input-group">
-                            <input type="text" class="form-control" placeholder="Search...">
+                            <input type="text" class="form-control" placeholder="Quick search...">
                             <button class="btn btn-outline-secondary" type="button">
                                 <i class="fas fa-search"></i>
                             </button>
+                        </div>
+                        <div class="ms-3">
+                            <a href="#" class="text-muted me-3"><i class="fas fa-bell"></i></a>
+                            <a href="#" class="text-muted"><i class="fas fa-envelope"></i></a>
                         </div>
                     </div>
                 </div>
@@ -97,17 +206,69 @@
                     </div>
                 </div>
                 
+                <!-- Statistics -->
+                <div class="row mb-4">
+                    <div class="col-md-4 mb-3 fade-in" style="animation-delay: 0.1s;">
+                        <div class="card text-white bg-success">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="card-title">Active Users</h6>
+                                        <h3 class="mb-0" id="activeUserCount">0</h3>
+                                    </div>
+                                    <div>
+                                        <i class="fas fa-user-check fa-2x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3 fade-in" style="animation-delay: 0.2s;">
+                        <div class="card text-white bg-secondary">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="card-title">Inactive Users</h6>
+                                        <h3 class="mb-0" id="inactiveUserCount">0</h3>
+                                    </div>
+                                    <div>
+                                        <i class="fas fa-user-clock fa-2x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3 fade-in" style="animation-delay: 0.3s;">
+                        <div class="card text-white bg-danger">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="card-title">Suspended Users</h6>
+                                        <h3 class="mb-0" id="suspendedUserCount">0</h3>
+                                    </div>
+                                    <div>
+                                        <i class="fas fa-user-slash fa-2x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- Search Box -->
-                <div class="card mb-4 fade-in" style="animation-delay: 0.2s;">
+                <div class="card mb-4 fade-in" style="animation-delay: 0.4s;">
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="searchInput" class="form-label">Search Users</label>
                                     <div class="input-group">
-                                        <input type="text" class="form-control" id="searchInput" placeholder="Search by username, email, or status...">
+                                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                        <input type="text" class="form-control" id="searchInput" placeholder="Search by username or name...">
                                         <button class="btn btn-primary" type="button">
-                                            <i class="fas fa-search"></i> Search
+                                            Search
                                         </button>
                                     </div>
                                 </div>
@@ -116,10 +277,10 @@
                                 <div class="form-group">
                                     <label for="statusFilter" class="form-label">Filter by Status</label>
                                     <select class="form-select" id="statusFilter">
-                                        <option value="">All Status</option>
-                                        <option value="active">Active</option>
-                                        <option value="inactive">Inactive</option>
-                                        <option value="suspended">Suspended</option>
+                                        <option value="">All Statuses</option>
+                                        <option value="Active">Active</option>
+                                        <option value="Inactive">Inactive</option>
+                                        <option value="Suspended">Suspended</option>
                                     </select>
                                 </div>
                             </div>
@@ -128,7 +289,7 @@
                 </div>
 
                 <!-- Users Table -->
-                <div class="card fade-in" style="animation-delay: 0.4s;">
+                <div class="card fade-in" style="animation-delay: 0.5s;">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0">All Users</h5>
                         <button class="btn btn-primary">
@@ -136,13 +297,13 @@
                         </button>
                     </div>
                     <div class="card-body">
-                        <table id="usersTable" class="table table-striped">
+                        <table id="usersTable" class="table table-striped table-hover">
                             <thead>
                                 <tr>
+                                    <th>Select</th>
                                     <th>Username</th>
-                                    <th>Email</th>
+                                    <th>Name</th>
                                     <th>Status</th>
-                                    <th>Violations</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>

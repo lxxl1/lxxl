@@ -36,9 +36,9 @@
     <h5>Sign in</h5>
 
     <!-- form -->
-    <form id="loginForm" onsubmit="return handleLogin(event)">
+    <form id="loginForm">
         <div class="form-group">
-            <input type="text" class="form-control" id="username" placeholder="Username or email" required autofocus>
+            <input type="text" class="form-control" id="username" placeholder="Username" required autofocus>
         </div>
         <div class="form-group">
             <input type="password" class="form-control" id="password" placeholder="Password" required>
@@ -59,6 +59,7 @@
         </div>
         <button type="submit" class="btn btn-primary btn-block">Sign in</button>
         <div id="loginMessage" class="alert mt-3" style="display: none;"></div>
+        <hr>
         <p class="text-muted">Don't have an account?</p>
         <a href="register.html" class="btn btn-outline-light btn-sm">Register now!</a>
     </form>
@@ -76,10 +77,10 @@
 <script type="module">
 import { login } from './Common/js/login.js';
 
-window.handleLogin = async function(event) {
+document.getElementById('loginForm').addEventListener('submit', async function(event) {
     event.preventDefault();
     
-    const username = document.getElementById('username').value;
+    const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value;
     const role = document.getElementById('role').value;
     const messageDiv = document.getElementById('loginMessage');
@@ -94,19 +95,39 @@ window.handleLogin = async function(event) {
     }
     
     try {
+        // Call login API
         const response = await login(username, password, role);
         
-        if (response.code === '1') {
+        console.log('Login response:', response); // Debug response
+        
+        if (response.code === '200') {
             showMessage('Login successful! Redirecting...', 'success');
             
-            // Redirect based on role
-            setTimeout(() => {
-                if (role === 'ADMIN') {
-                    window.location.href = 'Admin/index.html';
-                } else if (role === 'USER') {
-                    window.location.href = 'User/index.html';
-                }
-            }, 1000);
+            // Determine redirect URL based on role
+            let redirectUrl;
+            if (role.toUpperCase() === 'USER') {
+                redirectUrl = './User/index.html';
+            } else if (role.toUpperCase() === 'ADMIN') {
+                redirectUrl = './Admin/index.html';
+            }
+            
+            console.log('Will redirect to:', redirectUrl);
+            
+            if (redirectUrl) {
+                // Force redirection after a delay
+                setTimeout(function() {
+                    console.log('Executing redirect now...');
+                    window.location.href = redirectUrl;
+                    
+                    // Fallback redirect if the first attempt fails
+                    setTimeout(function() {
+                        if (window.location.href !== redirectUrl) {
+                            console.log('Trying alternative redirect method...');
+                            window.location.replace(redirectUrl);
+                        }
+                    }, 500);
+                }, 1000);
+            }
         } else {
             showMessage(response.msg || 'Login failed. Please check your credentials.', 'danger');
         }
@@ -116,14 +137,63 @@ window.handleLogin = async function(event) {
     }
     
     return false;
-}
+});
 
 function showMessage(message, type) {
     const messageDiv = document.getElementById('loginMessage');
-    messageDiv.textContent = message;
-    messageDiv.className = `alert alert-${type} mt-3`;
+    
+    if (type === 'success') {
+        messageDiv.innerHTML = `
+            <div class="d-flex align-items-center">
+                <i class="fas fa-check-circle mr-2 text-success"></i>
+                <span><strong>Success!</strong> ${message}</span>
+            </div>
+        `;
+        messageDiv.className = 'alert alert-success mt-3 animated fadeIn';
+    } else {
+        messageDiv.innerHTML = `
+            <div class="d-flex align-items-center">
+                <i class="fas fa-exclamation-circle mr-2 text-danger"></i>
+                <span><strong>Error!</strong> ${message}</span>
+            </div>
+        `;
+        messageDiv.className = 'alert alert-danger mt-3';
+    }
+    
     messageDiv.style.display = 'block';
 }
 </script>
+
+<style>
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animated.fadeIn {
+    animation: fadeIn 0.3s ease-out;
+}
+
+.alert {
+    border-radius: 4px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid transparent;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+    color: #155724;
+    box-shadow: 0 2px 10px rgba(21, 87, 36, 0.1);
+}
+
+.alert-danger {
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+    color: #721c24;
+    box-shadow: 0 2px 10px rgba(114, 28, 36, 0.1);
+}
+</style>
 </body>
 </html>

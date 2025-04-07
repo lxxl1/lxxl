@@ -1,12 +1,21 @@
 import { API_URL } from '../../../Common/js/config.js';
 
-// Initialize DataTable
+// Initialize DataTable and statistics
 let usersTable;
 let selectedUsers = [];
+let userStats = {
+    total: 0,
+    active: 0,
+    inactive: 0,
+    suspended: 0
+};
 
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize the DataTable with empty data first
     initializeDataTable();
+    
+    // Add statistics cards to the page
+    addStatisticsCards();
     
     // Fetch and display users
     loadUsers();
@@ -16,6 +25,47 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Load current admin name
     loadAdminInfo();
+    
+    // Add custom styles
+    addCustomStyles();
+    
+    // Add search and filter container if it doesn't exist
+    const tableContainer = document.querySelector('#usersTable')?.parentElement;
+    if (tableContainer) {
+        const controlsHtml = `
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <input type="text" id="searchInput" class="form-control" placeholder="Search users...">
+                        <button class="btn btn-primary">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <select id="statusFilter" class="form-select">
+                        <option value="">All Status</option>
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                        <option value="Suspended">Suspended</option>
+                    </select>
+                </div>
+            </div>
+        `;
+        
+        tableContainer.insertAdjacentHTML('beforebegin', controlsHtml);
+    }
+    
+    // Add table header button if it doesn't exist
+    const cardHeader = document.querySelector('.card-header');
+    if (cardHeader && !cardHeader.querySelector('.btn-primary')) {
+        const addButtonHtml = `
+            <button class="btn btn-primary float-end">
+                <i class="fas fa-plus me-1"></i> Add User
+            </button>
+        `;
+        cardHeader.insertAdjacentHTML('beforeend', addButtonHtml);
+    }
 });
 
 /**
@@ -32,37 +82,73 @@ function initializeDataTable() {
                         <label class="form-check-label" for="check-${row.id}"></label>
                     </div>`;
                 },
-                orderable: false
+                orderable: false,
+                className: 'text-center'
             },
-            { data: 'username' },
-            { data: 'name' },
+            { 
+                data: 'username',
+                render: function(data, type, row) {
+                    return `<div class="d-flex align-items-center">
+                        <div class="user-avatar rounded-circle mr-2 bg-light text-primary">
+                            ${data.charAt(0).toUpperCase()}
+                        </div>
+                        <div class="user-info">
+                            <div class="font-weight-bold">${data}</div>
+                            <small class="text-muted">${row.name}</small>
+                        </div>
+                    </div>`;
+                }
+            },
             { 
                 data: 'status',
                 render: function(data) {
                     let badgeClass = 'bg-success';
-                    if (data === 'Inactive') badgeClass = 'bg-secondary';
-                    if (data === 'Suspended') badgeClass = 'bg-danger';
-                    return `<span class="badge ${badgeClass}">${data}</span>`;
-                }
+                    let icon = 'check-circle';
+                    
+                    if (data === 'Inactive') {
+                        badgeClass = 'bg-secondary';
+                        icon = 'clock';
+                    } else if (data === 'Suspended') {
+                        badgeClass = 'bg-danger';
+                        icon = 'ban';
+                    }
+                    
+                    return `<span class="badge ${badgeClass}">
+                        <i class="fas fa-${icon} me-1"></i> ${data}
+                    </span>`;
+                },
+                className: 'text-center'
+            },
+            { 
+                data: 'role',
+                render: function(data) {
+                    const roleClass = data === 'ADMIN' ? 'bg-warning' : 'bg-info';
+                    const icon = data === 'ADMIN' ? 'crown' : 'user';
+                    return `<span class="badge ${roleClass}">
+                        <i class="fas fa-${icon} me-1"></i> ${data}
+                    </span>`;
+                },
+                className: 'text-center'
             },
             { 
                 data: null,
                 render: function(data, type, row) {
                     return `
                         <div class="btn-group">
-                            <button class="btn btn-sm btn-info view-user" data-id="${row.id}">
+                            <button class="btn btn-sm btn-outline-info view-user" data-id="${row.id}" title="View Details">
                                 <i class="fas fa-eye"></i>
                             </button>
-                            <button class="btn btn-sm btn-primary edit-user" data-id="${row.id}">
+                            <button class="btn btn-sm btn-outline-primary edit-user" data-id="${row.id}" title="Edit User">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn btn-sm btn-danger delete-user" data-id="${row.id}">
+                            <button class="btn btn-sm btn-outline-danger delete-user" data-id="${row.id}" title="Delete User">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
                     `;
                 },
-                orderable: false
+                orderable: false,
+                className: 'text-center'
             }
         ],
         responsive: true,
@@ -70,9 +156,97 @@ function initializeDataTable() {
         language: {
             search: "_INPUT_",
             searchPlaceholder: "Search users...",
-            emptyTable: "No users found"
+            emptyTable: "No users found",
+            info: "Showing _START_ to _END_ of _TOTAL_ users",
+            infoEmpty: "No users available",
+            infoFiltered: "(filtered from _MAX_ total users)",
+            lengthMenu: "Show _MENU_ users per page",
+            zeroRecords: "No matching users found"
+        },
+        dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
+             '<"row"<"col-sm-12"tr>>' +
+             '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+        drawCallback: function() {
+            // Add tooltips to action buttons
+            $('[title]').tooltip();
         }
     });
+}
+
+/**
+ * Add statistics cards to the page
+ */
+function addStatisticsCards() {
+    const statsHtml = `
+        <div class="row mb-4">
+            <div class="col-xl-3 col-sm-6 mb-3">
+                <div class="card text-white bg-primary o-hidden h-100">
+                    <div class="card-body">
+                        <div class="card-body-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div>Total Users</div>
+                        <div class="mr-5" id="totalUsers">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6 mb-3">
+                <div class="card text-white bg-success o-hidden h-100">
+                    <div class="card-body">
+                        <div class="card-body-icon">
+                            <i class="fas fa-user-check"></i>
+                        </div>
+                        <div>Active Users</div>
+                        <div class="mr-5" id="activeUsers">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6 mb-3">
+                <div class="card text-white bg-secondary o-hidden h-100">
+                    <div class="card-body">
+                        <div class="card-body-icon">
+                            <i class="fas fa-user-clock"></i>
+                        </div>
+                        <div>Inactive Users</div>
+                        <div class="mr-5" id="inactiveUsers">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6 mb-3">
+                <div class="card text-white bg-danger o-hidden h-100">
+                    <div class="card-body">
+                        <div class="card-body-icon">
+                            <i class="fas fa-user-slash"></i>
+                        </div>
+                        <div>Suspended Users</div>
+                        <div class="mr-5" id="suspendedUsers">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Insert statistics cards before the users table
+    const tableContainer = document.querySelector('#usersTable').parentElement;
+    tableContainer.insertAdjacentHTML('beforebegin', statsHtml);
+}
+
+/**
+ * Update user statistics
+ */
+function updateUserStats(users) {
+    userStats = {
+        total: users.length,
+        active: users.filter(user => user.status === 'Active').length,
+        inactive: users.filter(user => user.status === 'Inactive').length,
+        suspended: users.filter(user => user.status === 'Suspended').length
+    };
+    
+    // Update the UI
+    document.getElementById('totalUsers').textContent = userStats.total;
+    document.getElementById('activeUsers').textContent = userStats.active;
+    document.getElementById('inactiveUsers').textContent = userStats.inactive;
+    document.getElementById('suspendedUsers').textContent = userStats.suspended;
 }
 
 /**
@@ -86,8 +260,10 @@ async function loadUsers(searchQuery = '', statusFilter = '') {
         
         const response = await axios.get(`${API_URL}/user/selectAll?${params.toString()}`);
         
-        if (response.data.code === '1') {
-            updateUserTable(response.data.data);
+        if (response.data.code === '200') {
+            const users = response.data.data;
+            updateUserTable(users);
+            updateUserStats(users);
         } else {
             showAlert('Error loading users: ' + response.data.msg, 'danger');
         }
@@ -110,7 +286,7 @@ async function loadUsersPaginated(pageNum = 1, pageSize = 10, searchQuery = '', 
         
         const response = await axios.get(`${API_URL}/user/selectPage?${params.toString()}`);
         
-        if (response.data.code === '1') {
+        if (response.data.code === '200') {
             updateUserTable(response.data.data.list);
             // Here you could also update pagination controls if needed
         } else {
@@ -138,7 +314,7 @@ async function addUser(userData) {
     try {
         const response = await axios.post(`${API_URL}/user/add`, userData);
         
-        if (response.data.code === '1') {
+        if (response.data.code === '200') {
             showAlert('User added successfully!', 'success');
             loadUsers(); // Reload the table
             return true;
@@ -160,7 +336,7 @@ async function getUserById(id) {
     try {
         const response = await axios.get(`${API_URL}/user/selectById/${id}`);
         
-        if (response.data.code === '1') {
+        if (response.data.code === '200') {
             return response.data.data;
         } else {
             showAlert('Error retrieving user: ' + response.data.msg, 'danger');
@@ -174,13 +350,33 @@ async function getUserById(id) {
 }
 
 /**
+ * Get user by username
+ */
+async function getUserByUsername(username) {
+    try {
+        const response = await axios.get(`${API_URL}/user/selectByUsername?userName=${username}`);
+        
+        if (response.data.code === '200') {
+            return response.data.data;
+        } else {
+            showAlert('Error retrieving user: ' + response.data.msg, 'danger');
+            return null;
+        }
+    } catch (error) {
+        console.error('Error retrieving user by username:', error);
+        showAlert('Failed to retrieve user. Please try again.', 'danger');
+        return null;
+    }
+}
+
+/**
  * Update user
  */
 async function updateUser(userData) {
     try {
         const response = await axios.put(`${API_URL}/user/update`, userData);
         
-        if (response.data.code === '1') {
+        if (response.data.code === '200') {
             showAlert('User updated successfully!', 'success');
             loadUsers(); // Reload the table
             return true;
@@ -202,7 +398,7 @@ async function deleteUser(id) {
     try {
         const response = await axios.delete(`${API_URL}/user/delete/${id}`);
         
-        if (response.data.code === '1') {
+        if (response.data.code === '200') {
             showAlert('User deleted successfully!', 'success');
             loadUsers(); // Reload the table
             return true;
@@ -222,11 +418,15 @@ async function deleteUser(id) {
  */
 async function deleteBatchUsers(ids) {
     try {
-        const response = await axios.delete(`${API_URL}/user/delete/batch`, { data: ids });
+        const response = await axios.delete(`${API_URL}/user/delete/batch`, { 
+            data: ids 
+        });
         
-        if (response.data.code === '1') {
+        if (response.data.code === '200') {
             showAlert('Users deleted successfully!', 'success');
             loadUsers(); // Reload the table
+            selectedUsers = []; // Clear selection
+            updateBulkActionButtons();
             return true;
         } else {
             showAlert('Error deleting users: ' + response.data.msg, 'danger');
@@ -244,60 +444,71 @@ async function deleteBatchUsers(ids) {
  */
 function setupEventListeners() {
     // Search button
-    document.querySelector('button.btn-primary i.fas.fa-search').parentElement.addEventListener('click', function() {
-        const searchQuery = document.getElementById('searchInput').value;
-        const statusFilter = document.getElementById('statusFilter').value;
-        loadUsers(searchQuery, statusFilter);
-    });
+    const searchButton = document.querySelector('button.btn-primary i.fas.fa-search');
+    if (searchButton && searchButton.parentElement) {
+        searchButton.parentElement.addEventListener('click', function() {
+            const searchQuery = document.getElementById('searchInput')?.value || '';
+            const statusFilter = document.getElementById('statusFilter')?.value || '';
+            loadUsers(searchQuery, statusFilter);
+        });
+    }
     
     // Add user button
-    document.querySelector('.card-header .btn-primary').addEventListener('click', function() {
-        openAddUserModal();
-    });
+    const addUserButton = document.querySelector('.card-header .btn-primary');
+    if (addUserButton) {
+        addUserButton.addEventListener('click', function() {
+            openAddUserModal();
+        });
+    }
     
     // Status filter
-    document.getElementById('statusFilter').addEventListener('change', function() {
-        const searchQuery = document.getElementById('searchInput').value;
-        const statusFilter = this.value;
-        loadUsers(searchQuery, statusFilter);
-    });
+    const statusFilter = document.getElementById('statusFilter');
+    if (statusFilter) {
+        statusFilter.addEventListener('change', function() {
+            const searchQuery = document.getElementById('searchInput')?.value || '';
+            loadUsers(searchQuery, this.value);
+        });
+    }
     
     // Table row selection
-    $('#usersTable').on('change', '.user-select', function() {
-        const userId = $(this).val();
-        if (this.checked) {
-            if (!selectedUsers.includes(userId)) {
-                selectedUsers.push(userId);
+    const usersTable = $('#usersTable');
+    if (usersTable.length) {
+        usersTable.on('change', '.user-select', function() {
+            const userId = $(this).val();
+            if (this.checked) {
+                if (!selectedUsers.includes(userId)) {
+                    selectedUsers.push(userId);
+                }
+            } else {
+                selectedUsers = selectedUsers.filter(id => id !== userId);
             }
-        } else {
-            selectedUsers = selectedUsers.filter(id => id !== userId);
-        }
-        updateBulkActionButtons();
-    });
-    
-    // View user
-    $('#usersTable').on('click', '.view-user', async function() {
-        const userId = $(this).data('id');
-        const user = await getUserById(userId);
-        if (user) {
-            showUserDetails(user);
-        }
-    });
-    
-    // Edit user
-    $('#usersTable').on('click', '.edit-user', async function() {
-        const userId = $(this).data('id');
-        const user = await getUserById(userId);
-        if (user) {
-            openEditUserModal(user);
-        }
-    });
-    
-    // Delete user
-    $('#usersTable').on('click', '.delete-user', function() {
-        const userId = $(this).data('id');
-        confirmDeleteUser(userId);
-    });
+            updateBulkActionButtons();
+        });
+        
+        // View user
+        usersTable.on('click', '.view-user', async function() {
+            const userId = $(this).data('id');
+            const user = await getUserById(userId);
+            if (user) {
+                showUserDetails(user);
+            }
+        });
+        
+        // Edit user
+        usersTable.on('click', '.edit-user', async function() {
+            const userId = $(this).data('id');
+            const user = await getUserById(userId);
+            if (user) {
+                openEditUserModal(user);
+            }
+        });
+        
+        // Delete user
+        usersTable.on('click', '.delete-user', function() {
+            const userId = $(this).data('id');
+            confirmDeleteUser(userId);
+        });
+    }
 }
 
 /**
@@ -317,25 +528,59 @@ function showAlert(message, type = 'primary') {
     if (!alertContainer) {
         alertContainer = document.createElement('div');
         alertContainer.id = 'alertContainer';
-        alertContainer.style.position = 'fixed';
-        alertContainer.style.top = '20px';
-        alertContainer.style.right = '20px';
-        alertContainer.style.zIndex = '9999';
+        alertContainer.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            min-width: 300px;
+            max-width: 500px;
+        `;
         document.body.appendChild(alertContainer);
     }
     
     const alert = document.createElement('div');
-    alert.className = `alert alert-${type} alert-dismissible fade show`;
+    alert.className = `alert alert-${type} alert-dismissible fade show d-flex align-items-center`;
+    
+    // Add appropriate icon based on alert type
+    let icon = 'info-circle';
+    switch(type) {
+        case 'success':
+            icon = 'check-circle';
+            break;
+        case 'danger':
+            icon = 'exclamation-circle';
+            break;
+        case 'warning':
+            icon = 'exclamation-triangle';
+            break;
+    }
+    
     alert.innerHTML = `
-        ${message}
+        <i class="fas fa-${icon} me-2"></i>
+        <div class="flex-grow-1">${message}</div>
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    
+    // Add custom styles for smooth animation
+    alert.style.cssText = `
+        opacity: 0;
+        transform: translateX(100%);
+        transition: all 0.3s ease-in-out;
     `;
     
     alertContainer.appendChild(alert);
     
+    // Trigger animation
+    setTimeout(() => {
+        alert.style.opacity = '1';
+        alert.style.transform = 'translateX(0)';
+    }, 50);
+    
     // Remove the alert after 5 seconds
     setTimeout(() => {
-        alert.classList.remove('show');
+        alert.style.opacity = '0';
+        alert.style.transform = 'translateX(100%)';
         setTimeout(() => alert.remove(), 300);
     }, 5000);
 }
@@ -374,6 +619,13 @@ function openAddUserModal() {
                                 <option value="Inactive">Inactive</option>
                             </select>
                         </div>
+                        <div class="mb-3">
+                            <label for="role" class="form-label">Role</label>
+                            <select class="form-select" id="role">
+                                <option value="USER">User</option>
+                                <option value="ADMIN">Admin</option>
+                            </select>
+                        </div>
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -401,7 +653,7 @@ function openAddUserModal() {
             name: document.getElementById('name').value,
             password: document.getElementById('password').value,
             status: document.getElementById('status').value,
-            role: 'USER'  // Default role for users created in admin panel
+            role: document.getElementById('role').value
         };
         
         if (await addUser(userData)) {
@@ -423,12 +675,11 @@ function openAddUserModal() {
  * Open modal for editing a user
  */
 function openEditUserModal(user) {
-    // Template for the modal - assuming Bootstrap 5
     const modalHtml = `
     <div class="modal fade" id="editUserModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <div class="modal-header">
+                <div class="modal-header bg-light">
                     <h5 class="modal-title">Edit User</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -451,11 +702,20 @@ function openEditUserModal(user) {
                                 <option value="Suspended" ${user.status === 'Suspended' ? 'selected' : ''}>Suspended</option>
                             </select>
                         </div>
+                        <div class="mb-3">
+                            <label for="role" class="form-label">Role</label>
+                            <select class="form-select" id="role">
+                                <option value="USER" ${user.role === 'USER' ? 'selected' : ''}>User</option>
+                                <option value="ADMIN" ${user.role === 'ADMIN' ? 'selected' : ''}>Admin</option>
+                            </select>
+                        </div>
                     </form>
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="updateUserBtn">Update User</button>
+                    <button type="button" class="btn btn-primary" id="updateUserBtn">
+                        <i class="fas fa-save me-1"></i> Save Changes
+                    </button>
                 </div>
             </div>
         </div>
@@ -475,8 +735,10 @@ function openEditUserModal(user) {
     document.getElementById('updateUserBtn').addEventListener('click', async function() {
         const userData = {
             id: document.getElementById('userId').value,
+            username: document.getElementById('username').value,
             name: document.getElementById('name').value,
-            status: document.getElementById('status').value
+            status: document.getElementById('status').value,
+            role: document.getElementById('role').value
         };
         
         if (await updateUser(userData)) {
@@ -494,47 +756,102 @@ function openEditUserModal(user) {
  * Show user details
  */
 function showUserDetails(user) {
-    // Template for the modal
     const modalHtml = `
     <div class="modal fade" id="viewUserModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <div class="modal-header">
+                <div class="modal-header bg-light">
                     <h5 class="modal-title">User Details</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">${user.name}</h5>
-                            <h6 class="card-subtitle mb-2 text-muted">@${user.username}</h6>
-                            <p class="card-text">
-                                <strong>Status:</strong> 
+                    <div class="text-center mb-4">
+                        <div class="user-avatar-lg rounded-circle bg-light text-primary mx-auto mb-3">
+                            ${user.username.charAt(0).toUpperCase()}
+                        </div>
+                        <h4 class="mb-1">${user.name}</h4>
+                        <p class="text-muted">@${user.username}</p>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="border rounded p-3">
+                                <small class="text-muted d-block">Status</small>
                                 <span class="badge ${user.status === 'Active' ? 'bg-success' : (user.status === 'Inactive' ? 'bg-secondary' : 'bg-danger')}">
+                                    <i class="fas fa-${user.status === 'Active' ? 'check-circle' : (user.status === 'Inactive' ? 'clock' : 'ban')}"></i>
                                     ${user.status}
                                 </span>
-                            </p>
-                            <p class="card-text"><strong>Role:</strong> ${user.role}</p>
-                            <p class="card-text"><strong>ID:</strong> ${user.id}</p>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-3">
+                                <small class="text-muted d-block">Role</small>
+                                <span class="badge ${user.role === 'ADMIN' ? 'bg-warning' : 'bg-info'}">
+                                    <i class="fas fa-${user.role === 'ADMIN' ? 'crown' : 'user'}"></i>
+                                    ${user.role}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="border rounded p-3">
+                                <small class="text-muted d-block">User ID</small>
+                                <code>${user.id}</code>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary edit-user" data-id="${user.id}">
+                        <i class="fas fa-edit me-1"></i> Edit User
+                    </button>
                 </div>
             </div>
         </div>
     </div>
     `;
     
+    // Add custom styles for user avatar
+    const modalStyles = `
+        <style>
+            .user-avatar-lg {
+                width: 80px;
+                height: 80px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 2rem;
+                font-weight: bold;
+            }
+            
+            #viewUserModal .modal-content {
+                border: none;
+                box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            }
+            
+            #viewUserModal .border {
+                border-color: #dee2e6 !important;
+            }
+        </style>
+    `;
+    
     // Create and append the modal
     const modalContainer = document.createElement('div');
-    modalContainer.innerHTML = modalHtml;
+    modalContainer.innerHTML = modalHtml + modalStyles;
     document.body.appendChild(modalContainer);
     
     // Initialize and show the modal
     const modal = new bootstrap.Modal(document.getElementById('viewUserModal'));
     modal.show();
+    
+    // Add event listener for edit button
+    document.querySelector('#viewUserModal .edit-user').addEventListener('click', async function() {
+        const userId = this.dataset.id;
+        modal.hide();
+        const user = await getUserById(userId);
+        if (user) {
+            openEditUserModal(user);
+        }
+    });
     
     // Clean up when modal is closed
     document.getElementById('viewUserModal').addEventListener('hidden.bs.modal', function() {
@@ -546,21 +863,25 @@ function showUserDetails(user) {
  * Confirm before deleting a user
  */
 function confirmDeleteUser(userId) {
-    // Template for the confirmation modal
     const modalHtml = `
     <div class="modal fade" id="deleteUserModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Confirm Deletion</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Confirm Deletion
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Are you sure you want to delete this user? This action cannot be undone.</p>
+                    <p class="mb-0">Are you sure you want to delete this user? This action cannot be undone.</p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                        <i class="fas fa-trash me-1"></i> Delete
+                    </button>
                 </div>
             </div>
         </div>
@@ -630,21 +951,25 @@ function updateBulkActionButtons() {
  * Confirm before deleting multiple users
  */
 function confirmDeleteBatch(userIds) {
-    // Template for the confirmation modal
     const modalHtml = `
     <div class="modal fade" id="deleteBatchModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Confirm Multiple Deletion</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Confirm Multiple Deletion
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Are you sure you want to delete ${userIds.length} users? This action cannot be undone.</p>
+                    <p class="mb-0">Are you sure you want to delete ${userIds.length} users? This action cannot be undone.</p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-danger" id="confirmBatchDeleteBtn">Delete All</button>
+                    <button type="button" class="btn btn-danger" id="confirmBatchDeleteBtn">
+                        <i class="fas fa-trash me-1"></i> Delete All
+                    </button>
                 </div>
             </div>
         </div>
@@ -664,8 +989,6 @@ function confirmDeleteBatch(userIds) {
     document.getElementById('confirmBatchDeleteBtn').addEventListener('click', async function() {
         if (await deleteBatchUsers(userIds)) {
             modal.hide();
-            selectedUsers = [];
-            updateBulkActionButtons();
         }
     });
     
@@ -673,4 +996,61 @@ function confirmDeleteBatch(userIds) {
     document.getElementById('deleteBatchModal').addEventListener('hidden.bs.modal', function() {
         this.remove();
     });
+}
+
+// Add custom CSS styles
+function addCustomStyles() {
+    const customStyles = `
+        <style>
+            .user-avatar {
+                width: 35px;
+                height: 35px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: bold;
+                margin-right: 10px;
+            }
+            
+            .badge {
+                padding: 0.5em 0.8em;
+                font-size: 0.85em;
+            }
+            
+            .card-body-icon {
+                position: absolute;
+                z-index: 0;
+                top: -1.5rem;
+                right: -1rem;
+                opacity: 0.4;
+                font-size: 5rem;
+                transform: rotate(15deg);
+            }
+            
+            .card:hover .card-body-icon {
+                transform: rotate(0deg);
+                transition: transform 0.3s;
+            }
+            
+            .btn-group .btn {
+                margin: 0 2px;
+            }
+            
+            .table thead th {
+                background-color: #f8f9fa;
+                border-bottom: 2px solid #dee2e6;
+            }
+            
+            .table tbody tr:hover {
+                background-color: rgba(0,0,0,.03);
+            }
+            
+            .form-check-input:checked {
+                background-color: #0d6efd;
+                border-color: #0d6efd;
+            }
+        </style>
+    `;
+    
+    document.head.insertAdjacentHTML('beforeend', customStyles);
 } 
