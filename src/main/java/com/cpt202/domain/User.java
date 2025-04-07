@@ -28,7 +28,6 @@ public class User extends Account implements Serializable {
     private String expiredDate;
 
     private String code;
-    private String gender;
 
 
 }
