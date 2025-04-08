@@ -30,4 +30,14 @@ public interface UserService {
 
     // 新添加的方法：查询总用户数量
     int getUserCount();
+
+    boolean insert(User user);
+
+    boolean update(User user);
+
+    boolean delete(Integer id);
+
+    boolean updateStatus(Integer id, Byte status);
+
+    User selectByUsername(String username);
 }

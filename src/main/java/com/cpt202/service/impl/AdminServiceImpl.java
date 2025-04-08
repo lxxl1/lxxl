@@ -9,10 +9,12 @@ import com.cpt202.common.enums.RoleEnum;
 import com.cpt202.domain.Account;
 import com.cpt202.domain.Admin;
 import com.cpt202.domain.User;
+import com.cpt202.domain.Song;
 import com.cpt202.utils.exception.BusinessException;
 import com.cpt202.utils.exception.CustomException;
 import com.cpt202.mapper.AdminMapper;
 import com.cpt202.mapper.UserMapper;
+import com.cpt202.mapper.SongMapper;
 import com.cpt202.service.AdminService;
 import com.cpt202.utils.TokenUtils;
 import com.github.pagehelper.PageHelper;
@@ -39,6 +41,9 @@ public class AdminServiceImpl implements AdminService {
 
     @Resource
     private UserMapper userMapper;
+
+    @Resource
+    private SongMapper songMapper;
 
     private final String SALT = "lxxl";
 
@@ -209,14 +214,29 @@ public class AdminServiceImpl implements AdminService {
     public void updateUserStatus(Integer userId, Integer status) {
         User user = new User();
         user.setId(userId);
-        user.setStatus(status);
+        user.setStatus(status.byteValue());
         userMapper.updateById(user);
     }
 
     @Override
     public Integer getUserStatus(Integer userId) {
         User user = userMapper.selectById(userId);
-        return user != null ? user.getStatus() : null;
+        return user != null ? user.getStatus().intValue() : null;
+    }
+
+    @Override
+    public List<Song> getPendingAuditSongs() {
+        return songMapper.selectPendingAuditSongs();
+    }
+
+    @Override
+    public List<Song> getAuditedSongs(Integer status) {
+        return songMapper.selectAuditedSongs(status);
+    }
+
+    @Override
+    public void auditSong(Integer songId, Integer status, String reason, Integer auditorId) {
+        songMapper.updateSongAuditStatus(songId, status, reason, auditorId);
     }
 
 }

@@ -80,6 +80,19 @@ public interface SongMapper {
      */
     @Select("SELECT * FROM song WHERE status = #{status}")
     public List<Song> getAuditedSongs(@Param("status") Integer status);
+
+    @Select("SELECT * FROM song WHERE status = 0")
+    List<Song> selectPendingAuditSongs();
+
+    @Select("SELECT * FROM song WHERE status = #{status}")
+    List<Song> selectAuditedSongs(@Param("status") Integer status);
+
+    @Update("UPDATE song SET status = #{status}, audit_reason = #{reason}, " +
+            "audit_time = NOW(), auditor_id = #{auditorId} WHERE id = #{songId}")
+    int updateSongAuditStatus(@Param("songId") Integer songId,
+                            @Param("status") Integer status,
+                            @Param("reason") String reason,
+                            @Param("auditorId") Integer auditorId);
 }
 
 

@@ -61,7 +61,7 @@ public class UserServiceImpl implements UserService {
         }
 
         // 账户不能包含特殊字符
-        String validPattern = "[`~!@#$%^&*()+=|{}':;',\\\\[\\\\].<>/?~！@#￥%……&*（）——+|{}【】‘；：”“’。，、？]";
+        String validPattern = "[`~!@#$%^&*()+=|{}':;',\\\\[\\\\].<>/?~！@#￥%……&*（）——+|{}【】'；：'。，、？]";
         Matcher matcher = Pattern.compile(validPattern).matcher(username);
         if (matcher.find()) {
             return -1L;
@@ -126,7 +126,7 @@ public class UserServiceImpl implements UserService {
         if (!encryptPassword.equals(dbUser.getPassword())) {
             throw new CustomException(ResultCodeEnum.USER_ACCOUNT_ERROR);
         }
-        String validPattern = "[`~!@#$%^&*()+=|{}':;',\\\\[\\\\].<>/?~！@#￥%……&*（）——+|{}【】‘；：”“’。，、？]";
+        String validPattern = "[`~!@#$%^&*()+=|{}':;',\\\\[\\\\].<>/?~！@#￥%……&*（）——+|{}【】'；：'。，、？]";
         Matcher matcher = Pattern.compile(validPattern).matcher(account.getUsername());
         if (matcher.find()) {
             return null;
@@ -242,5 +242,33 @@ public class UserServiceImpl implements UserService {
 
     public int getUserCount() {
         return userMapper.selectUserCount();
+    }
+
+    @Override
+    public boolean insert(User user) {
+        return userMapper.insert(user) > 0;
+    }
+
+    @Override
+    public boolean update(User user) {
+        return userMapper.updateById(user) > 0;
+    }
+
+    @Override
+    public boolean delete(Integer id) {
+        return userMapper.deleteById(id) > 0;
+    }
+
+    @Override
+    public boolean updateStatus(Integer id, Byte status) {
+        User user = new User();
+        user.setId(id);
+        user.setStatus(status);
+        return userMapper.updateById(user) > 0;
+    }
+
+    @Override
+    public User selectByUsername(String username) {
+        return userMapper.selectByUsername(username);
     }
 }

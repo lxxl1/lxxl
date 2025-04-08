@@ -1,6 +1,5 @@
 package com.cpt202.controller;
 
-import com.alibaba.fastjson.JSONObject;
 import com.cpt202.common.Result;
 import com.cpt202.domain.Song;
 import com.cpt202.service.SongService;
@@ -11,9 +10,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.PathVariable;
+
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.File;

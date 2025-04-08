@@ -27,7 +27,7 @@ public class UserController {
         if (userService.insert(user)) {
             return Result.success("添加成功");
         }
-        return Result.error("添加失败");
+        return Result.failure("添加失败");
     }
 
     /**
@@ -38,7 +38,7 @@ public class UserController {
         if (userService.delete(id)) {
             return Result.success("删除成功");
         }
-        return Result.error("删除失败");
+        return Result.failure("删除失败");
     }
 
     /**
@@ -58,7 +58,7 @@ public class UserController {
         if (userService.update(user)) {
             return Result.success("修改成功");
         }
-        return Result.error("修改失败");
+        return Result.failure("修改失败");
     }
 
     /**
@@ -68,18 +68,18 @@ public class UserController {
     public Result selectById(@PathVariable Integer id) {
         User user = userService.selectById(id);
         if (user != null) {
-            return Result.success("查询成功", user);
+            return Result.success(user);
         }
-        return Result.error("查询失败");
+        return Result.failure("查询失败");
     }
 
     @GetMapping("/select/username/{username}")
     public Result selectByUsername(@PathVariable String username) {
         User user = userService.selectByUsername(username);
         if (user != null) {
-            return Result.success("查询成功", user);
+            return Result.success(user);
         }
-        return Result.error("查询失败");
+        return Result.failure("查询失败");
     }
 
     /**
@@ -87,8 +87,8 @@ public class UserController {
      */
     @GetMapping("/select/all")
     public Result selectAll() {
-        List<User> users = userService.selectAll();
-        return Result.success("查询成功", users);
+        List<User> users = userService.selectAll(new User());
+        return Result.success(users);
     }
 
     /**
@@ -107,6 +107,6 @@ public class UserController {
         if (userService.updateStatus(id, status)) {
             return Result.success(status == 1 ? "禁用成功" : "解禁成功");
         }
-        return Result.error("操作失败");
+        return Result.failure("操作失败");
     }
 }

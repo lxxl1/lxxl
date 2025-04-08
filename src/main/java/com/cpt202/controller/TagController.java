@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 标签管理controller
@@ -91,7 +92,7 @@ public class TagController {
         // 将逗号分隔的tagIds转换为List
         List<Integer> tagIdList = Arrays.stream(tagIds.split(","))
                 .map(Integer::parseInt)
-                .toList();
+                .collect(Collectors.toList());
 
         boolean flag = tagService.addSongTags(Integer.parseInt(songId), tagIdList);
         if (flag) {

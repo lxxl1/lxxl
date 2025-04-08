@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
+import java.util.Collections;
 
 @Service
 public class TagServiceImpl implements TagService {
@@ -58,14 +59,14 @@ public class TagServiceImpl implements TagService {
     
     @Override
     public boolean removeSongTag(Integer songId, Integer tagId) {
-        return songTagMapper.delete(songId, tagId) > 0;
+        return songTagMapper.deleteBySongIdAndTagId(songId, tagId) > 0;
     }
     
     @Override
     public List<Tag> getSongTags(Integer songId) {
         List<Integer> tagIds = songTagMapper.selectTagIdsBySongId(songId);
         if (tagIds.isEmpty()) {
-            return List.of();
+            return Collections.emptyList();
         }
         return tagMapper.selectByIds(tagIds);
     }
