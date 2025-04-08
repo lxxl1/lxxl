@@ -23,18 +23,22 @@ public class UserController {
      * 新增
      */
     @PostMapping("/add")
-    public Result add(@RequestBody User user) {
-        userService.add(user);
-        return Result.success();
+    public Result addUser(@RequestBody User user) {
+        if (userService.insert(user)) {
+            return Result.success("添加成功");
+        }
+        return Result.error("添加失败");
     }
 
     /**
      * 删除
      */
     @DeleteMapping("/delete/{id}")
-    public Result deleteById(@PathVariable Integer id) {
-        userService.deleteById(id);
-        return Result.success();
+    public Result deleteUser(@PathVariable Integer id) {
+        if (userService.delete(id)) {
+            return Result.success("删除成功");
+        }
+        return Result.error("删除失败");
     }
 
     /**
@@ -49,36 +53,42 @@ public class UserController {
     /**
      * 修改
      */
-    @PutMapping("/update")
-    public Result updateById(@RequestBody User user) {
-        userService.updateById(user);
-        return Result.success();
+    @PostMapping("/update")
+    public Result updateUser(@RequestBody User user) {
+        if (userService.update(user)) {
+            return Result.success("修改成功");
+        }
+        return Result.error("修改失败");
     }
 
     /**
      * 根据ID查询
      */
-    @GetMapping("/selectById/{id}")
+    @GetMapping("/select/{id}")
     public Result selectById(@PathVariable Integer id) {
         User user = userService.selectById(id);
-        return Result.success(user);
+        if (user != null) {
+            return Result.success("查询成功", user);
+        }
+        return Result.error("查询失败");
     }
 
-    @GetMapping("/selectByUsername")
-    public Result selectByUserName(@RequestParam String userName) {
-        User user1 = userService.selectByUserName(userName);
-        return Result.success(user1);
+    @GetMapping("/select/username/{username}")
+    public Result selectByUsername(@PathVariable String username) {
+        User user = userService.selectByUsername(username);
+        if (user != null) {
+            return Result.success("查询成功", user);
+        }
+        return Result.error("查询失败");
     }
-
-
 
     /**
      * 查询所有
      */
-    @GetMapping("/selectAll")
-    public Result selectAll(User user) {
-        List<User> list = userService.selectAll(user);
-        return Result.success(list);
+    @GetMapping("/select/all")
+    public Result selectAll() {
+        List<User> users = userService.selectAll();
+        return Result.success("查询成功", users);
     }
 
     /**
@@ -90,5 +100,13 @@ public class UserController {
                              @RequestParam(defaultValue = "10") Integer pageSize) {
         PageInfo<User> page = userService.selectPage(user, pageNum, pageSize);
         return Result.success(page);
+    }
+
+    @PostMapping("/status/{id}")
+    public Result updateStatus(@PathVariable Integer id, @RequestParam Byte status) {
+        if (userService.updateStatus(id, status)) {
+            return Result.success(status == 1 ? "禁用成功" : "解禁成功");
+        }
+        return Result.error("操作失败");
     }
 }

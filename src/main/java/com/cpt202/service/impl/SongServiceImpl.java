@@ -110,4 +110,19 @@ public class SongServiceImpl implements SongService {
     public List<Song> topSong() {
         return songMapper.topSong();
     }
+
+    @Override
+    public boolean updateStatus(Integer songId, Integer status) {
+        return songMapper.updateStatus(songId, status) > 0;
+    }
+
+    @Override
+    public List<Song> getPendingSongs() {
+        return songMapper.getPendingSongs();
+    }
+
+    @Override
+    public List<Song> getAuditedSongs(Integer status) {
+        return songMapper.getAuditedSongs(status);
+    }
 }

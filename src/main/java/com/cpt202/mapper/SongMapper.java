@@ -2,6 +2,9 @@ package com.cpt202.mapper;
 
 import com.cpt202.domain.Song;
 import org.springframework.stereotype.Repository;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Update;
+import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
 
@@ -59,6 +62,24 @@ public interface SongMapper {
      * 查询播放次数排前列的歌曲
      */
 	public List<Song> topSong();
+
+    /**
+     * 更新歌曲审核状态
+     */
+    @Update("UPDATE song SET status = #{status} WHERE id = #{songId}")
+    public int updateStatus(@Param("songId") Integer songId, @Param("status") Integer status);
+
+    /**
+     * 获取待审核歌曲列表
+     */
+    @Select("SELECT * FROM song WHERE status = 0 OR status IS NULL")
+    public List<Song> getPendingSongs();
+
+    /**
+     * 获取已审核歌曲列表
+     */
+    @Select("SELECT * FROM song WHERE status = #{status}")
+    public List<Song> getAuditedSongs(@Param("status") Integer status);
 }
 
 

@@ -8,9 +8,11 @@ import com.cpt202.common.enums.ResultCodeEnum;
 import com.cpt202.common.enums.RoleEnum;
 import com.cpt202.domain.Account;
 import com.cpt202.domain.Admin;
+import com.cpt202.domain.User;
 import com.cpt202.utils.exception.BusinessException;
 import com.cpt202.utils.exception.CustomException;
 import com.cpt202.mapper.AdminMapper;
+import com.cpt202.mapper.UserMapper;
 import com.cpt202.service.AdminService;
 import com.cpt202.utils.TokenUtils;
 import com.github.pagehelper.PageHelper;
@@ -34,6 +36,9 @@ public class AdminServiceImpl implements AdminService {
 
     @Resource
     private AdminMapper adminMapper;
+
+    @Resource
+    private UserMapper userMapper;
 
     private final String SALT = "lxxl";
 
@@ -116,7 +121,7 @@ public class AdminServiceImpl implements AdminService {
         if (!encryptPassword.equals(dbAdmin.getPassword())) {
             throw new CustomException(ResultCodeEnum.USER_ACCOUNT_ERROR);
         }
-        String validPattern = "[`~!@#$%^&*()+=|{}':;',\\\\[\\\\].<>/?~！@#￥%……&*（）——+|{}【】‘；：”“’。，、？]";
+        String validPattern = "[`~!@#$%^&*()+=|{}':;',\\\\[\\\\].<>/?~！@#￥%……&*（）——+|{}【】'；：'。，、？]";
         Matcher matcher = Pattern.compile(validPattern).matcher(account.getUsername());
         if (matcher.find()) {
             return null;
@@ -155,7 +160,7 @@ public class AdminServiceImpl implements AdminService {
         }
 
         // 账户不能包含特殊字符
-        String validPattern = "[`~!@#$%^&*()+=|{}':;',\\\\[\\\\].<>/?~！@#￥%……&*（）——+|{}【】‘；：”“’。，、？]";
+        String validPattern = "[`~!@#$%^&*()+=|{}':;',\\\\[\\\\].<>/?~！@#￥%……&*（）——+|{}【】'；：'。，、？]";
         Matcher matcher = Pattern.compile(validPattern).matcher(username);
         if (matcher.find()) {
             return -1L;
@@ -198,6 +203,20 @@ public class AdminServiceImpl implements AdminService {
         }
         dbAdmin.setPassword(account.getNewPassword());
         adminMapper.updateById(dbAdmin);
+    }
+
+    @Override
+    public void updateUserStatus(Integer userId, Integer status) {
+        User user = new User();
+        user.setId(userId);
+        user.setStatus(status);
+        userMapper.updateById(user);
+    }
+
+    @Override
+    public Integer getUserStatus(Integer userId) {
+        User user = userMapper.selectById(userId);
+        return user != null ? user.getStatus() : null;
     }
 
 }

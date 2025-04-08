@@ -2,7 +2,9 @@ package com.cpt202.controller;
 
 import com.cpt202.common.Result;
 import com.cpt202.domain.Admin;
+import com.cpt202.domain.Song;
 import com.cpt202.service.AdminService;
+import com.cpt202.utils.TokenUtils;
 import com.github.pagehelper.PageInfo;
 import org.springframework.web.bind.annotation.*;
 import javax.annotation.Resource;
@@ -83,4 +85,52 @@ public class AdminController {
         return Result.success(page);
     }
 
+    /**
+     * 更新用户状态
+     */
+    @PutMapping("/user/status/{userId}")
+    public Result updateUserStatus(@PathVariable Integer userId, @RequestParam Integer status) {
+        adminService.updateUserStatus(userId, status);
+        return Result.success();
+    }
+
+    /**
+     * 获取用户状态
+     */
+    @GetMapping("/user/status/{userId}")
+    public Result getUserStatus(@PathVariable Integer userId) {
+        Integer status = adminService.getUserStatus(userId);
+        return Result.success(status);
+    }
+
+    /**
+     * 审核歌曲
+     */
+    @PutMapping("/song/audit/{songId}")
+    public Result auditSong(@PathVariable Integer songId,
+                          @RequestParam Integer status,
+                          @RequestParam(required = false) String reason) {
+        // 获取当前登录的管理员ID
+        Admin admin = (Admin) TokenUtils.getCurrentUser();
+        adminService.auditSong(songId, status, reason, admin.getId());
+        return Result.success();
+    }
+
+    /**
+     * 获取待审核歌曲列表
+     */
+    @GetMapping("/song/pending")
+    public Result getPendingAuditSongs() {
+        List<Song> songs = adminService.getPendingAuditSongs();
+        return Result.success(songs);
+    }
+
+    /**
+     * 获取已审核歌曲列表
+     */
+    @GetMapping("/song/audited")
+    public Result getAuditedSongs(@RequestParam Integer status) {
+        List<Song> songs = adminService.getAuditedSongs(status);
+        return Result.success(songs);
+    }
 }

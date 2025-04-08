@@ -2,13 +2,15 @@ package com.cpt202.domain;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.RequiredArgsConstructor;
-
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 import java.io.Serializable;
+import java.util.Date;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
-@RequiredArgsConstructor
+@NoArgsConstructor
+@AllArgsConstructor
 /*
   用户
 */
@@ -26,8 +28,7 @@ public class User extends Account implements Serializable {
     private Double account;
     private String level;
     private String expiredDate;
-
     private String code;
-
-
+    private Byte status; // 0-正常 1-禁用
+    private Date createTime;
 }

@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cpt202.mapper.SongTagMapper">
+    <resultMap id="BaseResultMap" type="com.cpt202.domain.SongTag">
+        <id column="id" property="id"/>
+        <result column="song_id" property="songId"/>
+        <result column="tag_id" property="tagId"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, song_id, tag_id, create_time
+    </sql>
+
+    <insert id="insert" parameterType="com.cpt202.domain.SongTag">
+        insert into song_tag
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="songId != null">song_id,</if>
+            <if test="tagId != null">tag_id,</if>
+            <if test="createTime != null">create_time,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="songId != null">#{songId},</if>
+            <if test="tagId != null">#{tagId},</if>
+            <if test="createTime != null">#{createTime},</if>
+        </trim>
+    </insert>
+
+    <insert id="batchInsert">
+        insert into song_tag (song_id, tag_id, create_time)
+        values
+        <foreach collection="tagIds" item="tagId" separator=",">
+            (#{songId}, #{tagId}, now())
+        </foreach>
+    </insert>
+
+    <delete id="delete" parameterType="java.lang.Integer">
+        delete from song_tag where id = #{id}
+    </delete>
+
+    <delete id="deleteBySongId">
+        delete from song_tag where song_id = #{songId}
+    </delete>
+
+    <delete id="deleteBySongIdAndTagId">
+        delete from song_tag where song_id = #{songId} and tag_id = #{tagId}
+    </delete>
+
+    <select id="selectBySongId" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from song_tag
+        where song_id = #{songId}
+    </select>
+
+    <select id="selectByTagId" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from song_tag
+        where tag_id = #{tagId}
+    </select>
+
+    <select id="selectSongIdsByTagId" resultType="java.lang.Integer">
+        select song_id
+        from song_tag
+        where tag_id = #{tagId}
+    </select>
+
+    <select id="selectTagIdsBySongId" resultType="java.lang.Integer">
+        select tag_id
+        from song_tag
+        where song_id = #{songId}
+    </select>
+</mapper> 

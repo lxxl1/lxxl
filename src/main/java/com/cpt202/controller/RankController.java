@@ -1,6 +1,7 @@
 package com.cpt202.controller;
 
 import com.alibaba.fastjson.JSONObject;
+import com.cpt202.common.Result;
 import com.cpt202.domain.Rank;
 import com.cpt202.service.RankService;
 import com.cpt202.utils.Consts;
@@ -21,34 +22,30 @@ public class RankController {
      * 新增评价
      */
     @RequestMapping(value = "/rank/add",method = RequestMethod.POST)
-    public Object add(HttpServletRequest request){
-        JSONObject jsonObject = new JSONObject();
-        String songListId = request.getParameter("songListId");
-        String consumerId = request.getParameter("consumerId");
-        String score = request.getParameter("score");
+    public Result add(HttpServletRequest request){
+        String songListId = request.getParameter("songListId").trim();
+        String consumerId = request.getParameter("consumerId").trim();
+        String score = request.getParameter("score").trim();
 
         Rank rank = new Rank();
         rank.setSongListId(Integer.parseInt(songListId));
         rank.setConsumerId(Integer.parseInt(consumerId));
         rank.setScore(Integer.parseInt(score));
+
         boolean flag = rankService.insert(rank);
         if(flag){
-            jsonObject.put(Consts.CODE,1);
-            jsonObject.put(Consts.MSG,"评价成功");
-            return jsonObject;
+            return Result.success();
         }
-        jsonObject.put(Consts.CODE,0);
-        jsonObject.put(Consts.MSG,"评价失败");
-        return jsonObject;
+        return Result.failure("评价失败");
     }
 
     /**
      * 计算平均分
      */
     @RequestMapping(value = "/rank",method = RequestMethod.GET)
-    public Object rankOfSongListId(HttpServletRequest request){
-        String songListId = request.getParameter("songListId");
-        return rankService.rankOfSongListId(Integer.parseInt(songListId));
+    public Result rankOfSongListId(HttpServletRequest request){
+        String songListId = request.getParameter("songListId").trim();
+        return Result.success(rankService.rankOfSongListId(Integer.parseInt(songListId)));
     }
 }
 

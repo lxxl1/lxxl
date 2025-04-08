@@ -1,6 +1,7 @@
 package com.cpt202.controller;
 
 import com.alibaba.fastjson.JSONObject;
+import com.cpt202.common.Result;
 import com.cpt202.domain.SongList;
 import com.cpt202.service.SongListService;
 import com.cpt202.utils.Consts;
@@ -29,122 +30,110 @@ public class SongListController {
      * 添加歌单
      */
     @RequestMapping(value = "/add",method = RequestMethod.POST)
-    public Object addSongList(HttpServletRequest request){
-        JSONObject jsonObject = new JSONObject();
-        String title = request.getParameter("title").trim();      //标题
-        String pic = request.getParameter("pic").trim();        //歌单图片
-        String introduction = request.getParameter("introduction").trim();//简介
-        String style = request.getParameter("style").trim();    //风格
+    public Result addSongList(HttpServletRequest request){
+        String title = request.getParameter("title").trim();
+        String pic = request.getParameter("pic").trim();
+        String introduction = request.getParameter("introduction").trim();
+        String style = request.getParameter("style").trim();
 
-        //保存到歌单的对象中
         SongList songList = new SongList();
         songList.setTitle(title);
         songList.setPic(pic);
         songList.setIntroduction(introduction);
         songList.setStyle(style);
         boolean flag = songListService.insert(songList);
-        if(flag){   //保存成功
-            jsonObject.put(Consts.CODE,1);
-            jsonObject.put(Consts.MSG,"添加成功");
-            return jsonObject;
+        if(flag){
+            return Result.success();
         }
-        jsonObject.put(Consts.CODE,0);
-        jsonObject.put(Consts.MSG,"添加失败");
-        return jsonObject;
+        return Result.failure("添加失败");
     }
 
     /**
      * 修改歌单
      */
     @RequestMapping(value = "/update",method = RequestMethod.POST)
-    public Object updateSongList(HttpServletRequest request){
-        JSONObject jsonObject = new JSONObject();
-        String id = request.getParameter("id").trim();          //主键
-        String title = request.getParameter("title").trim();      //标题
-        String introduction = request.getParameter("introduction").trim();//简介
-        String style = request.getParameter("style").trim();    //风格
-        //保存到歌单的对象中
+    public Result updateSongList(HttpServletRequest request){
+        String id = request.getParameter("id").trim();
+        String title = request.getParameter("title").trim();
+        String introduction = request.getParameter("introduction").trim();
+        String style = request.getParameter("style").trim();
+
         SongList songList = new SongList();
         songList.setId(Integer.parseInt(id));
         songList.setTitle(title);
         songList.setIntroduction(introduction);
         songList.setStyle(style);
         boolean flag = songListService.update(songList);
-        if(flag){   //保存成功
-            jsonObject.put(Consts.CODE,1);
-            jsonObject.put(Consts.MSG,"修改成功");
-            return jsonObject;
+        if(flag){
+            return Result.success();
         }
-        jsonObject.put(Consts.CODE,0);
-        jsonObject.put(Consts.MSG,"修改失败");
-        return jsonObject;
+        return Result.failure("修改失败");
     }
-
 
     /**
      * 删除歌单
      */
     @RequestMapping(value = "/delete",method = RequestMethod.GET)
-    public Object deleteSongList(HttpServletRequest request){
-        String id = request.getParameter("id").trim();          //主键
+    public Result deleteSongList(HttpServletRequest request){
+        String id = request.getParameter("id").trim();
         boolean flag = songListService.delete(Integer.parseInt(id));
-        return flag;
+        if(flag){
+            return Result.success();
+        }
+        return Result.failure("删除失败");
     }
 
     /**
      * 根据主键查询整个对象
      */
     @RequestMapping(value = "/selectByPrimaryKey",method = RequestMethod.GET)
-    public Object selectByPrimaryKey(HttpServletRequest request){
-        String id = request.getParameter("id").trim();          //主键
-        return songListService.selectByPrimaryKey(Integer.parseInt(id));
+    public Result selectByPrimaryKey(HttpServletRequest request){
+        String id = request.getParameter("id").trim();
+        return Result.success(songListService.selectByPrimaryKey(Integer.parseInt(id)));
     }
 
     /**
      * 查询所有歌单
      */
     @RequestMapping(value = "/allSongList",method = RequestMethod.GET)
-    public Object allSongList(HttpServletRequest request){
-        return songListService.allSongList();
+    public Result allSongList(HttpServletRequest request){
+        return Result.success(songListService.allSongList());
     }
 
     /**
      * 根据标题精确查询歌单列表
      */
     @RequestMapping(value = "/songListOfTitle",method = RequestMethod.GET)
-    public Object songListOfName(HttpServletRequest request){
-        String title = request.getParameter("title").trim();          //歌单标题
-        return songListService.songListOfTitle(title);
+    public Result songListOfTitle(HttpServletRequest request){
+        String title = request.getParameter("title").trim();
+        return Result.success(songListService.songListOfTitle(title));
     }
 
     /**
      * 根据标题模糊查询歌单列表
      */
     @RequestMapping(value = "/likeTitle",method = RequestMethod.GET)
-    public Object likeTitle(HttpServletRequest request){
-        String title = request.getParameter("title").trim();          //歌单标题
-        return songListService.likeTitle("%"+title+"%");
+    public Result likeTitle(HttpServletRequest request){
+        String title = request.getParameter("title").trim();
+        return Result.success(songListService.likeTitle("%"+title+"%"));
     }
 
     /**
      * 根据风格模糊查询歌单列表
      */
     @RequestMapping(value = "/likeStyle",method = RequestMethod.GET)
-    public Object likeStyle(HttpServletRequest request){
-        String style = request.getParameter("style").trim();          //歌单风格
-        return songListService.likeStyle("%"+style+"%");
+    public Result likeStyle(HttpServletRequest request){
+        String style = request.getParameter("style").trim();
+        return Result.success(songListService.likeStyle("%"+style+"%"));
     }
 
     /**
      * 更新歌单图片
      */
     @RequestMapping(value = "/updateSongListPic",method = RequestMethod.POST)
-    public Object updateSongListPic(@RequestParam("file") MultipartFile avatorFile, @RequestParam("id")int id){
-        JSONObject jsonObject = new JSONObject();
+    public Result updateSongListPic(@RequestParam("file") MultipartFile avatorFile, @RequestParam("id")int id){
         if(avatorFile.isEmpty()){
-            jsonObject.put(Consts.CODE,0);
-            jsonObject.put(Consts.MSG,"文件上传失败");
-            return jsonObject;
+            return Result.failure("文件上传失败");
         }
         //文件名=当前时间到毫秒+原来的文件名
         String fileName = System.currentTimeMillis()+avatorFile.getOriginalFilename();
@@ -167,19 +156,11 @@ public class SongListController {
             songList.setPic(storeAvatorPath);
             boolean flag = songListService.update(songList);
             if(flag){
-                jsonObject.put(Consts.CODE,1);
-                jsonObject.put(Consts.MSG,"上传成功");
-                jsonObject.put("pic",storeAvatorPath);
-                return jsonObject;
+                return Result.success(storeAvatorPath);
             }
-            jsonObject.put(Consts.CODE,0);
-            jsonObject.put(Consts.MSG,"上传失败");
-            return jsonObject;
+            return Result.failure("上传失败");
         } catch (IOException e) {
-            jsonObject.put(Consts.CODE,0);
-            jsonObject.put(Consts.MSG,"上传失败"+e.getMessage());
-        }finally {
-            return jsonObject;
+            return Result.failure("上传失败: " + e.getMessage());
         }
     }
 }

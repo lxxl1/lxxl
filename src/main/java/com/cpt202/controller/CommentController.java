@@ -1,6 +1,7 @@
 package com.cpt202.controller;
 
 import com.alibaba.fastjson.JSONObject;
+import com.cpt202.common.Result;
 import com.cpt202.domain.Comment;
 import com.cpt202.service.CommentService;
 import com.cpt202.utils.Consts;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.Date;
 
 /**
  * 评论控制类
@@ -25,146 +27,125 @@ public class CommentController {
      * 添加评论
      */
     @RequestMapping(value = "/add",method = RequestMethod.POST)
-    public Object addComment(HttpServletRequest request){
-        JSONObject jsonObject = new JSONObject();
-        String userId = request.getParameter("userId");           //用户id
-        String type = request.getParameter("type");               //评论类型（0歌曲1歌单）
-        String songId = request.getParameter("songId");           //歌曲id
-        String songListId = request.getParameter("songListId");   //歌单id
-        String content = request.getParameter("content").trim();         //评论内容
+    public Result addComment(HttpServletRequest request){
+        String userId = request.getParameter("userId");
+        String type = request.getParameter("type");
+        String songId = request.getParameter("songId");
+        String songListId = request.getParameter("songListId");
+        String content = request.getParameter("content").trim();
 
-        //保存到评论的对象中
         Comment comment = new Comment();
         comment.setUserId(Integer.parseInt(userId));
-        comment.setType(Byte.parseByte(type));
-        if(Byte.parseByte(type) ==0){
+        comment.setType(new Byte(type));
+        if(new Byte(type) == 0){
             comment.setSongId(Integer.parseInt(songId));
         }else{
             comment.setSongListId(Integer.parseInt(songListId));
         }
         comment.setContent(content);
+        comment.setCreateTime(new Date());
         boolean flag = commentService.insert(comment);
-        if(flag){   //保存成功
-            jsonObject.put(Consts.CODE,1);
-            jsonObject.put(Consts.MSG,"评论成功");
-            return jsonObject;
+        if(flag){
+            return Result.success();
         }
-        jsonObject.put(Consts.CODE,0);
-        jsonObject.put(Consts.MSG,"评论失败");
-        return jsonObject;
+        return Result.failure("评论失败");
     }
 
     /**
      * 修改评论
      */
     @RequestMapping(value = "/update",method = RequestMethod.POST)
-    public Object updateComment(HttpServletRequest request){
-        JSONObject jsonObject = new JSONObject();
-        String id = request.getParameter("id").trim();                   //主键
-        String userId = request.getParameter("userId").trim();           //用户id
-        String type = request.getParameter("type").trim();               //评论类型（0歌曲1歌单）
-        String songId = request.getParameter("songId").trim();           //歌曲id
-        String songListId = request.getParameter("songListId").trim();   //歌单id
-        String content = request.getParameter("content").trim();         //评论内容
+    public Result updateComment(HttpServletRequest request){
+        String id = request.getParameter("id").trim();
+        String userId = request.getParameter("userId").trim();
+        String type = request.getParameter("type").trim();
+        String songId = request.getParameter("songId").trim();
+        String songListId = request.getParameter("songListId").trim();
+        String content = request.getParameter("content").trim();
 
-        //保存到评论的对象中
         Comment comment = new Comment();
         comment.setId(Integer.parseInt(id));
         comment.setUserId(Integer.parseInt(userId));
-        comment.setType(Byte.parseByte(type));
-        if(songId!=null&&songId.equals("")){
-            songId = null;
-        }else {
+        comment.setType(new Byte(type));
+        if(songId != null && songId.equals("")){
             comment.setSongId(Integer.parseInt(songId));
         }
-        if(songListId!=null&&songListId.equals("")){
-            songListId = null;
-        }else {
+        if(songListId != null && songListId.equals("")){
             comment.setSongListId(Integer.parseInt(songListId));
         }
         comment.setContent(content);
-
         boolean flag = commentService.update(comment);
-        if(flag){   //保存成功
-            jsonObject.put(Consts.CODE,1);
-            jsonObject.put(Consts.MSG,"修改成功");
-            return jsonObject;
+        if(flag){
+            return Result.success();
         }
-        jsonObject.put(Consts.CODE,0);
-        jsonObject.put(Consts.MSG,"修改失败");
-        return jsonObject;
+        return Result.failure("修改失败");
     }
 
     /**
      * 删除评论
      */
     @RequestMapping(value = "/delete",method = RequestMethod.GET)
-    public Object deleteComment(HttpServletRequest request){
-        String id = request.getParameter("id").trim();          //主键
+    public Result deleteComment(HttpServletRequest request){
+        String id = request.getParameter("id").trim();
         boolean flag = commentService.delete(Integer.parseInt(id));
-        return flag;
+        if(flag){
+            return Result.success();
+        }
+        return Result.failure("删除失败");
     }
 
     /**
      * 根据主键查询整个对象
      */
     @RequestMapping(value = "/selectByPrimaryKey",method = RequestMethod.GET)
-    public Object selectByPrimaryKey(HttpServletRequest request){
-        String id = request.getParameter("id").trim();          //主键
-        return commentService.selectByPrimaryKey(Integer.parseInt(id));
+    public Result selectByPrimaryKey(HttpServletRequest request){
+        String id = request.getParameter("id").trim();
+        return Result.success(commentService.selectByPrimaryKey(Integer.parseInt(id)));
     }
 
     /**
      * 查询所有评论
      */
     @RequestMapping(value = "/allComment",method = RequestMethod.GET)
-    public Object allComment(HttpServletRequest request){
-        return commentService.allComment();
+    public Result allComment(HttpServletRequest request){
+        return Result.success(commentService.allComment());
     }
 
     /**
      * 查询某个歌曲下的所有评论
      */
     @RequestMapping(value = "/commentOfSongId",method = RequestMethod.GET)
-    public Object commentOfSongId(HttpServletRequest request){
-        String songId = request.getParameter("songId");          //歌曲id
-        return commentService.commentOfSongId(Integer.parseInt(songId));
+    public Result commentOfSongId(HttpServletRequest request){
+        String songId = request.getParameter("songId");
+        return Result.success(commentService.commentOfSongId(Integer.parseInt(songId)));
     }
 
     /**
      * 查询某个歌单下的所有评论
      */
     @RequestMapping(value = "/commentOfSongListId",method = RequestMethod.GET)
-    public Object commentOfSongListId(HttpServletRequest request){
-        String songListId = request.getParameter("songListId");          //歌曲id
-        return commentService.commentOfSongListId(Integer.parseInt(songListId));
+    public Result commentOfSongListId(HttpServletRequest request){
+        String songListId = request.getParameter("songListId");
+        return Result.success(commentService.commentOfSongListId(Integer.parseInt(songListId)));
     }
 
     /**
      * 给某个评论点赞
      */
     @RequestMapping(value = "/like",method = RequestMethod.POST)
-    public Object like(HttpServletRequest request){
-        JSONObject jsonObject = new JSONObject();
-        String id = request.getParameter("id").trim();           //主键
-        String up = request.getParameter("up").trim();           //用户id
+    public Result like(HttpServletRequest request){
+        String id = request.getParameter("id").trim();
+        String up = request.getParameter("up").trim();
 
-        //保存到评论的对象中
         Comment comment = new Comment();
         comment.setId(Integer.parseInt(id));
         comment.setUp(Integer.parseInt(up));
-
         boolean flag = commentService.update(comment);
-        if(flag){   //保存成功
-            jsonObject.put(Consts.CODE,1);
-            jsonObject.put(Consts.MSG,"点赞成功");
-            return jsonObject;
+        if(flag){
+            return Result.success();
         }
-        jsonObject.put(Consts.CODE,0);
-        jsonObject.put(Consts.MSG,"点赞失败");
-        return jsonObject;
+        return Result.failure("点赞失败");
     }
-
 }
 
 

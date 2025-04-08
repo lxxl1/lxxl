@@ -1,7 +1,8 @@
 package com.cpt202.domain;
 
 import lombok.Data;
-
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 import java.io.Serializable;
 import java.util.Date;
 
@@ -9,6 +10,8 @@ import java.util.Date;
  * 歌曲
  */
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Song implements Serializable {
     /*主键*/
     private Integer id;
@@ -34,6 +37,6 @@ public class Song implements Serializable {
     private Integer nums;
     /*是否是vip才能听的歌曲 0false就是都能听*/
     private Boolean isVip;
-
-
+    /*审核状态：0-待审核，1-审核通过，2-审核不通过*/
+    private Integer status;
 }

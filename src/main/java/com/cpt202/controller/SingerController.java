@@ -1,6 +1,7 @@
 package com.cpt202.controller;
 
 import com.alibaba.fastjson.JSONObject;
+import com.cpt202.common.Result;
 import com.cpt202.domain.Singer;
 import com.cpt202.service.SingerService;
 import com.cpt202.utils.Consts;
@@ -33,15 +34,15 @@ public class SingerController {
      * 添加歌手
      */
     @RequestMapping(value = "/add",method = RequestMethod.POST)
-    public Object addSinger(HttpServletRequest request){
-        JSONObject jsonObject = new JSONObject();
-        String name = request.getParameter("name").trim();      //姓名
-        String sex = request.getParameter("sex").trim();        //性别
-        String pic = request.getParameter("pic").trim();        //头像
-        String birth = request.getParameter("birth").trim();    //生日
-        String location = request.getParameter("location").trim();//地区
-        String introduction = request.getParameter("introduction").trim();//简介
-        //把生日转换成Date格式
+    public Result addSinger(HttpServletRequest request){
+        String name = request.getParameter("name").trim();
+        String sex = request.getParameter("sex").trim();
+        String pic = request.getParameter("pic").trim();
+        String birth = request.getParameter("birth").trim();
+        String location = request.getParameter("location").trim();
+        String introduction = request.getParameter("introduction").trim();
+
+        Singer singer = new Singer();
         DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         Date birthDate = new Date();
         try {
@@ -49,8 +50,6 @@ public class SingerController {
         } catch (ParseException e) {
             e.printStackTrace();
         }
-        //保存到歌手的对象中
-        Singer singer = new Singer();
         singer.setName(name);
         singer.setSex(new Byte(sex));
         singer.setPic(pic);
@@ -58,29 +57,25 @@ public class SingerController {
         singer.setLocation(location);
         singer.setIntroduction(introduction);
         boolean flag = singerService.insert(singer);
-        if(flag){   //保存成功
-            jsonObject.put(Consts.CODE,1);
-            jsonObject.put(Consts.MSG,"添加成功");
-            return jsonObject;
+        if(flag){
+            return Result.success();
         }
-        jsonObject.put(Consts.CODE,0);
-        jsonObject.put(Consts.MSG,"添加失败");
-        return jsonObject;
+        return Result.failure("添加失败");
     }
 
     /**
      * 修改歌手
      */
     @RequestMapping(value = "/update",method = RequestMethod.POST)
-    public Object updateSinger(HttpServletRequest request){
-        JSONObject jsonObject = new JSONObject();
-        String id = request.getParameter("id").trim();          //主键
-        String name = request.getParameter("name").trim();      //姓名
-        String sex = request.getParameter("sex").trim();        //性别
-        String birth = request.getParameter("birth").trim();    //生日
-        String location = request.getParameter("location").trim();//地区
-        String introduction = request.getParameter("introduction").trim();//简介
-        //把生日转换成Date格式
+    public Result updateSinger(HttpServletRequest request){
+        String id = request.getParameter("id").trim();
+        String name = request.getParameter("name").trim();
+        String sex = request.getParameter("sex").trim();
+        String birth = request.getParameter("birth").trim();
+        String location = request.getParameter("location").trim();
+        String introduction = request.getParameter("introduction").trim();
+
+        Singer singer = new Singer();
         DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         Date birthDate = new Date();
         try {
@@ -88,8 +83,6 @@ public class SingerController {
         } catch (ParseException e) {
             e.printStackTrace();
         }
-        //保存到歌手的对象中
-        Singer singer = new Singer();
         singer.setId(Integer.parseInt(id));
         singer.setName(name);
         singer.setSex(new Byte(sex));
@@ -97,72 +90,67 @@ public class SingerController {
         singer.setLocation(location);
         singer.setIntroduction(introduction);
         boolean flag = singerService.update(singer);
-        if(flag){   //保存成功
-            jsonObject.put(Consts.CODE,1);
-            jsonObject.put(Consts.MSG,"修改成功");
-            return jsonObject;
+        if(flag){
+            return Result.success();
         }
-        jsonObject.put(Consts.CODE,0);
-        jsonObject.put(Consts.MSG,"修改失败");
-        return jsonObject;
+        return Result.failure("修改失败");
     }
-
 
     /**
      * 删除歌手
      */
     @RequestMapping(value = "/delete",method = RequestMethod.GET)
-    public Object deleteSinger(HttpServletRequest request){
-        String id = request.getParameter("id").trim();          //主键
+    public Result deleteSinger(HttpServletRequest request){
+        String id = request.getParameter("id").trim();
         boolean flag = singerService.delete(Integer.parseInt(id));
-        return flag;
+        if(flag){
+            return Result.success();
+        }
+        return Result.failure("删除失败");
     }
 
     /**
      * 根据主键查询整个对象
      */
     @RequestMapping(value = "/selectByPrimaryKey",method = RequestMethod.GET)
-    public Object selectByPrimaryKey(HttpServletRequest request){
-        String id = request.getParameter("id").trim();          //主键
-        return singerService.selectByPrimaryKey(Integer.parseInt(id));
+    public Result selectByPrimaryKey(HttpServletRequest request){
+        String id = request.getParameter("id").trim();
+        return Result.success(singerService.selectByPrimaryKey(Integer.parseInt(id)));
     }
 
     /**
      * 查询所有歌手
      */
     @RequestMapping(value = "/allSinger",method = RequestMethod.GET)
-    public Object allSinger(HttpServletRequest request){
-        return singerService.allSinger();
+    public Result allSinger(HttpServletRequest request){
+        return Result.success(singerService.allSinger());
     }
 
     /**
      * 根据歌手名字模糊查询列表
      */
     @RequestMapping(value = "/singerOfName",method = RequestMethod.GET)
-    public Object singerOfName(HttpServletRequest request){
-        String name = request.getParameter("name").trim();          //歌手名字
-        return singerService.singerOfName("%"+name+"%");
+    public Result singerOfName(HttpServletRequest request){
+        String name = request.getParameter("name").trim();
+        return Result.success(singerService.singerOfName("%"+name+"%"));
     }
 
     /**
      * 根据性别查询
      */
     @RequestMapping(value = "/singerOfSex",method = RequestMethod.GET)
-    public Object singerOfSex(HttpServletRequest request){
-        String sex = request.getParameter("sex").trim();          //性别
-        return singerService.singerOfSex(Integer.parseInt(sex));
+    public Result singerOfSex(HttpServletRequest request){
+        String sex = request.getParameter("sex").trim();
+        return Result.success(singerService.singerOfSex(Integer.parseInt(sex)));
     }
 
     /**
      * 更新歌手图片
      */
     @RequestMapping(value = "/updateSingerPic",method = RequestMethod.POST)
-    public Object updateSingerPic(@RequestParam("file") MultipartFile avatorFile, @RequestParam("id")int id){
-        JSONObject jsonObject = new JSONObject();
+    public Result updateSingerPic(@RequestParam("file") MultipartFile avatorFile, @RequestParam("id")int id){
         if(avatorFile.isEmpty()){
-            jsonObject.put(Consts.CODE,0);
-            jsonObject.put(Consts.MSG,"文件上传失败");
-            return jsonObject;
+            return Result.failure("文件上传失败");
         }
         //文件名=当前时间到毫秒+原来的文件名
         String fileName = System.currentTimeMillis()+avatorFile.getOriginalFilename();
@@ -185,19 +173,11 @@ public class SingerController {
             singer.setPic(storeAvatorPath);
             boolean flag = singerService.update(singer);
             if(flag){
-                jsonObject.put(Consts.CODE,1);
-                jsonObject.put(Consts.MSG,"上传成功");
-                jsonObject.put("pic",storeAvatorPath);
-                return jsonObject;
+                return Result.success(storeAvatorPath);
             }
-            jsonObject.put(Consts.CODE,0);
-            jsonObject.put(Consts.MSG,"上传失败");
-            return jsonObject;
+            return Result.failure("上传失败");
         } catch (IOException e) {
-            jsonObject.put(Consts.CODE,0);
-            jsonObject.put(Consts.MSG,"上传失败"+e.getMessage());
-        }finally {
-            return jsonObject;
+            return Result.failure("上传失败: " + e.getMessage());
         }
     }
 }

@@ -57,4 +57,19 @@ public interface SongService {
      * 查询播放次数排前列的歌曲
      */
 	public List<Song> topSong();
+
+    /**
+     * 更新歌曲审核状态
+     */
+    public boolean updateStatus(Integer songId, Integer status);
+
+    /**
+     * 获取待审核歌曲列表
+     */
+    public List<Song> getPendingSongs();
+
+    /**
+     * 获取已审核歌曲列表
+     */
+    public List<Song> getAuditedSongs(Integer status);
 }

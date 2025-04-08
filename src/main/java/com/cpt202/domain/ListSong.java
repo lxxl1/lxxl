@@ -1,10 +1,16 @@
 package com.cpt202.domain;
 
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 import java.io.Serializable;
 
 /**
  * 歌单里面的歌曲
  */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class ListSong implements Serializable {
 
     private Integer id;     //主键
@@ -12,28 +18,4 @@ public class ListSong implements Serializable {
     private Integer songId; //歌曲id
 
     private Integer songListId; //歌单id
-
-    public Integer getId() {
-        return id;
-    }
-
-    public void setId(Integer id) {
-        this.id = id;
-    }
-
-    public Integer getSongId() {
-        return songId;
-    }
-
-    public void setSongId(Integer songId) {
-        this.songId = songId;
-    }
-
-    public Integer getSongListId() {
-        return songListId;
-    }
-
-    public void setSongListId(Integer songListId) {
-        this.songListId = songListId;
-    }
 }

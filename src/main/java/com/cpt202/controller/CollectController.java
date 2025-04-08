@@ -1,7 +1,7 @@
 package com.cpt202.controller;
 
 import com.alibaba.fastjson.JSONObject;
-
+import com.cpt202.common.Result;
 import com.cpt202.domain.Collect;
 import com.cpt202.domain.Recommend;
 import com.cpt202.domain.Song;
@@ -47,65 +47,64 @@ public class CollectController {
      * 添加收藏
      */
     @RequestMapping(value = "/add", method = RequestMethod.POST)
-    public Object addCollect(HttpServletRequest request) {
-        JSONObject jsonObject = new JSONObject();
-        String userId = request.getParameter("userId");           //用户id
-        String type = request.getParameter("type");               //收藏类型（0歌曲1歌单）
-        String songId = request.getParameter("songId");           //歌曲id
+    public Result addCollect(HttpServletRequest request) {
+        String userId = request.getParameter("userId");
+        String type = request.getParameter("type");
+        String songId = request.getParameter("songId");
+        String songListId = request.getParameter("songListId");
+
         if (songId == null || songId.equals("")) {
-            jsonObject.put(Consts.CODE, 0);
-            jsonObject.put(Consts.MSG, "收藏歌曲为空");
-            return jsonObject;
+            return Result.failure("收藏歌曲为空");
         }
         if (collectService.existSongId(Integer.parseInt(userId), Integer.parseInt(songId))) {
-            jsonObject.put(Consts.CODE, 2);
-            jsonObject.put(Consts.MSG, "已收藏");
-            return jsonObject;
+            return Result.failure("已收藏");
         }
 
-        //保存到收藏的对象中
-        Collect Collect = new Collect();
-        Collect.setUserId(Integer.parseInt(userId));
-        Collect.setType(new Byte(type));
-        Collect.setSongId(Integer.parseInt(songId));
-
-        boolean flag = collectService.insert(Collect);
-        if (flag) {   //保存成功
-            jsonObject.put(Consts.CODE, 1);
-            jsonObject.put(Consts.MSG, "收藏成功");
-            return jsonObject;
+        Collect collect = new Collect();
+        collect.setUserId(Integer.parseInt(userId));
+        collect.setType(new Byte(type));
+        if (new Byte(type) == 0) {
+            collect.setSongId(Integer.parseInt(songId));
+        } else {
+            collect.setSongListId(Integer.parseInt(songListId));
         }
-        jsonObject.put(Consts.CODE, 0);
-        jsonObject.put(Consts.MSG, "收藏失败");
-        return jsonObject;
+        collect.setCreateTime(new Date());
+        boolean flag = collectService.insert(collect);
+        if (flag) {
+            return Result.success();
+        }
+        return Result.failure("收藏失败");
     }
 
     /**
      * 删除收藏
      */
     @RequestMapping(value = "/delete", method = RequestMethod.GET)
-    public Object deleteCollect(HttpServletRequest request) {
-        String userId = request.getParameter("userId");           //用户id
-        String songId = request.getParameter("songId");           //歌曲id
+    public Result deleteCollect(HttpServletRequest request) {
+        String userId = request.getParameter("userId");
+        String songId = request.getParameter("songId");
         boolean flag = collectService.deleteByUserIdSongId(Integer.parseInt(userId), Integer.parseInt(songId));
-        return flag;
+        if (flag) {
+            return Result.success();
+        }
+        return Result.failure("取消收藏失败");
     }
 
     /**
      * 查询所有收藏
      */
     @RequestMapping(value = "/allCollect", method = RequestMethod.GET)
-    public Object allCollect(HttpServletRequest request) {
-        return collectService.allCollect();
+    public Result allCollect(HttpServletRequest request) {
+        return Result.success(collectService.allCollect());
     }
 
     /**
      * 查询某个用户的收藏列表
      */
     @RequestMapping(value = "/collectOfUserId", method = RequestMethod.GET)
-    public Object collectOfUserId(HttpServletRequest request) {
-        String userId = request.getParameter("userId");          //用户id
-        return collectService.collectOfUserId(Integer.parseInt(userId));
+    public Result collectOfUserId(HttpServletRequest request) {
+        String userId = request.getParameter("userId");
+        return Result.success(collectService.collectOfUserId(Integer.parseInt(userId)));
     }
 
     /**
