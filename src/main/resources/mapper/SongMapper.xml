@@ -41,6 +41,9 @@
             <if test="id != null">
                 id,
             </if>
+            <if test="userId != null">
+                user_id,
+            </if>
             <if test="singerId != null">
                 singer_id,
             </if>
