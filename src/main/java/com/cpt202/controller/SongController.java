@@ -4,6 +4,7 @@ import com.cpt202.common.Result;
 import com.cpt202.domain.Song;
 import com.cpt202.service.SongService;
 import com.cpt202.utils.Consts;
+import com.cpt202.utils.OssUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -27,68 +28,71 @@ public class SongController {
     @Autowired
     private SongService songService;
 
+    @Autowired
+    private OssUtil ossUtil; // 注入OssUtil
+
     /**
-     * 添加歌曲
+     * 添加歌曲，文件存储到OSS
      */
-    @RequestMapping(value = "/add",method = RequestMethod.POST)
-    public Result addSong(HttpServletRequest request, @RequestParam("file")MultipartFile mpFile, @RequestParam("files")MultipartFile mvFile){
-        //获取前端传来的参数
-        String singerId = request.getParameter("singerId").trim();  //所属歌手id
-        String name = request.getParameter("name").trim();          //歌名
-        String introduction = request.getParameter("introduction").trim();          //简介
-        String pic = "/img/songPic/tubiao.jpg";                     //默认图片
-        String lyric = request.getParameter("lyric").trim();     //歌词
-        //上传歌曲文件
-        if(mpFile.isEmpty()){
-            return Result.failure("歌曲上传失败");
-        }
-        //文件名=当前时间到毫秒+原来的文件名
-        String fileName = System.currentTimeMillis()+mpFile.getOriginalFilename();
-        //文件路径
-        String filePath = System.getProperty("user.dir")+System.getProperty("file.separator")+"song";
-        //如果文件路径不存在，新增该路径
-        File file1 = new File(filePath);
-        if(!file1.exists()){
-            file1.mkdir();
-        }
-        //实际的文件地址
-        File dest = new File(filePath+System.getProperty("file.separator")+fileName);
-        //存储到数据库里的相对文件地址
-        String storeUrlPath = "/song/"+fileName;
+    @RequestMapping(value = "/add", method = RequestMethod.POST)
+    public Result addSong(HttpServletRequest request, @RequestParam("file") MultipartFile mpFile, @RequestParam(name = "files", required = false) MultipartFile mvFile) {
         try {
-            mpFile.transferTo(dest);
+            // 获取前端传来的参数
+            String singerId = request.getParameter("singerId").trim();  // 所属歌手id
+            String name = request.getParameter("name").trim();          // 歌名
+            String introduction = request.getParameter("introduction").trim();  // 简介
+            String lyric = request.getParameter("lyric").trim();     // 歌词
+            String pic = "/img/songPic/tubiao.jpg";                  // 默认图片
+
+            // 检查音乐文件是否为空
+            if (mpFile == null || mpFile.isEmpty()) {
+                return Result.failure("歌曲文件不能为空");
+            }
+
+            // 上传音乐文件到OSS
+            String musicUrl = ossUtil.uploadFile(mpFile, "song/");
+            if (musicUrl == null) {
+                return Result.failure("歌曲文件上传失败");
+            }
+
+            // 创建歌曲对象
             Song song = new Song();
             song.setSingerId(Integer.parseInt(singerId));
             song.setName(name);
             song.setIntroduction(introduction);
             song.setPic(pic);
             song.setLyric(lyric);
-            song.setUrl(storeUrlPath);
+            song.setUrl(musicUrl);
             song.setStatus(0);  // 设置初始状态为待审核
-            if(!mvFile.isEmpty()){
-                //文件名=当前时间到毫秒+原来的文件名
-                String fileNames = System.currentTimeMillis()+mvFile.getOriginalFilename();
-                //文件路径
-                String filePaths = System.getProperty("user.dir")+System.getProperty("file.separator")+"mv";
-                //如果文件路径不存在，新增该路径
-                File file2 = new File(filePaths);
-                if(!file2.exists()){
-                    file2.mkdir();
+
+            // 如果有MV文件，上传MV文件到OSS
+            if (mvFile != null && !mvFile.isEmpty()) {
+                String mvUrl = ossUtil.uploadFile(mvFile, "mv/");
+                if (mvUrl != null) {
+                    song.setMvurl(mvUrl);
+                } else {
+                    // 可选：如果MV上传失败，可以记录日志或返回部分成功信息
+                    System.out.println("Warning: MV file upload failed for song: " + name);
                 }
-                //实际的文件地址
-                File dests = new File(filePaths+System.getProperty("file.separator")+fileNames);
-                mvFile.transferTo(dests);
-                //存储到数据库里的相对文件地址
-                String storeUrlPaths = "/mv/"+fileNames;
-                song.setMvurl(storeUrlPaths);
             }
+
+            // 保存歌曲信息到数据库
             boolean flag = songService.insert(song);
-            if(flag){
-                return Result.success(storeUrlPath);
+            if (flag) {
+                return Result.success("歌曲添加成功，URL: " + musicUrl);
             }
-            return Result.failure("保存失败");
+            return Result.failure("歌曲信息保存失败");
+
         } catch (IOException e) {
-            return Result.failure("保存失败: " + e.getMessage());
+            // 记录日志
+            e.printStackTrace();
+            return Result.failure("文件上传过程中发生IO错误: " + e.getMessage());
+        } catch (NumberFormatException e) {
+            return Result.failure("歌手ID格式错误");
+        } catch (Exception e) {
+            // 记录日志
+            e.printStackTrace();
+            return Result.failure("添加歌曲时发生未知错误: " + e.getMessage());
         }
     }
 
