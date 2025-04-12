@@ -38,11 +38,12 @@ public class SongController {
     public Result addSong(HttpServletRequest request, @RequestParam("file") MultipartFile mpFile, @RequestParam(name = "files", required = false) MultipartFile mvFile) {
         try {
             // 获取前端传来的参数
+            String userId = request.getParameter("userId").trim();      //用户id  
             String singerId = request.getParameter("singerId").trim();  // 所属歌手id
             String name = request.getParameter("name").trim();          // 歌名
             String introduction = request.getParameter("introduction").trim();  // 简介
-            String lyric = request.getParameter("lyric").trim();     // 歌词
-            String pic = "/img/songPic/tubiao.jpg";                  // 默认图片
+            String lyric = request.getParameter("lyric").trim();                // 歌词
+            String pic = "/img/songPic/tubiao.jpg";                            // 默认图片
 
             // 检查音乐文件是否为空
             if (mpFile == null || mpFile.isEmpty()) {
