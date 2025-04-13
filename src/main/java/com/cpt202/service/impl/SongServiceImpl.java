@@ -89,8 +89,15 @@ public class SongServiceImpl implements SongService {
         //songs.forEach(song -> log.warn(">>>>>>>>>>>>>>{}", song.getIsVip()));
         return songs;
     }
-
-
+    /**
+     * 根据用户id查询歌曲
+     * 
+     * 
+     */
+    @Override
+    public List<Song> songOfUserId(Integer userId) {
+        return songMapper.songOfUserId(userId);    
+    }
     /**
      * 根据歌手id查询
      *

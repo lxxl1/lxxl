@@ -13,6 +13,10 @@ import java.util.List;
  */
 @Repository
 public interface SongMapper {
+     /**
+      * 根据用户id查询歌曲
+      */
+     public List<Song> songOfUserId(Integer userId);
     /**
      *增加
      */

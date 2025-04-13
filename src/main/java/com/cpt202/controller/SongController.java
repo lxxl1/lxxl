@@ -350,6 +350,16 @@ public class SongController {
         }
         return Result.failure("查询失败");
     }
+
+    /**
+     * 根据用户ID查询歌曲
+     */
+    @RequestMapping(value = "/selectbyuser", method = RequestMethod.GET)
+    public Result songOfUserId(HttpServletRequest request) {
+        String userId = request.getParameter("userId");
+        List<Song> songs = songService.songOfUserId(Integer.parseInt(userId));
+        return Result.success(songs);
+    }
 }
 
 

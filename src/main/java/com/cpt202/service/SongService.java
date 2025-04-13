@@ -72,4 +72,8 @@ public interface SongService {
      * 获取已审核歌曲列表
      */
     public List<Song> getAuditedSongs(Integer status);
+    /**
+     * 根据用户id查询歌曲
+     */
+    public List<Song> songOfUserId(Integer userId);
 }
