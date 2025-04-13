@@ -1,4 +1,4 @@
-gitpackage com.cpt202.controller;
+package com.cpt202.controller;
 
 import com.alibaba.fastjson.JSONObject;
 import com.cpt202.common.Result;
