@@ -103,19 +103,54 @@ function initializeDataTable() {
             { 
                 data: 'status',
                 render: function(data) {
-                    let badgeClass = 'bg-success';
-                    let icon = 'check-circle';
+                    // 根据数字状态值确定显示文本和样式
+                    let statusText, badgeClass, icon;
                     
-                    if (data === 'Inactive') {
-                        badgeClass = 'bg-secondary';
-                        icon = 'clock';
-                    } else if (data === 'Suspended') {
-                        badgeClass = 'bg-danger';
-                        icon = 'ban';
+                    // 数字状态值的处理
+                    if (typeof data === 'number' || !isNaN(parseInt(data))) {
+                        const statusValue = parseInt(data);
+                        switch (statusValue) {
+                            case 0:
+                                statusText = 'Active';
+                                badgeClass = 'bg-success';
+                                icon = 'check-circle';
+                                break;
+                            case 1:
+                                statusText = 'Inactive';
+                                badgeClass = 'bg-secondary';
+                                icon = 'clock';
+                                break;
+                            case 2:
+                                statusText = 'Suspended';
+                                badgeClass = 'bg-danger';
+                                icon = 'ban';
+                                break;
+                            default:
+                                statusText = 'Unknown';
+                                badgeClass = 'bg-secondary';
+                                icon = 'question-circle';
+                        }
+                    } 
+                    // 字符串状态值的处理（兼容性保留）
+                    else {
+                        statusText = data;
+                        if (data === 'Active') {
+                            badgeClass = 'bg-success';
+                            icon = 'check-circle';
+                        } else if (data === 'Inactive') {
+                            badgeClass = 'bg-secondary';
+                            icon = 'clock';
+                        } else if (data === 'Suspended') {
+                            badgeClass = 'bg-danger';
+                            icon = 'ban';
+                        } else {
+                            badgeClass = 'bg-secondary';
+                            icon = 'question-circle';
+                        }
                     }
                     
                     return `<span class="badge ${badgeClass}">
-                        <i class="fas fa-${icon} me-1"></i> ${data}
+                        <i class="fas fa-${icon} me-1"></i> ${statusText}
                     </span>`;
                 },
                 className: 'text-center'
@@ -134,6 +169,46 @@ function initializeDataTable() {
             { 
                 data: null,
                 render: function(data, type, row) {
+                    // 确定当前状态文本和切换按钮样式
+                    let statusText, toggleClass, toggleIcon, toggleTitle;
+                    
+                    // 根据状态值确定按钮样式
+                    if (typeof row.status === 'number' || !isNaN(parseInt(row.status))) {
+                        const statusValue = parseInt(row.status);
+                        switch (statusValue) {
+                            case 0: // Active
+                                toggleClass = 'btn-outline-warning';
+                                toggleIcon = 'ban';
+                                toggleTitle = 'Disable User';
+                                break;
+                            case 1: // Inactive
+                                toggleClass = 'btn-outline-success';
+                                toggleIcon = 'check-circle';
+                                toggleTitle = 'Activate User';
+                                break;
+                            case 2: // Suspended
+                                toggleClass = 'btn-outline-success';
+                                toggleIcon = 'check-circle';
+                                toggleTitle = 'Activate User';
+                                break;
+                            default:
+                                toggleClass = 'btn-outline-secondary';
+                                toggleIcon = 'sync';
+                                toggleTitle = 'Toggle Status';
+                        }
+                    } else {
+                        // 兼容处理字符串状态值
+                        if (row.status === 'Active') {
+                            toggleClass = 'btn-outline-warning';
+                            toggleIcon = 'ban';
+                            toggleTitle = 'Disable User';
+                        } else {
+                            toggleClass = 'btn-outline-success';
+                            toggleIcon = 'check-circle';
+                            toggleTitle = 'Activate User';
+                        }
+                    }
+                    
                     return `
                         <div class="btn-group">
                             <button class="btn btn-sm btn-outline-info view-user" data-id="${row.id}" title="View Details">
@@ -142,11 +217,11 @@ function initializeDataTable() {
                             <button class="btn btn-sm btn-outline-primary edit-user" data-id="${row.id}" title="Edit User">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn btn-sm ${row.status === 'Active' ? 'btn-outline-warning toggle-status' : 'btn-outline-success toggle-status'}" 
+                            <button class="btn btn-sm ${toggleClass} toggle-status" 
                                 data-id="${row.id}" 
                                 data-status="${row.status}"
-                                title="${row.status === 'Active' ? 'Disable User' : 'Enable User'}">
-                                <i class="fas fa-${row.status === 'Active' ? 'ban' : 'check-circle'}"></i>
+                                title="${toggleTitle}">
+                                <i class="fas fa-${toggleIcon}"></i>
                             </button>
                             <button class="btn btn-sm btn-outline-danger delete-user" data-id="${row.id}" title="Delete User">
                                 <i class="fas fa-trash"></i>
@@ -185,15 +260,20 @@ function initializeDataTable() {
  */
 function addStatisticsCards() {
     const statsHtml = `
-        <div class="row mb-4">
+        <div id="statisticsCards" class="row mb-4 fade-in">
             <div class="col-xl-3 col-sm-6 mb-3">
                 <div class="card text-white bg-primary o-hidden h-100">
                     <div class="card-body">
                         <div class="card-body-icon">
                             <i class="fas fa-users"></i>
                         </div>
-                        <div>Total Users</div>
-                        <div class="mr-5" id="totalUsers">0</div>
+                        <div class="d-flex flex-column">
+                            <div class="fs-5">Total Users</div>
+                            <div class="fs-2 fw-bold" id="totalUsersCount">0</div>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-primary-dark text-white">
+                        <div class="small text-white">All registered users</div>
                     </div>
                 </div>
             </div>
@@ -203,19 +283,33 @@ function addStatisticsCards() {
                         <div class="card-body-icon">
                             <i class="fas fa-user-check"></i>
                         </div>
-                        <div>Active Users</div>
-                        <div class="mr-5" id="activeUsers">0</div>
+                        <div class="d-flex flex-column">
+                            <div class="fs-5">Active Users</div>
+                            <div class="fs-2 fw-bold" id="activeUsersCount">0</div>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-success-dark text-white">
+                        <div class="progress">
+                            <div id="activeProgress" class="progress-bar bg-white" role="progressbar" style="width: 0%"></div>
+                        </div>
                     </div>
                 </div>
             </div>
             <div class="col-xl-3 col-sm-6 mb-3">
-                <div class="card text-white bg-secondary o-hidden h-100">
+                <div class="card text-white bg-warning o-hidden h-100">
                     <div class="card-body">
                         <div class="card-body-icon">
                             <i class="fas fa-user-clock"></i>
                         </div>
-                        <div>Inactive Users</div>
-                        <div class="mr-5" id="inactiveUsers">0</div>
+                        <div class="d-flex flex-column">
+                            <div class="fs-5">Inactive Users</div>
+                            <div class="fs-2 fw-bold" id="inactiveUsersCount">0</div>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-warning-dark text-white">
+                        <div class="progress">
+                            <div id="inactiveProgress" class="progress-bar bg-white" role="progressbar" style="width: 0%"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -225,35 +319,115 @@ function addStatisticsCards() {
                         <div class="card-body-icon">
                             <i class="fas fa-user-slash"></i>
                         </div>
-                        <div>Suspended Users</div>
-                        <div class="mr-5" id="suspendedUsers">0</div>
+                        <div class="d-flex flex-column">
+                            <div class="fs-5">Suspended Users</div>
+                            <div class="fs-2 fw-bold" id="suspendedUsersCount">0</div>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-danger-dark text-white">
+                        <div class="progress">
+                            <div id="suspendedProgress" class="progress-bar bg-white" role="progressbar" style="width: 0%"></div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     `;
     
-    // Insert statistics cards before the users table
-    const tableContainer = document.querySelector('#usersTable').parentElement;
-    tableContainer.insertAdjacentHTML('beforebegin', statsHtml);
+    // Insert statistics cards after page header and before search box
+    const pageHeader = document.querySelector('.row.mb-4');
+    if (pageHeader) {
+        pageHeader.insertAdjacentHTML('afterend', statsHtml);
+    } else {
+        // Fallback: Insert statistics cards before the search box
+        const searchBox = document.querySelector('.card.mb-4.fade-in');
+        if (searchBox) {
+            searchBox.insertAdjacentHTML('beforebegin', statsHtml);
+        } else {
+            // Last fallback: Insert before the users table
+            const tableContainer = document.querySelector('#usersTable').closest('.card');
+            tableContainer.insertAdjacentHTML('beforebegin', statsHtml);
+        }
+    }
+    
+    // Add custom styles for card footers
+    const customStyles = `
+        <style>
+            .bg-primary-dark { background-color: rgba(0, 0, 0, 0.15) !important; }
+            .bg-success-dark { background-color: rgba(0, 0, 0, 0.15) !important; }
+            .bg-warning-dark { background-color: rgba(0, 0, 0, 0.15) !important; }
+            .bg-danger-dark { background-color: rgba(0, 0, 0, 0.15) !important; }
+            .card-footer { padding: 0.5rem 1rem; }
+            .progress { height: 0.5rem; background-color: rgba(255, 255, 255, 0.2); }
+        </style>
+    `;
+    document.head.insertAdjacentHTML('beforeend', customStyles);
 }
 
 /**
  * Update user statistics
  */
 function updateUserStats(users) {
-    userStats = {
+    // 确保统计卡片已添加
+    if ($('#statisticsCards').length === 0) {
+        addStatisticsCards();
+    }
+    
+    // 基于前端获取的用户列表计算统计数据
+    const stats = {
         total: users.length,
-        active: users.filter(user => user.status === 'Active').length,
-        inactive: users.filter(user => user.status === 'Inactive').length,
-        suspended: users.filter(user => user.status === 'Suspended').length
+        active: users.filter(user => {
+            // 处理数字状态值
+            if (typeof user.status === 'number' || !isNaN(parseInt(user.status))) {
+                return parseInt(user.status) === 0;
+            }
+            // 处理字符串状态值
+            return user.status === 'Active';
+        }).length,
+        inactive: users.filter(user => {
+            // 处理数字状态值
+            if (typeof user.status === 'number' || !isNaN(parseInt(user.status))) {
+                return parseInt(user.status) === 1;
+            }
+            // 处理字符串状态值
+            return user.status === 'Inactive';
+        }).length,
+        suspended: users.filter(user => {
+            // 处理数字状态值
+            if (typeof user.status === 'number' || !isNaN(parseInt(user.status))) {
+                return parseInt(user.status) === 2;
+            }
+            // 处理字符串状态值
+            return user.status === 'Suspended';
+        }).length
     };
     
-    // Update the UI
-    document.getElementById('totalUsers').textContent = userStats.total;
-    document.getElementById('activeUsers').textContent = userStats.active;
-    document.getElementById('inactiveUsers').textContent = userStats.inactive;
-    document.getElementById('suspendedUsers').textContent = userStats.suspended;
+    // 更新统计UI
+    updateStatsUI(stats);
+}
+
+/**
+ * 更新统计UI
+ */
+function updateStatsUI(stats) {
+    // 更新统计数字
+    $('#totalUsersCount').text(stats.total || 0);
+    $('#activeUsersCount').text(stats.active || 0);
+    $('#inactiveUsersCount').text(stats.inactive || 0);
+    $('#suspendedUsersCount').text(stats.suspended || 0);
+    
+    // 更新进度条
+    if (stats.total > 0) {
+        const activePercent = Math.round((stats.active / stats.total) * 100);
+        const inactivePercent = Math.round((stats.inactive / stats.total) * 100);
+        const suspendedPercent = Math.round((stats.suspended / stats.total) * 100);
+        
+        $('#activeProgress').css('width', `${activePercent}%`).attr('aria-valuenow', activePercent);
+        $('#inactiveProgress').css('width', `${inactivePercent}%`).attr('aria-valuenow', inactivePercent);
+        $('#suspendedProgress').css('width', `${suspendedPercent}%`).attr('aria-valuenow', suspendedPercent);
+    } else {
+        $('#activeProgress, #inactiveProgress, #suspendedProgress').css('width', '0%').attr('aria-valuenow', 0);
+    }
 }
 
 /**
@@ -269,14 +443,19 @@ async function loadUsers(searchQuery = '', statusFilter = '') {
         
         if (response.data.code === '200') {
             const users = response.data.data;
+            // 先更新用户表格
             updateUserTable(users);
+            // 然后更新统计信息
             updateUserStats(users);
+            return users;
         } else {
-            showAlert('Error loading users: ' + response.data.msg, 'danger');
+            showAlert('Failed to load user data: ' + response.data.msg, 'danger');
+            return [];
         }
     } catch (error) {
-        console.error('Error loading users:', error);
-        showAlert('Failed to load users. Please try again later.', 'danger');
+        console.error('Error loading user data:', error);
+        showAlert('Failed to load user data. Please try again later.', 'danger');
+        return [];
     }
 }
 
@@ -294,14 +473,49 @@ async function loadUsersPaginated(pageNum = 1, pageSize = 10, searchQuery = '', 
         const response = await api.get(`/user/selectPage?${params.toString()}`);
         
         if (response.data.code === '200') {
-            updateUserTable(response.data.data.list);
-            // Here you could also update pagination controls if needed
+            const users = response.data.data.list;
+            // 更新用户表格
+            updateUserTable(users);
+            
+            // 同时加载所有用户数据来更新统计信息
+            // 这是为了确保统计信息是基于所有用户而不仅仅是当前页面的用户
+            loadUsersForStats(searchQuery, statusFilter);
+            
+            return users;
         } else {
-            showAlert('Error loading users: ' + response.data.msg, 'danger');
+            showAlert('加载用户分页数据失败: ' + response.data.msg, 'danger');
+            return [];
         }
     } catch (error) {
-        console.error('Error loading paginated users:', error);
-        showAlert('Failed to load users. Please try again later.', 'danger');
+        console.error('加载用户分页数据错误:', error);
+        showAlert('加载用户分页数据失败，请稍后重试', 'danger');
+        return [];
+    }
+}
+
+/**
+ * 仅加载用户数据用于统计，不更新表格
+ */
+async function loadUsersForStats(searchQuery = '', statusFilter = '') {
+    try {
+        const params = new URLSearchParams();
+        if (searchQuery) params.append('username', searchQuery);
+        if (statusFilter) params.append('status', statusFilter);
+        
+        const response = await api.get(`/user/select/all?${params.toString()}`);
+        
+        if (response.data.code === '200') {
+            const users = response.data.data;
+            // 仅更新统计信息，不更新表格
+            updateUserStats(users);
+            return users;
+        } else {
+            console.error('Failed to load statistics data:', response.data.msg);
+            return [];
+        }
+    } catch (error) {
+        console.error('Error loading statistics data:', error);
+        return [];
     }
 }
 
@@ -456,7 +670,46 @@ function setupEventListeners() {
         searchButton.parentElement.addEventListener('click', function() {
             const searchQuery = document.getElementById('searchInput')?.value || '';
             const statusFilter = document.getElementById('statusFilter')?.value || '';
+            
+            // 加载用户数据并更新统计
             loadUsers(searchQuery, statusFilter);
+            
+            // 添加搜索状态指示
+            if (searchQuery || statusFilter) {
+                // 如果还没有筛选指示器，添加一个
+                if (!document.getElementById('filterIndicator')) {
+                    const indicator = document.createElement('div');
+                    indicator.id = 'filterIndicator';
+                    indicator.className = 'alert alert-info alert-dismissible fade show mt-3';
+                    indicator.innerHTML = `
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-filter me-2"></i>
+                            <div>
+                                <strong>Filter Applied</strong>
+                                <span class="filter-terms"></span>
+                            </div>
+                            <button type="button" class="btn-close ms-auto" id="clearFilter"></button>
+                        </div>
+                    `;
+                    const searchContainer = document.querySelector('.card-body .row');
+                    searchContainer.insertAdjacentElement('afterend', indicator);
+                    
+                    // 添加清除筛选的事件
+                    document.getElementById('clearFilter').addEventListener('click', function() {
+                        document.getElementById('searchInput').value = '';
+                        document.getElementById('statusFilter').value = '';
+                        loadUsers();
+                        indicator.remove();
+                    });
+                }
+                
+                // 更新筛选条件文本
+                const filterTerms = [];
+                if (searchQuery) filterTerms.push(`Search: "${searchQuery}"`);
+                if (statusFilter) filterTerms.push(`Status: ${statusFilter}`);
+                
+                document.querySelector('.filter-terms').textContent = ` - ${filterTerms.join(', ')}`;
+            }
         });
     }
     
@@ -468,12 +721,25 @@ function setupEventListeners() {
         });
     }
     
-    // Status filter
+    // Status filter dropdown change
     const statusFilter = document.getElementById('statusFilter');
     if (statusFilter) {
         statusFilter.addEventListener('change', function() {
             const searchQuery = document.getElementById('searchInput')?.value || '';
             loadUsers(searchQuery, this.value);
+        });
+    }
+    
+    // Enter key in search input
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const searchButton = document.querySelector('button.btn-primary i.fas.fa-search');
+                if (searchButton && searchButton.parentElement) {
+                    searchButton.parentElement.click();
+                }
+            }
         });
     }
     
@@ -629,8 +895,9 @@ function openAddUserModal() {
                         <div class="mb-3">
                             <label for="status" class="form-label">Status</label>
                             <select class="form-select" id="status">
-                                <option value="Active">Active</option>
-                                <option value="Inactive">Inactive</option>
+                                <option value="0">Active</option>
+                                <option value="1">Inactive</option>
+                                <option value="2">Suspended</option>
                             </select>
                         </div>
                         <div class="mb-3">
@@ -711,9 +978,9 @@ function openEditUserModal(user) {
                         <div class="mb-3">
                             <label for="status" class="form-label">Status</label>
                             <select class="form-select" id="status">
-                                <option value="Active" ${user.status === 'Active' ? 'selected' : ''}>Active</option>
-                                <option value="Inactive" ${user.status === 'Inactive' ? 'selected' : ''}>Inactive</option>
-                                <option value="Suspended" ${user.status === 'Suspended' ? 'selected' : ''}>Suspended</option>
+                                <option value="0" ${(user.status === 0 || user.status === '0' || user.status === 'Active') ? 'selected' : ''}>Active</option>
+                                <option value="1" ${(user.status === 1 || user.status === '1' || user.status === 'Inactive') ? 'selected' : ''}>Inactive</option>
+                                <option value="2" ${(user.status === 2 || user.status === '2' || user.status === 'Suspended') ? 'selected' : ''}>Suspended</option>
                             </select>
                         </div>
                         <div class="mb-3">
@@ -770,6 +1037,54 @@ function openEditUserModal(user) {
  * Show user details
  */
 function showUserDetails(user) {
+    // 确定用户状态的显示文本和样式
+    let statusText, statusClass, statusIcon;
+    
+    // 处理数字状态值
+    if (typeof user.status === 'number' || !isNaN(parseInt(user.status))) {
+        const statusValue = parseInt(user.status);
+        switch (statusValue) {
+            case 0:
+                statusText = 'Active';
+                statusClass = 'bg-success';
+                statusIcon = 'check-circle';
+                break;
+            case 1:
+                statusText = 'Inactive';
+                statusClass = 'bg-secondary';
+                statusIcon = 'clock';
+                break;
+            case 2:
+                statusText = 'Suspended';
+                statusClass = 'bg-danger';
+                statusIcon = 'ban';
+                break;
+            default:
+                statusText = 'Unknown';
+                statusClass = 'bg-secondary';
+                statusIcon = 'question-circle';
+        }
+    } else {
+        // 处理字符串状态值
+        statusText = user.status;
+        if (user.status === 'Active') {
+            statusClass = 'bg-success';
+            statusIcon = 'check-circle';
+        } else if (user.status === 'Inactive') {
+            statusClass = 'bg-secondary';
+            statusIcon = 'clock';
+        } else if (user.status === 'Suspended') {
+            statusClass = 'bg-danger';
+            statusIcon = 'ban';
+        } else {
+            statusClass = 'bg-secondary';
+            statusIcon = 'question-circle';
+        }
+    }
+    
+    // 确定是否处于活跃状态(0或'Active')
+    const isActive = (user.status === 0 || user.status === '0' || user.status === 'Active');
+    
     const modalHtml = `
     <div class="modal fade" id="viewUserModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -790,9 +1105,9 @@ function showUserDetails(user) {
                         <div class="col-6">
                             <div class="border rounded p-3">
                                 <small class="text-muted d-block">Status</small>
-                                <span class="badge ${user.status === 'Active' ? 'bg-success' : (user.status === 'Inactive' ? 'bg-secondary' : 'bg-danger')}">
-                                    <i class="fas fa-${user.status === 'Active' ? 'check-circle' : (user.status === 'Inactive' ? 'clock' : 'ban')}"></i>
-                                    ${user.status}
+                                <span class="badge ${statusClass}">
+                                    <i class="fas fa-${statusIcon}"></i>
+                                    ${statusText}
                                 </span>
                             </div>
                         </div>
@@ -815,9 +1130,9 @@ function showUserDetails(user) {
                 </div>
                 <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn ${user.status === 'Active' ? 'btn-warning toggle-status' : 'btn-success toggle-status'}" data-id="${user.id}" data-status="${user.status}">
-                        <i class="fas fa-${user.status === 'Active' ? 'ban' : 'check-circle'} me-1"></i> 
-                        ${user.status === 'Active' ? 'Disable User' : 'Enable User'}
+                    <button type="button" class="btn ${isActive ? 'btn-warning' : 'btn-success'} toggle-status" data-id="${user.id}" data-status="${user.status}">
+                        <i class="fas fa-${isActive ? 'ban' : 'check-circle'} me-1"></i> 
+                        ${isActive ? 'Disable User' : 'Enable User'}
                     </button>
                     <button type="button" class="btn btn-primary edit-user" data-id="${user.id}">
                         <i class="fas fa-edit me-1"></i> Edit User
@@ -914,23 +1229,23 @@ function confirmDeleteUser(userId) {
     </div>
     `;
     
-    // Create and append the modal
+    // 创建并添加模态框
     const modalContainer = document.createElement('div');
     modalContainer.innerHTML = modalHtml;
     document.body.appendChild(modalContainer);
     
-    // Initialize the modal
+    // 初始化模态框
     const modal = new bootstrap.Modal(document.getElementById('deleteUserModal'));
     modal.show();
     
-    // Handle delete confirmation
+    // 处理删除确认
     document.getElementById('confirmDeleteBtn').addEventListener('click', async function() {
         if (await deleteUser(userId)) {
             modal.hide();
         }
     });
     
-    // Clean up when modal is closed
+    // 关闭时清理模态框
     document.getElementById('deleteUserModal').addEventListener('hidden.bs.modal', function() {
         this.remove();
     });
@@ -984,12 +1299,12 @@ function confirmDeleteBatch(userIds) {
                 <div class="modal-header bg-danger text-white">
                     <h5 class="modal-title">
                         <i class="fas fa-exclamation-triangle me-2"></i>
-                        Confirm Multiple Deletion
+                        Confirm Batch Deletion
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="mb-0">Are you sure you want to delete ${userIds.length} users? This action cannot be undone.</p>
+                    <p class="mb-0">Are you sure you want to delete these ${userIds.length} users? This action cannot be undone.</p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -1002,165 +1317,37 @@ function confirmDeleteBatch(userIds) {
     </div>
     `;
     
-    // Create and append the modal
+    // 创建并添加模态框
     const modalContainer = document.createElement('div');
     modalContainer.innerHTML = modalHtml;
     document.body.appendChild(modalContainer);
     
-    // Initialize the modal
+    // 初始化模态框
     const modal = new bootstrap.Modal(document.getElementById('deleteBatchModal'));
     modal.show();
     
-    // Handle delete confirmation
+    // 处理删除确认
     document.getElementById('confirmBatchDeleteBtn').addEventListener('click', async function() {
-        if (await deleteBatchUsers(userIds)) {
+        let success = true;
+        for (const userId of userIds) {
+            if (!await deleteUser(userId)) {
+                success = false;
+                break;
+            }
+        }
+        
+        if (success) {
+            showAlert('All selected users have been successfully deleted', 'success');
             modal.hide();
+            // 清空选择的用户
+            selectedUsers = [];
+            // 更新批量操作按钮
+            updateBulkActionButtons();
         }
     });
     
-    // Clean up when modal is closed
+    // 关闭时清理模态框
     document.getElementById('deleteBatchModal').addEventListener('hidden.bs.modal', function() {
         this.remove();
     });
 }
-
-/**
- * Update user status (enable/disable)
- */
-async function updateUserStatus(id, status) {
-    try {
-        const response = await api.post(`/user/status/${id}?status=${status}`);
-        
-        if (response.data.code === '200') {
-            const statusText = status === 1 ? 'disabled' : 'enabled';
-            showAlert(`User ${statusText} successfully!`, 'success');
-            loadUsers(); // Reload the table
-            return true;
-        } else {
-            showAlert('Error updating user status: ' + response.data.msg, 'danger');
-            return false;
-        }
-    } catch (error) {
-        console.error('Error updating user status:', error);
-        showAlert('Failed to update user status. Please try again.', 'danger');
-        return false;
-    }
-}
-
-/**
- * Open status update confirmation modal
- */
-function confirmStatusUpdate(userId, currentStatus) {
-    // Determine the new status (toggle between 0 and 1)
-    // If current status is 'Active', we set status=1 to disable the user (will become Suspended)
-    // If current status is 'Suspended', we set status=0 to enable the user (will become Active)
-    const newStatus = currentStatus === 'Active' ? 1 : 0;
-    const action = newStatus === 1 ? 'disable' : 'enable';
-    const statusText = newStatus === 1 ? 'Disable' : 'Enable';
-    const iconClass = newStatus === 1 ? 'ban' : 'check-circle';
-    const headerClass = newStatus === 1 ? 'danger' : 'success';
-    
-    const modalHtml = `
-    <div class="modal fade" id="statusUpdateModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header bg-${headerClass} text-white">
-                    <h5 class="modal-title">
-                        <i class="fas fa-${iconClass} me-2"></i>
-                        Confirm ${statusText} User
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Are you sure you want to ${action} this user?</p>
-                    <p class="mb-0"><small class="text-muted">User status will be changed to <strong>${newStatus === 1 ? 'Suspended' : 'Active'}</strong></small></p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-${headerClass}" id="confirmStatusBtn">
-                        <i class="fas fa-${iconClass} me-1"></i> ${statusText} User
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-    `;
-    
-    // Create and append the modal
-    const modalContainer = document.createElement('div');
-    modalContainer.innerHTML = modalHtml;
-    document.body.appendChild(modalContainer);
-    
-    // Initialize the modal
-    const modal = new bootstrap.Modal(document.getElementById('statusUpdateModal'));
-    modal.show();
-    
-    // Handle status update confirmation
-    document.getElementById('confirmStatusBtn').addEventListener('click', async function() {
-        if (await updateUserStatus(userId, newStatus)) {
-            modal.hide();
-        }
-    });
-    
-    // Clean up when modal is closed
-    document.getElementById('statusUpdateModal').addEventListener('hidden.bs.modal', function() {
-        this.remove();
-    });
-}
-
-// Add custom CSS styles
-function addCustomStyles() {
-    const customStyles = `
-        <style>
-            .user-avatar {
-                width: 35px;
-                height: 35px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-weight: bold;
-                margin-right: 10px;
-            }
-            
-            .badge {
-                padding: 0.5em 0.8em;
-                font-size: 0.85em;
-            }
-            
-            .card-body-icon {
-                position: absolute;
-                z-index: 0;
-                top: -1.5rem;
-                right: -1rem;
-                opacity: 0.4;
-                font-size: 5rem;
-                transform: rotate(15deg);
-            }
-            
-            .card:hover .card-body-icon {
-                transform: rotate(0deg);
-                transition: transform 0.3s;
-            }
-            
-            .btn-group .btn {
-                margin: 0 2px;
-            }
-            
-            .table thead th {
-                background-color: #f8f9fa;
-                border-bottom: 2px solid #dee2e6;
-            }
-            
-            .table tbody tr:hover {
-                background-color: rgba(0,0,0,.03);
-            }
-            
-            .form-check-input:checked {
-                background-color: #0d6efd;
-                border-color: #0d6efd;
-            }
-        </style>
-    `;
-    
-    document.head.insertAdjacentHTML('beforeend', customStyles);
-} 

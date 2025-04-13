@@ -1,4 +1,4 @@
-// 注意这里 axios 的 CDN 地址已修正
+// Import axios from CDN with corrected path
 import { register } from './register.js';
 import { API_URL } from './config.js';
 import axios from "https://cdn.jsdelivr.net/npm/axios/+esm";

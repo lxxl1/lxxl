@@ -10,7 +10,43 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize form submit
     initFormSubmit();
+    
+    // Load categories into the dropdown
+    loadCategories();
 });
+
+/**
+ * Load categories from the API and populate the dropdown
+ */
+async function loadCategories() {
+    const categorySelect = document.getElementById('category');
+    if (!categorySelect) return; // Exit if select element not found
+
+    try {
+        const response = await api.get('/category/selectAll'); // Use CategoryController endpoint
+        if (response.data.code === '200') {
+            const categories = response.data.data;
+            if (categories && categories.length > 0) {
+                categorySelect.innerHTML = '<option value="" disabled selected>Select a category</option>'; // Reset options
+                categories.forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category.id;
+                    option.textContent = category.name; // Assuming category object has id and name
+                    categorySelect.appendChild(option);
+                });
+            } else {
+                categorySelect.innerHTML = '<option value="" disabled>No categories found</option>';
+            }
+        } else {
+            console.error('Failed to load categories:', response.data.msg);
+            categorySelect.innerHTML = '<option value="" disabled>Error loading categories</option>';
+        }
+    } catch (error) {
+        console.error('Error fetching categories:', error);
+        categorySelect.innerHTML = '<option value="" disabled>Error loading categories</option>';
+        showMessage('Failed to load categories. Please try refreshing.', 'danger');
+    }
+}
 
 /**
  * Initialize upload functionality
@@ -154,6 +190,13 @@ function initFormSubmit() {
             return;
         }
         
+        // Check if category is selected
+        const categoryId = document.getElementById('category').value;
+        if (!categoryId) {
+            showMessage('Please select a category for the song', 'danger');
+            return;
+        }
+        
         // Get form data
         const formData = new FormData();
         
@@ -176,6 +219,8 @@ function initFormSubmit() {
         formData.append('name', document.getElementById('songName').value);
         formData.append('introduction', document.getElementById('introduction').value || '');
         formData.append('lyric', document.getElementById('lyric').value || '');
+        formData.append('categoryId', categoryId);
+        formData.append('tags', document.getElementById('tags').value.trim());
         
         // Add music file
         formData.append('file', musicFile);
@@ -213,7 +258,7 @@ function initFormSubmit() {
             
             // Handle response
             if (response.data.code === '200') {
-                showMessage('Music uploaded successfully!', 'success');
+                showMessage('Music uploaded successfully! It will be reviewed shortly.', 'success');
                 // Reset form
                 form.reset();
                 // Reset file input

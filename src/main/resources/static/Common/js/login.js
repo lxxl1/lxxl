@@ -21,7 +21,7 @@ export const login = async (username, password, role) => {
   console.log('Login attempt with:', { username, role }); // Log login attempt
   
   try {
-    // 使用apiService进行登录
+    // Use apiService for login
     const response = await apiService.login(username, password, role);
     
     console.log('Backend response data:', response);
@@ -31,13 +31,16 @@ export const login = async (username, password, role) => {
       console.log('Login successful, storing user data');
       const userData = response.data;
       
+      // Ensure role is set in the user object
+      userData.role = role; // Explicitly set role from the login form
+      
       // Log what we're storing
-      console.log('User data to store:', userData);
+      console.log('User data to store with added role:', userData);
       
       try {
         localStorage.setItem('user', JSON.stringify(userData));
         localStorage.setItem('token', userData.token);
-        localStorage.setItem('role', userData.role || role);
+        localStorage.setItem('role', role); // Store role separately too
         console.log('User data stored successfully');
       } catch (storageError) {
         console.error('Error storing user data:', storageError);
@@ -70,7 +73,7 @@ export const login = async (username, password, role) => {
  */
 export const register = async (username, password, name, role) => {
   try {
-    // 使用apiService进行注册
+    // Use apiService for registration
     return await apiService.register({
       username,
       password,
@@ -99,7 +102,7 @@ export const register = async (username, password, name, role) => {
  */
 export const updatePassword = async (username, password, newPassword, role) => {
   try {
-    // 使用apiService更新密码
+    // Use apiService to update password
     return await apiService.updatePassword({
       username,
       password,

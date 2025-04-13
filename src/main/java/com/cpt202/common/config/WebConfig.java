@@ -45,6 +45,10 @@ public class WebConfig implements WebMvcConfigurer {
                         "/song/**",
                         "/singer/**",
                         
+                        // 管理员相关API
+                        "/admin/**",
+                        "/Admin/**",
+                        
                         // 静态资源
                         "/**/*.html", 
                         "/**/*.js", 

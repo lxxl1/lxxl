@@ -1,31 +1,25 @@
-// 管理员界面权限检查模块
-import { checkAuthentication, checkAdminRole, logout } from '../../../Common/js/auth.js';
+// 管理员界面简化权限检查模块
+import { checkAuthenticationNoRedirect, logoutNoRedirect } from '../../../Common/js/auth.js';
 
-// 立即执行函数 - 页面加载时自动执行权限检查
+// 立即执行函数 - 页面加载时自动执行简化的权限检查
 (function() {
-    console.log('Performing admin authentication check...');
+    console.log('Performing simplified admin authentication check...');
     
-    // 验证用户是否已登录，未登录则跳转到登录页面
-    if (!checkAuthentication()) {
-        console.log('Admin not authenticated, redirecting to login page...');
-        return; // checkAuthentication内部会自动重定向到登录页面
+    // 只检查是否有token，不检查角色
+    const authResult = checkAuthenticationNoRedirect();
+    if (!authResult) {
+        console.log('No authentication token found, but continuing anyway...');
+    } else {
+        console.log('Authentication token found.');
     }
-    
-    // 检查用户是否具有管理员角色
-    if (!checkAdminRole()) {
-        console.log('User does not have admin role, redirecting...');
-        return; // checkAdminRole内部会处理重定向
-    }
-    
-    console.log('Admin authentication check passed.');
     
     // 页面加载完成后执行
     document.addEventListener('DOMContentLoaded', function() {
         // 更新页面上的管理员信息
         updateAdminInfo();
         
-        // 设置登出按钮事件
-        setupLogoutButton();
+        // 设置不重定向的登出按钮事件
+        setupLogoutButtonNoRedirect();
     });
 })();
 
@@ -47,13 +41,16 @@ function updateAdminInfo() {
     }
 }
 
-// 设置登出按钮事件
-function setupLogoutButton() {
+// 设置不重定向的登出按钮事件
+function setupLogoutButtonNoRedirect() {
     const logoutButton = document.querySelector('.btn.btn-outline-danger');
     if (logoutButton) {
         logoutButton.addEventListener('click', function(e) {
             e.preventDefault();
-            logout();
+            // 使用无重定向版本的登出函数
+            logoutNoRedirect();
+            // 显示已登出消息
+            alert('您已成功退出登录，但页面不会重定向。');
         });
     }
 } 

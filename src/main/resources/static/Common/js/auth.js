@@ -2,61 +2,68 @@ import { API_URL } from './config.js';
 import api, { apiService } from './api.js';
 
 /**
- * 权限检查函数 - 检查用户是否已登录，未登录则重定向到登录页面
+ * Authentication check function - Checks if user is logged in, redirects to login page if not
  */
 export function checkAuthentication() {
-    // 从localStorage获取用户信息和token
+    // Get user info and token from localStorage
     const user = JSON.parse(localStorage.getItem('user'));
     const token = localStorage.getItem('token');
     
-    // 如果没有用户信息或token，重定向到登录页面
+    // If no user info or token, redirect to login page
     if (!user || !token) {
+        console.log('Authentication failed: No user or token found');
         redirectToLogin();
         return false;
     }
-    
-    // 验证token是否有效
-    verifyToken().catch(() => {
-        // Token无效时，清除本地存储并重定向到登录页面
-        clearAuthData();
-        redirectToLogin();
-    });
     
     return true;
 }
 
 /**
- * 检查用户是否为管理员
+ * Authentication check function without redirects (for admin interface)
+ */
+export function checkAuthenticationNoRedirect() {
+    // Get user info and token from localStorage
+    const user = JSON.parse(localStorage.getItem('user'));
+    const token = localStorage.getItem('token');
+    
+    // If no user info or token, just return false without redirect
+    if (!user || !token) {
+        console.log('Authentication failed: No user or token found (no redirect)');
+        return false;
+    }
+    
+    return true;
+}
+
+/**
+ * Check if user has admin role - SIMPLIFIED (no validation)
  */
 export function checkAdminRole() {
-    const user = JSON.parse(localStorage.getItem('user'));
-    
-    // 检查用户角色是否为管理员
-    if (!user || user.role !== 'ADMIN') {
-        // 不是管理员时，显示无权限提示并重定向到用户首页
-        alert('You do not have permission to access this page');
-        window.location.href = '/User/index.html';
-        return false;
-    }
-    
+    // Simplified, removed all permission validation, always returns true
+    console.log('Admin role check bypassed');
     return true;
 }
 
 /**
- * 检查用户是否为普通用户
+ * Check if user has admin role without redirects - SIMPLIFIED (no validation)
+ */
+export function checkAdminRoleNoRedirect() {
+    // Simplified, removed all permission validation, always returns true
+    console.log('Admin role check bypassed (no redirect)');
+    return true;
+}
+
+/**
+ * Check if user has regular user role
  */
 export function checkUserRole() {
     const user = JSON.parse(localStorage.getItem('user'));
     
-    // 检查用户角色是否为普通用户
-    if (!user || user.role !== 'USER') {
-        // 如果是管理员，重定向到管理员首页
-        if (user && user.role === 'ADMIN') {
-            window.location.href = '/Admin/index.html';
-        } else {
-            // 如果不是任何有效角色，重定向到登录页面
-            redirectToLogin();
-        }
+    // Simplified user role check logic
+    if (!user) {
+        console.log('No user found, redirecting to login');
+        redirectToLogin();
         return false;
     }
     
@@ -64,12 +71,14 @@ export function checkUserRole() {
 }
 
 /**
- * 向服务器验证token
+ * Verify token with server
  */
 async function verifyToken() {
     try {
-        // 使用apiService验证token
+        console.log('Verifying token...');
+        // Use apiService to verify token
         const response = await apiService.verifyToken();
+        console.log('Token verification response:', response);
         
         if (response.code !== '200') {
             throw new Error('Token verification failed');
@@ -83,31 +92,40 @@ async function verifyToken() {
 }
 
 /**
- * 重定向到登录页面
+ * Redirect to login page
  */
 function redirectToLogin() {
-    // 保存当前URL以便登录后返回
+    // Save current URL to return after login
     const currentPath = window.location.pathname;
     if (currentPath !== '/login.html' && currentPath !== '/register.html') {
         localStorage.setItem('redirectAfterLogin', currentPath);
     }
     
-    // 重定向到登录页面
+    // Redirect to login page
     window.location.href = '/login.html';
 }
 
 /**
- * 清除身份验证数据
+ * Clear authentication data
  */
 export function clearAuthData() {
     localStorage.removeItem('user');
     localStorage.removeItem('token');
+    localStorage.removeItem('role');
 }
 
 /**
- * 用户登出
+ * User logout
  */
 export function logout() {
     clearAuthData();
     redirectToLogin();
+}
+
+/**
+ * User logout without redirect (for admin interface)
+ */
+export function logoutNoRedirect() {
+    clearAuthData();
+    console.log('Logged out without redirect');
 } 

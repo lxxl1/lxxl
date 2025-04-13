@@ -5,7 +5,7 @@
 <mapper namespace="com.cpt202.mapper.SongMapper">
     <resultMap id="BaseResultMap" type="com.cpt202.domain.Song">
         <id column="id" jdbcType="INTEGER" property="id"/>
-        <result column="singer_id" jdbcType="VARCHAR" property="singerId"/>
+        <result column="singer_id" jdbcType="INTEGER" property="singerId"/>
         <result column="name" jdbcType="VARCHAR" property="name"/>
         <result column="introduction" jdbcType="VARCHAR"
                 property="introduction"/>
@@ -17,7 +17,10 @@
         <result column="url" jdbcType="VARCHAR" property="url"/>
         <result column="mvurl" jdbcType="VARCHAR" property="mvurl"/>
         <result column="nums" jdbcType="INTEGER" property="nums"/>
-        <result column="is_vip" jdbcType="BOOLEAN" property="isVip"/>
+        <result column="is_vip" jdbcType="TINYINT" property="isVip"/>
+        <result column="status" jdbcType="INTEGER" property="status"/>
+        <result column="user_id" jdbcType="INTEGER" property="userId"/>
+        <result column="category_id" jdbcType="INTEGER" property="categoryId"/>
     </resultMap>
 
     <resultMap id="ResultMapWithBLOBs" type="com.cpt202.domain.Song"
@@ -27,12 +30,12 @@
 
     <sql id="Base_Column_List">
         id
-        ,singer_id,name,introduction,create_time,update_time,pic,url,mvurl,nums ,is_vip
+        ,singer_id,name,introduction,create_time,update_time,pic,url,mvurl,nums,is_vip,status,user_id,category_id
     </sql>
 
     <sql id="Blob_Column_List">
         id
-        ,singer_id,name,introduction,create_time,update_time,pic,lyric,url,mvurl,nums,is_vip
+        ,singer_id,name,introduction,create_time,update_time,pic,lyric,url,mvurl,nums,is_vip,status,user_id,category_id
     </sql>
 
     <insert id="insert" parameterType="com.cpt202.domain.Song">

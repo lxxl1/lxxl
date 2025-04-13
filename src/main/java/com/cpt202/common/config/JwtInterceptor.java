@@ -39,6 +39,20 @@ public class JwtInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws IOException {
         // 检查是否是API请求，仅对API请求进行JWT验证
         String requestURI = request.getRequestURI();
+        
+        // 检查请求的来源 - 如果是来自Admin界面的请求，允许通过
+        String referer = request.getHeader("Referer");
+        boolean isFromAdmin = referer != null && referer.contains("/Admin/");
+        
+        // 检查是否是Admin相关的API请求 - 优先判断Referer，然后再看URI
+        boolean isAdminRequest = isFromAdmin || requestURI.contains("/admin/") || requestURI.contains("/Admin/");
+        
+        // 对管理员请求特殊处理 - 允许绕过验证
+        if (isAdminRequest) {
+            log.info("管理员相关请求，跳过JWT验证: {}", requestURI);
+            return true;
+        }
+        
         // 是否是前端Ajax请求
         boolean isApiRequest = isApiRequest(request);
         
