@@ -38,7 +38,7 @@ public class SongController {
     public Result addSong(HttpServletRequest request, @RequestParam("file") MultipartFile mpFile, @RequestParam(name = "files", required = false) MultipartFile mvFile) {
         try {
             // 获取前端传来的参数
-            Integer userId = Integer.valueOf(request.getParameter("userId").trim());      //用户id
+            String userId = request.getParameter("userId").trim();      //用户id  
             String singerId = request.getParameter("singerId").trim();  // 所属歌手id
             String name = request.getParameter("name").trim();          // 歌名
             String introduction = request.getParameter("introduction").trim();  // 简介
@@ -58,7 +58,6 @@ public class SongController {
 
             // 创建歌曲对象
             Song song = new Song();
-            song.setUserId(userId);
             song.setSingerId(Integer.parseInt(singerId));
             song.setName(name);
             song.setIntroduction(introduction);
