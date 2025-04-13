@@ -120,16 +120,21 @@ public class AdminServiceImpl implements AdminService {
 
         Account dbAdmin = adminMapper.selectByUsername(account.getUsername());
 
+        // 用户不存在
         if (ObjectUtil.isNull(dbAdmin)) {
             throw new CustomException(ResultCodeEnum.USER_NOT_EXIST_ERROR);
         }
+        
+        // 密码错误
         if (!encryptPassword.equals(dbAdmin.getPassword())) {
             throw new CustomException(ResultCodeEnum.USER_ACCOUNT_ERROR);
         }
+        
+        // 检查用户名是否包含特殊字符
         String validPattern = "[`~!@#$%^&*()+=|{}':;',\\\\[\\\\].<>/?~！@#￥%……&*（）——+|{}【】'；：'。，、？]";
         Matcher matcher = Pattern.compile(validPattern).matcher(account.getUsername());
         if (matcher.find()) {
-            return null;
+            throw new CustomException("4000", "用户名包含非法字符");
         }
 
         // 生成token

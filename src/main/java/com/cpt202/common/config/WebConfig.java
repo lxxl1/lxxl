@@ -3,6 +3,7 @@ package com.cpt202.common.config;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import javax.annotation.Resource;
@@ -23,12 +24,68 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowCredentials(false);
     }
 
-    // 放开JWT拦截器，直接注释掉配置或移除
+    // 配置JWT拦截器
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        // 完全去掉jwt拦截器的配置，进行其他controller的测试
-        // registry.addInterceptor(jwtInterceptor)
-        //         .addPathPatterns("/**") // 拦截所有请求
-        //         .excludePathPatterns("/login", "/register", "/error", "/sendEmail"); // 排除特定路径
+        registry.addInterceptor(jwtInterceptor)
+                .addPathPatterns("/**") // 拦截所有请求
+                .excludePathPatterns(
+                        // 登录注册相关接口
+                        "/login", 
+                        "/register", 
+                        "/sendEmail", 
+                        "/verifyToken",
+                        "/resetPassword",
+                        "/forgetPassword",
+                        
+                        // 错误页
+                        "/error", 
+                        
+                        // 公开API，不需要认证
+                        "/song/**",
+                        "/singer/**",
+                        
+                        // 静态资源
+                        "/**/*.html", 
+                        "/**/*.js", 
+                        "/**/*.css",
+                        "/**/*.ico",
+                        "/**/*.png", 
+                        "/**/*.jpg",
+                        "/**/*.jpeg",
+                        "/**/*.gif",
+                        "/**/*.svg",
+                        "/**/*.ttf",
+                        "/**/*.woff",
+                        "/**/*.woff2",
+                        "/**/*.map",
+                        
+                        // 目录级别的静态资源
+                        "/static/**",
+                        "/resources/**",
+                        "/User/**",
+                        "/Admin/**", 
+                        "/Common/**",
+                        "/upload/**",
+                        
+                        // Swagger相关
+                        "/swagger-ui.html",
+                        "/swagger-resources/**",
+                        "/v2/api-docs",
+                        "/webjars/**"
+                ); // 排除公共路径和静态资源
+    }
+    
+    // 添加静态资源处理
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        registry.addResourceHandler("/**")
+                .addResourceLocations("classpath:/static/", "classpath:/resources/");
+        
+        // Swagger资源处理
+        registry.addResourceHandler("swagger-ui.html")
+                .addResourceLocations("classpath:/META-INF/resources/");
+        registry.addResourceHandler("/webjars/**")
+                .addResourceLocations("classpath:/META-INF/resources/webjars/");
     }
 }

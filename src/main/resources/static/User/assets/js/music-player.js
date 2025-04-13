@@ -3,6 +3,8 @@
  * This file handles the display and interaction with songs on the user side.
  */
 
+import api from '../../../Common/js/api.js';
+
 $(document).ready(function() {
     // Load initial data
     loadTotalSongsCount();
@@ -18,36 +20,30 @@ $(document).ready(function() {
  * Load the total songs count for the dashboard
  */
 function loadTotalSongsCount() {
-    $.ajax({
-        url: '/song/allSong',
-        type: 'GET',
-        success: function(response) {
-            if (response) {
-                $('#total-songs-count').text(response.length || 0);
+    api.get('/song/allSong')
+        .then(response => {
+            if (response.data) {
+                $('#total-songs-count').text(response.data.length || 0);
             }
-        },
-        error: function(error) {
+        })
+        .catch(error => {
             console.error('Error fetching total songs count', error);
-        }
-    });
+        });
 }
 
 /**
  * Load top songs for the dashboard
  */
 function loadTopSongs() {
-    $.ajax({
-        url: '/song/topSong',
-        type: 'GET',
-        success: function(response) {
-            if (response && response.length > 0) {
-                populateTopSongsTable(response.slice(0, 5)); // Display top 5 songs
+    api.get('/song/topSong')
+        .then(response => {
+            if (response.data && response.data.length > 0) {
+                populateTopSongsTable(response.data.slice(0, 5)); // Display top 5 songs
             }
-        },
-        error: function(error) {
+        })
+        .catch(error => {
             console.error('Error fetching top songs', error);
-        }
-    });
+        });
 }
 
 /**
@@ -101,20 +97,17 @@ function populateTopSongsTable(songs) {
  * Load the latest songs for the dashboard
  */
 function loadLatestSongs() {
-    $.ajax({
-        url: '/song/allSong',
-        type: 'GET',
-        success: function(response) {
-            if (response && response.length > 0) {
+    api.get('/song/allSong')
+        .then(response => {
+            if (response.data && response.data.length > 0) {
                 // Sort by ID (assuming higher IDs are newer songs)
-                const sortedSongs = response.sort((a, b) => b.id - a.id);
+                const sortedSongs = response.data.sort((a, b) => b.id - a.id);
                 populateLatestSongsGrid(sortedSongs.slice(0, 6)); // Display latest 6 songs
             }
-        },
-        error: function(error) {
+        })
+        .catch(error => {
             console.error('Error fetching latest songs', error);
-        }
-    });
+        });
 }
 
 /**
@@ -173,20 +166,16 @@ function populateLatestSongsGrid(songs) {
  * Load singer name by ID and update relevant elements
  */
 function loadSingerName(singerId) {
-    $.ajax({
-        url: '/singer/detail',
-        type: 'GET',
-        data: { id: singerId },
-        success: function(response) {
-            if (response) {
+    api.get('/singer/detail', { params: { id: singerId } })
+        .then(response => {
+            if (response.data) {
                 // Update all elements with this singer ID
-                $(`[data-singer-id="${singerId}"]`).text(response.name);
+                $(`[data-singer-id="${singerId}"]`).text(response.data.name);
             }
-        },
-        error: function(error) {
+        })
+        .catch(error => {
             console.error(`Error fetching singer name for ID ${singerId}`, error);
-        }
-    });
+        });
 }
 
 /**
@@ -217,38 +206,26 @@ function setupSearchListeners() {
  */
 function playSong(songId) {
     // First, get the song details
-    $.ajax({
-        url: '/song/detail',
-        type: 'GET',
-        data: { songId: songId },
-        success: function(song) {
-            if (song) {
+    api.get('/song/detail', { params: { songId: songId } })
+        .then(response => {
+            if (response.data) {
                 // Update play count
-                $.ajax({
-                    url: '/song/addNums',
-                    type: 'GET',
-                    data: { songId: songId }
-                });
+                api.get('/song/addNums', { params: { songId: songId } });
                 
                 // Get singer info
-                $.ajax({
-                    url: '/singer/detail',
-                    type: 'GET',
-                    data: { id: song.singerId },
-                    success: function(singer) {
-                        openPlayerModal(song, singer ? singer.name : 'Unknown Artist');
-                    },
-                    error: function() {
-                        openPlayerModal(song, 'Unknown Artist');
-                    }
-                });
+                api.get('/singer/detail', { params: { id: response.data.singerId } })
+                    .then(singerResponse => {
+                        openPlayerModal(response.data, singerResponse.data ? singerResponse.data.name : 'Unknown Artist');
+                    })
+                    .catch(() => {
+                        openPlayerModal(response.data, 'Unknown Artist');
+                    });
             }
-        },
-        error: function(error) {
+        })
+        .catch(error => {
             console.error('Error fetching song details', error);
             alert('Could not load song. Please try again later.');
-        }
-    });
+        });
 }
 
 /**
@@ -285,7 +262,7 @@ function formatLyrics(lyrics) {
 }
 
 /**
- * View detailed song information
+ * View song details page
  */
 function viewSongDetails(songId) {
     window.location.href = `song-details.html?id=${songId}`;

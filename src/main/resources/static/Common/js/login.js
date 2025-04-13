@@ -1,5 +1,6 @@
 import axios from "https://cdn.jsdelivr.net/npm/axios/+esm";
 import { API_URL } from './config.js';
+import api, { apiService } from './api.js';
 
 /**
  * User login function
@@ -20,25 +21,15 @@ export const login = async (username, password, role) => {
   console.log('Login attempt with:', { username, role }); // Log login attempt
   
   try {
-    // Build request body matching the Account object
-    const requestData = {
-      username: username,
-      password: password,
-      role: role
-    };
+    // 使用apiService进行登录
+    const response = await apiService.login(username, password, role);
     
-    console.log('Sending request to:', `${API_URL}/login`);
-    console.log('Request data:', requestData);
-    
-    const response = await axios.post(`${API_URL}/login`, requestData);
-    
-    console.log('Raw backend response:', response);
-    console.log('Backend response data:', response.data);
+    console.log('Backend response data:', response);
     
     // Store user data if login successful
-    if (response.data && response.data.code === '200') {
+    if (response && response.code === '200') {
       console.log('Login successful, storing user data');
-      const userData = response.data.data;
+      const userData = response.data;
       
       // Log what we're storing
       console.log('User data to store:', userData);
@@ -52,16 +43,14 @@ export const login = async (username, password, role) => {
         console.error('Error storing user data:', storageError);
       }
     } else {
-      console.log('Login failed, server returned:', response.data);
+      console.log('Login failed, server returned:', response);
     }
     
     // Return consistent response format to the caller
-    return response.data;
+    return response;
   } catch (error) {
     console.error('Login request error:', error);
-    if (error.response) {
-      console.error('Error response data:', error.response.data);
-      console.error('Error response status:', error.response.status);
+    if (error.response && error.response.data) {
       return error.response.data;
     }
     return {
@@ -81,14 +70,13 @@ export const login = async (username, password, role) => {
  */
 export const register = async (username, password, name, role) => {
   try {
-    const response = await axios.post(`${API_URL}/register`, {
+    // 使用apiService进行注册
+    return await apiService.register({
       username,
       password,
       name,
       role
     });
-    
-    return response.data;
   } catch (error) {
     console.error('Registration error:', error);
     if (error.response && error.response.data) {
@@ -111,14 +99,13 @@ export const register = async (username, password, name, role) => {
  */
 export const updatePassword = async (username, password, newPassword, role) => {
   try {
-    const response = await axios.put(`${API_URL}/updatePassword`, {
+    // 使用apiService更新密码
+    return await apiService.updatePassword({
       username,
       password,
       newPassword,
       role
     });
-    
-    return response.data;
   } catch (error) {
     console.error('Password update error:', error);
     if (error.response && error.response.data) {

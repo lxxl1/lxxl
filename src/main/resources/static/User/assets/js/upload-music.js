@@ -1,21 +1,22 @@
 import { API_URL } from '../../../Common/js/config.js';
+import api from '../../../Common/js/api.js';
 
 document.addEventListener('DOMContentLoaded', function() {
-    // 初始化上传功能
+    // Initialize upload functionality
     initUploadFunctionality();
     
-    // 初始化拖拽上传
+    // Initialize drag and drop
     initDragAndDrop();
     
-    // 初始化表单提交
+    // Initialize form submit
     initFormSubmit();
 });
 
 /**
- * 初始化上传功能
+ * Initialize upload functionality
  */
 function initUploadFunctionality() {
-    // 浏览文件按钮
+    // Browse files button
     const browseButton = document.getElementById('browseFilesBtn');
     const fileInput = document.getElementById('musicFileInput');
     
@@ -23,35 +24,35 @@ function initUploadFunctionality() {
         fileInput.click();
     });
     
-    // 显示选中的文件名
+    // Display selected filename
     fileInput.addEventListener('change', function() {
         if (this.files.length > 0) {
             const fileName = this.files[0].name;
-            const fileSize = (this.files[0].size / (1024 * 1024)).toFixed(2); // 转换为MB
+            const fileSize = (this.files[0].size / (1024 * 1024)).toFixed(2); // Convert to MB
             
-            browseButton.textContent = `已选择: ${fileName} (${fileSize}MB)`;
+            browseButton.textContent = `Selected: ${fileName} (${fileSize}MB)`;
             
-            // 检查文件大小
-            if (this.files[0].size > 50 * 1024 * 1024) { // 50MB限制
-                showMessage('文件过大，请选择50MB以下的音乐文件', 'danger');
+            // Check file size
+            if (this.files[0].size > 50 * 1024 * 1024) { // 50MB limit
+                showMessage('File is too large. Please select a music file under 50MB', 'danger');
                 this.value = '';
-                browseButton.textContent = '浏览文件';
+                browseButton.textContent = 'Browse Files';
             }
         } else {
-            browseButton.textContent = '浏览文件';
+            browseButton.textContent = 'Browse Files';
         }
     });
     
-    // MV文件上传
+    // MV file upload
     const mvFileInput = document.getElementById('mvFileInput');
     
     mvFileInput.addEventListener('change', function() {
         if (this.files.length > 0) {
-            const fileSize = (this.files[0].size / (1024 * 1024)).toFixed(2); // 转换为MB
+            const fileSize = (this.files[0].size / (1024 * 1024)).toFixed(2); // Convert to MB
             
-            // 检查文件大小
-            if (this.files[0].size > 500 * 1024 * 1024) { // 500MB限制
-                showMessage('文件过大，请选择500MB以下的视频文件', 'danger');
+            // Check file size
+            if (this.files[0].size > 500 * 1024 * 1024) { // 500MB limit
+                showMessage('File is too large. Please select a video file under 500MB', 'danger');
                 this.value = '';
             }
         }
@@ -59,13 +60,13 @@ function initUploadFunctionality() {
 }
 
 /**
- * 初始化拖拽上传
+ * Initialize drag and drop
  */
 function initDragAndDrop() {
     const dropArea = document.querySelector('.upload-area-inner');
     const fileInput = document.getElementById('musicFileInput');
     
-    // 防止默认拖拽行为（防止浏览器默认打开文件）
+    // Prevent default drag behaviors
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
         dropArea.addEventListener(eventName, preventDefaults, false);
     });
@@ -75,7 +76,7 @@ function initDragAndDrop() {
         e.stopPropagation();
     }
     
-    // 高亮显示拖放区
+    // Highlight drop area
     ['dragenter', 'dragover'].forEach(eventName => {
         dropArea.addEventListener(eventName, highlight, false);
     });
@@ -92,7 +93,7 @@ function initDragAndDrop() {
         dropArea.classList.remove('border-primary');
     }
     
-    // 处理文件拖放
+    // Handle dropped files
     dropArea.addEventListener('drop', handleDrop, false);
     
     function handleDrop(e) {
@@ -100,38 +101,38 @@ function initDragAndDrop() {
         const files = dt.files;
         
         if (files.length > 0) {
-            const file = files[0]; // 只取第一个文件
+            const file = files[0]; // Take only the first file
             
-            // 检查是否为音频文件
+            // Check if it's an audio file
             if (!file.type.match('audio.*')) {
-                showMessage('请上传音频文件', 'danger');
+                showMessage('Please upload an audio file', 'danger');
                 return;
             }
             
-            // 检查文件大小
-            if (file.size > 50 * 1024 * 1024) { // 50MB限制
-                showMessage('文件过大，请选择50MB以下的音乐文件', 'danger');
+            // Check file size
+            if (file.size > 50 * 1024 * 1024) { // 50MB limit
+                showMessage('File is too large. Please select a music file under 50MB', 'danger');
                 return;
             }
             
-            // 设置文件输入
+            // Set file input
             const dataTransfer = new DataTransfer();
             dataTransfer.items.add(file);
             fileInput.files = dataTransfer.files;
             
-            // 更新按钮文本
+            // Update button text
             const browseButton = document.getElementById('browseFilesBtn');
             const fileName = file.name;
-            const fileSize = (file.size / (1024 * 1024)).toFixed(2); // 转换为MB
-            browseButton.textContent = `已选择: ${fileName} (${fileSize}MB)`;
+            const fileSize = (file.size / (1024 * 1024)).toFixed(2); // Convert to MB
+            browseButton.textContent = `Selected: ${fileName} (${fileSize}MB)`;
             
-            showMessage('文件已准备好上传', 'success');
+            showMessage('File is ready to upload', 'success');
         }
     }
 }
 
 /**
- * 初始化表单提交
+ * Initialize form submission
  */
 function initFormSubmit() {
     const form = document.getElementById('uploadMusicForm');
@@ -139,53 +140,67 @@ function initFormSubmit() {
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
         
-        // 检查音乐文件是否已选择
+        // Check if music file is selected
         const musicFile = document.getElementById('musicFileInput').files[0];
         if (!musicFile) {
-            showMessage('请选择要上传的音乐文件', 'danger');
+            showMessage('Please select a music file to upload', 'danger');
             return;
         }
         
-        // 检查是否同意条款
+        // Check if terms are agreed
         const termsCheck = document.getElementById('termsCheck');
         if (!termsCheck.checked) {
-            showMessage('请确认您拥有分享此音乐的权利', 'danger');
+            showMessage('Please confirm that you have the right to share this music', 'danger');
             return;
         }
         
-        // 获取表单数据
+        // Get form data
         const formData = new FormData();
         
-        // 添加必填字段
+        // Get current user ID
+        const currentUser = JSON.parse(localStorage.getItem('user'));
+        if (!currentUser || !currentUser.id) {
+            showMessage('Please log in before uploading music', 'danger');
+            // Redirect to login page
+            setTimeout(() => {
+                window.location.href = '../login.html';
+            }, 2000);
+            return;
+        }
+        
+        // Add user ID
+        formData.append('userId', currentUser.id);
+        
+        // Add required fields
         formData.append('singerId', document.getElementById('singerId').value);
         formData.append('name', document.getElementById('songName').value);
         formData.append('introduction', document.getElementById('introduction').value || '');
         formData.append('lyric', document.getElementById('lyric').value || '');
         
-        // 添加音乐文件
+        // Add music file
         formData.append('file', musicFile);
         
-        // 添加MV文件（如果有）
+        // Add MV file (if any)
         const mvFile = document.getElementById('mvFileInput').files[0];
         if (mvFile) {
             formData.append('files', mvFile);
         } else {
-            // 后端需要files参数，如果没有MV，添加一个空文件
+            // Backend needs files parameter, if no MV, add an empty file
             formData.append('files', new File([], 'empty.mp4', { type: 'video/mp4' }));
         }
         
-        // 显示上传进度条
+        // Show upload progress bar
         const progressBar = document.querySelector('#uploadProgress .progress-bar');
         const progressContainer = document.getElementById('uploadProgress');
         progressContainer.style.display = 'flex';
         
-        // 禁用提交按钮
+        // Disable submit button
         const uploadButton = document.getElementById('uploadButton');
         uploadButton.disabled = true;
-        uploadButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 上传中...';
+        uploadButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Uploading...';
         
         try {
-            const response = await axios.post(`${API_URL}/song/add`, formData, {
+            const response = await api.post(`/song/add`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 },
@@ -196,38 +211,38 @@ function initFormSubmit() {
                 }
             });
             
-            // 处理响应
-            if (response.data.code === 1) {
-                showMessage('音乐上传成功！', 'success');
-                // 重置表单
+            // Handle response
+            if (response.data.code === '200') {
+                showMessage('Music uploaded successfully!', 'success');
+                // Reset form
                 form.reset();
-                // 重置文件输入
-                document.getElementById('browseFilesBtn').textContent = '浏览文件';
-                // 延迟2秒后重定向到音乐列表页
+                // Reset file input
+                document.getElementById('browseFilesBtn').textContent = 'Browse Files';
+                // Redirect to music list page after 2 seconds
                 setTimeout(() => {
                     window.location.href = 'my-music.html';
                 }, 2000);
             } else {
-                showMessage(`上传失败: ${response.data.msg}`, 'danger');
+                showMessage(`Upload failed: ${response.data.msg}`, 'danger');
             }
         } catch (error) {
             console.error('Upload error:', error);
-            showMessage('上传过程中发生错误，请稍后重试', 'danger');
+            showMessage('An error occurred during upload. Please try again later', 'danger');
         } finally {
-            // 重新启用提交按钮
+            // Re-enable submit button
             uploadButton.disabled = false;
-            uploadButton.innerHTML = '上传音乐';
-            // 隐藏进度条
+            uploadButton.innerHTML = 'Upload Music';
+            // Hide progress bar
             progressContainer.style.display = 'none';
         }
     });
 }
 
 /**
- * 显示消息提示
+ * Show message notification
  */
 function showMessage(message, type) {
-    // 检查是否已存在消息容器
+    // Check if message container already exists
     let messageContainer = document.querySelector('.message-container');
     if (!messageContainer) {
         messageContainer = document.createElement('div');
@@ -236,7 +251,7 @@ function showMessage(message, type) {
         document.body.appendChild(messageContainer);
     }
     
-    // 创建消息元素
+    // Create message element
     const messageElement = document.createElement('div');
     messageElement.className = `alert alert-${type} alert-dismissible fade show`;
     messageElement.innerHTML = `
@@ -244,10 +259,10 @@ function showMessage(message, type) {
         <button type="button" class="btn-close" data-dismiss="alert" aria-label="Close"></button>
     `;
     
-    // 添加到容器中
+    // Add to container
     messageContainer.appendChild(messageElement);
     
-    // 自动消失
+    // Auto dismiss
     setTimeout(() => {
         messageElement.classList.remove('show');
         setTimeout(() => {
@@ -255,7 +270,7 @@ function showMessage(message, type) {
         }, 300);
     }, 5000);
     
-    // 关闭按钮功能
+    // Close button functionality
     messageElement.querySelector('.btn-close').addEventListener('click', function() {
         messageElement.classList.remove('show');
         setTimeout(() => {

@@ -202,7 +202,7 @@ async function handleRegister(event) {
         // Always set role to USER for security, regardless of what was selected
         const result = await register(username, password, name, 'USER', email, verificationCode);
         
-        if (result.code === '1') {
+        if (result.code === '200') {
             // Registration successful
             showAlert('success', 'Registration completed successfully! You will be redirected to the login page.');
             
@@ -258,12 +258,12 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const result = await sendVerificationCode(email);
             
-            if (result.code === '1') {
+            if (result.code === '200') {
                 // Start cooldown
                 cooldown = 60;
                 sendCodeBtn.textContent = `Resend (${cooldown}s)`;
                 
-                showAlert('success', 'Verification code sent successfully');
+                showAlert('success', 'Verification code sent successfully! Please check your email.');
                 
                 cooldownInterval = setInterval(() => {
                     cooldown--;

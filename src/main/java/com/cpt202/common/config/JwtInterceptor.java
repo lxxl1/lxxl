@@ -20,6 +20,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 
 /**
  * jwt拦截器
@@ -35,7 +36,12 @@ public class JwtInterceptor implements HandlerInterceptor {
     private UserServiceImpl userServiceImpl;
 
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws IOException {
+        // 检查是否是API请求，仅对API请求进行JWT验证
+        String requestURI = request.getRequestURI();
+        // 是否是前端Ajax请求
+        boolean isApiRequest = isApiRequest(request);
+        
         // 1. 从http请求的header中获取token
         String token = request.getHeader(Constants.AUTHORIZATION);
         if (ObjectUtil.isEmpty(token)) {
@@ -45,9 +51,18 @@ public class JwtInterceptor implements HandlerInterceptor {
         }
         
         if (ObjectUtil.isEmpty(token)) {
-            log.warn("Token为空");
-            throw new CustomException(ResultCodeEnum.TOKEN_INVALID_ERROR);
+            log.warn("Token为空: {}", requestURI);
+            
+            // 对于API请求，返回401状态码
+            if (isApiRequest) {
+                throw new CustomException(ResultCodeEnum.TOKEN_INVALID_ERROR);
+            } else {
+                // 对于页面请求，重定向到登录页
+                response.sendRedirect("/login.html");
+                return false;
+            }
         }
+        
         Account account = null;
         try {
             // 解析token获取存储的数据
@@ -62,18 +77,51 @@ public class JwtInterceptor implements HandlerInterceptor {
                 account = userServiceImpl.selectById(Integer.valueOf(userId));
             }
         } catch (Exception e) {
-            throw new CustomException(ResultCodeEnum.TOKEN_CHECK_ERROR);
+            log.error("Token解析错误", e);
+            if (isApiRequest) {
+                throw new CustomException(ResultCodeEnum.TOKEN_CHECK_ERROR);
+            } else {
+                response.sendRedirect("/login.html");
+                return false;
+            }
         }
+        
         if (ObjectUtil.isNull(account)) {
-            throw new CustomException(ResultCodeEnum.USER_NOT_EXIST_ERROR);
+            log.warn("用户不存在");
+            if (isApiRequest) {
+                throw new CustomException(ResultCodeEnum.USER_NOT_EXIST_ERROR);
+            } else {
+                response.sendRedirect("/login.html");
+                return false;
+            }
         }
+        
         try {
             // 用户密码加签验证 token
             JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(account.getPassword())).build();
             jwtVerifier.verify(token); // 验证token
         } catch (JWTVerificationException e) {
-            throw new CustomException(ResultCodeEnum.TOKEN_CHECK_ERROR);
+            log.error("Token验证失败", e);
+            if (isApiRequest) {
+                throw new CustomException(ResultCodeEnum.TOKEN_CHECK_ERROR);
+            } else {
+                response.sendRedirect("/login.html");
+                return false;
+            }
         }
         return true;
+    }
+    
+    /**
+     * 判断是否是API请求
+     * API请求通常使用AJAX或其他前端技术，设置了特定的请求头
+     */
+    private boolean isApiRequest(HttpServletRequest request) {
+        String requestWith = request.getHeader("X-Requested-With");
+        String accept = request.getHeader("Accept");
+        
+        // 如果是XMLHttpRequest请求或期望返回JSON，则认为是API请求
+        return "XMLHttpRequest".equals(requestWith) || 
+               (accept != null && accept.contains("application/json"));
     }
 }

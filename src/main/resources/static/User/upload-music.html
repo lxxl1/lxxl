@@ -179,18 +179,19 @@
                                         <div class="form-group">
                                             <label for="singerId">Singer ID *</label>
                                             <input type="number" class="form-control" id="singerId" name="singerId" required>
+                                            <small class="form-text text-muted">Enter the ID of the singer (required)</small>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="form-group mt-3">
                                     <label for="introduction">Introduction</label>
-                                    <textarea class="form-control" id="introduction" name="introduction" rows="4"></textarea>
+                                    <textarea class="form-control" id="introduction" name="introduction" rows="4" placeholder="Provide a brief introduction to your song"></textarea>
                                 </div>
 
                                 <div class="form-group mt-3">
                                     <label for="lyric">Lyrics</label>
-                                    <textarea class="form-control" id="lyric" name="lyric" rows="6"></textarea>
+                                    <textarea class="form-control" id="lyric" name="lyric" rows="6" placeholder="Enter song lyrics here"></textarea>
                                 </div>
 
                                 <div class="form-group mt-3">
@@ -288,6 +289,9 @@
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <!-- Upload Music functionality -->
     <script type="module" src="assets/js/upload-music.js"></script>
+    
+    <!-- 添加权限检查 -->
+    <script type="module" src="assets/js/auth-check.js"></script>
 
 </body>
 </html>

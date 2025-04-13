@@ -8,6 +8,7 @@ import com.cpt202.common.enums.RoleEnum;
 import com.cpt202.domain.Account;
 import com.cpt202.service.AdminService;
 import com.cpt202.service.UserService;
+import com.cpt202.utils.exception.CustomException;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -35,17 +36,29 @@ public class WebController {
      */
     @PostMapping("/login")
     public Result login(@RequestBody Account account) {
-        if (ObjectUtil.isEmpty(account.getUsername()) || ObjectUtil.isEmpty(account.getPassword())
-                || ObjectUtil.isEmpty(account.getRole())) {
-            return Result.error(ResultCodeEnum.PARAM_LOST_ERROR);
+        try {
+            if (ObjectUtil.isEmpty(account.getUsername()) || ObjectUtil.isEmpty(account.getPassword())
+                    || ObjectUtil.isEmpty(account.getRole())) {
+                return Result.error(ResultCodeEnum.PARAM_LOST_ERROR);
+            }
+            
+            if (RoleEnum.ADMIN.name().equals(account.getRole())) {
+                account = adminService.login(account);
+            }
+            
+            if (RoleEnum.USER.name().equals(account.getRole())) {
+                account = userService.login(account);
+            }
+            
+            return Result.success(account);
+        } catch (CustomException e) {
+            // 捕获自定义异常并返回友好的错误信息
+            return Result.error(e.getCode(), e.getMsg());
+        } catch (Exception e) {
+            // 捕获其他未知异常
+            e.printStackTrace();
+            return Result.error(ResultCodeEnum.SYSTEM_ERROR);
         }
-        if (RoleEnum.ADMIN.name().equals(account.getRole())) {
-            account = adminService.login(account);
-        }
-        if (RoleEnum.USER.name().equals(account.getRole())) {
-            account = userService.login(account);
-        }
-        return Result.success(account);
     }
 
     /**
@@ -73,7 +86,7 @@ public class WebController {
         }
 
         // 账户不能包含特殊字符
-        String validPattern = "[`~!@#$%^&*()+=|{}':;',\\\\[\\\\].<>/?~！@#￥%……&*（）——+|{}【】‘；：”“’。，、？]";
+        String validPattern = "[`~!@#$%^&*()+=|{}':;',\\\\[\\\\].<>/?~！@#￥%……&*（）——+|{}【】'；：'。，、？]";
         Matcher matcher = Pattern.compile(validPattern).matcher(username);
 
         if (matcher.find()) {

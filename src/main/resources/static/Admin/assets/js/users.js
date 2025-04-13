@@ -1,4 +1,5 @@
 import { API_URL } from '../../../Common/js/config.js';
+import api from '../../../Common/js/api.js';
 
 // Initialize DataTable and statistics
 let usersTable;
@@ -141,6 +142,12 @@ function initializeDataTable() {
                             <button class="btn btn-sm btn-outline-primary edit-user" data-id="${row.id}" title="Edit User">
                                 <i class="fas fa-edit"></i>
                             </button>
+                            <button class="btn btn-sm ${row.status === 'Active' ? 'btn-outline-warning toggle-status' : 'btn-outline-success toggle-status'}" 
+                                data-id="${row.id}" 
+                                data-status="${row.status}"
+                                title="${row.status === 'Active' ? 'Disable User' : 'Enable User'}">
+                                <i class="fas fa-${row.status === 'Active' ? 'ban' : 'check-circle'}"></i>
+                            </button>
                             <button class="btn btn-sm btn-outline-danger delete-user" data-id="${row.id}" title="Delete User">
                                 <i class="fas fa-trash"></i>
                             </button>
@@ -258,7 +265,7 @@ async function loadUsers(searchQuery = '', statusFilter = '') {
         if (searchQuery) params.append('username', searchQuery);
         if (statusFilter) params.append('status', statusFilter);
         
-        const response = await axios.get(`${API_URL}/user/selectAll?${params.toString()}`);
+        const response = await api.get(`/user/select/all?${params.toString()}`);
         
         if (response.data.code === '200') {
             const users = response.data.data;
@@ -284,7 +291,7 @@ async function loadUsersPaginated(pageNum = 1, pageSize = 10, searchQuery = '', 
         if (searchQuery) params.append('username', searchQuery);
         if (statusFilter) params.append('status', statusFilter);
         
-        const response = await axios.get(`${API_URL}/user/selectPage?${params.toString()}`);
+        const response = await api.get(`/user/selectPage?${params.toString()}`);
         
         if (response.data.code === '200') {
             updateUserTable(response.data.data.list);
@@ -312,7 +319,7 @@ function updateUserTable(users) {
  */
 async function addUser(userData) {
     try {
-        const response = await axios.post(`${API_URL}/user/add`, userData);
+        const response = await api.post('/user/add', userData);
         
         if (response.data.code === '200') {
             showAlert('User added successfully!', 'success');
@@ -334,7 +341,7 @@ async function addUser(userData) {
  */
 async function getUserById(id) {
     try {
-        const response = await axios.get(`${API_URL}/user/selectById/${id}`);
+        const response = await api.get(`/user/select/${id}`);
         
         if (response.data.code === '200') {
             return response.data.data;
@@ -354,7 +361,7 @@ async function getUserById(id) {
  */
 async function getUserByUsername(username) {
     try {
-        const response = await axios.get(`${API_URL}/user/selectByUsername?userName=${username}`);
+        const response = await api.get(`/user/select/username/${username}`);
         
         if (response.data.code === '200') {
             return response.data.data;
@@ -374,7 +381,7 @@ async function getUserByUsername(username) {
  */
 async function updateUser(userData) {
     try {
-        const response = await axios.put(`${API_URL}/user/update`, userData);
+        const response = await api.post('/user/update', userData);
         
         if (response.data.code === '200') {
             showAlert('User updated successfully!', 'success');
@@ -396,7 +403,7 @@ async function updateUser(userData) {
  */
 async function deleteUser(id) {
     try {
-        const response = await axios.delete(`${API_URL}/user/delete/${id}`);
+        const response = await api.delete(`/user/delete/${id}`);
         
         if (response.data.code === '200') {
             showAlert('User deleted successfully!', 'success');
@@ -418,7 +425,7 @@ async function deleteUser(id) {
  */
 async function deleteBatchUsers(ids) {
     try {
-        const response = await axios.delete(`${API_URL}/user/delete/batch`, { 
+        const response = await api.delete('/user/delete/batch', { 
             data: ids 
         });
         
@@ -507,6 +514,13 @@ function setupEventListeners() {
         usersTable.on('click', '.delete-user', function() {
             const userId = $(this).data('id');
             confirmDeleteUser(userId);
+        });
+        
+        // Toggle user status
+        usersTable.on('click', '.toggle-status', function() {
+            const userId = $(this).data('id');
+            const currentStatus = $(this).data('status');
+            confirmStatusUpdate(userId, currentStatus);
         });
     }
 }
@@ -801,6 +815,10 @@ function showUserDetails(user) {
                 </div>
                 <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn ${user.status === 'Active' ? 'btn-warning toggle-status' : 'btn-success toggle-status'}" data-id="${user.id}" data-status="${user.status}">
+                        <i class="fas fa-${user.status === 'Active' ? 'ban' : 'check-circle'} me-1"></i> 
+                        ${user.status === 'Active' ? 'Disable User' : 'Enable User'}
+                    </button>
                     <button type="button" class="btn btn-primary edit-user" data-id="${user.id}">
                         <i class="fas fa-edit me-1"></i> Edit User
                     </button>
@@ -851,6 +869,14 @@ function showUserDetails(user) {
         if (user) {
             openEditUserModal(user);
         }
+    });
+    
+    // Add event listener for status toggle button
+    document.querySelector('#viewUserModal .toggle-status').addEventListener('click', function() {
+        const userId = this.dataset.id;
+        const status = this.dataset.status;
+        modal.hide();
+        confirmStatusUpdate(userId, status);
     });
     
     // Clean up when modal is closed
@@ -994,6 +1020,90 @@ function confirmDeleteBatch(userIds) {
     
     // Clean up when modal is closed
     document.getElementById('deleteBatchModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+    });
+}
+
+/**
+ * Update user status (enable/disable)
+ */
+async function updateUserStatus(id, status) {
+    try {
+        const response = await api.post(`/user/status/${id}?status=${status}`);
+        
+        if (response.data.code === '200') {
+            const statusText = status === 1 ? 'disabled' : 'enabled';
+            showAlert(`User ${statusText} successfully!`, 'success');
+            loadUsers(); // Reload the table
+            return true;
+        } else {
+            showAlert('Error updating user status: ' + response.data.msg, 'danger');
+            return false;
+        }
+    } catch (error) {
+        console.error('Error updating user status:', error);
+        showAlert('Failed to update user status. Please try again.', 'danger');
+        return false;
+    }
+}
+
+/**
+ * Open status update confirmation modal
+ */
+function confirmStatusUpdate(userId, currentStatus) {
+    // Determine the new status (toggle between 0 and 1)
+    // If current status is 'Active', we set status=1 to disable the user (will become Suspended)
+    // If current status is 'Suspended', we set status=0 to enable the user (will become Active)
+    const newStatus = currentStatus === 'Active' ? 1 : 0;
+    const action = newStatus === 1 ? 'disable' : 'enable';
+    const statusText = newStatus === 1 ? 'Disable' : 'Enable';
+    const iconClass = newStatus === 1 ? 'ban' : 'check-circle';
+    const headerClass = newStatus === 1 ? 'danger' : 'success';
+    
+    const modalHtml = `
+    <div class="modal fade" id="statusUpdateModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-${headerClass} text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-${iconClass} me-2"></i>
+                        Confirm ${statusText} User
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to ${action} this user?</p>
+                    <p class="mb-0"><small class="text-muted">User status will be changed to <strong>${newStatus === 1 ? 'Suspended' : 'Active'}</strong></small></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-${headerClass}" id="confirmStatusBtn">
+                        <i class="fas fa-${iconClass} me-1"></i> ${statusText} User
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+    
+    // Create and append the modal
+    const modalContainer = document.createElement('div');
+    modalContainer.innerHTML = modalHtml;
+    document.body.appendChild(modalContainer);
+    
+    // Initialize the modal
+    const modal = new bootstrap.Modal(document.getElementById('statusUpdateModal'));
+    modal.show();
+    
+    // Handle status update confirmation
+    document.getElementById('confirmStatusBtn').addEventListener('click', async function() {
+        if (await updateUserStatus(userId, newStatus)) {
+            modal.hide();
+        }
+    });
+    
+    // Clean up when modal is closed
+    document.getElementById('statusUpdateModal').addEventListener('hidden.bs.modal', function() {
         this.remove();
     });
 }

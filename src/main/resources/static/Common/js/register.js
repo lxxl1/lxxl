@@ -152,9 +152,23 @@ export const register = async (username, password, name, role, email, verificati
         'Content-Type': 'application/json'
       }
     });
+    console.log('Registration Response:', {
+      status: response.status,
+      statusText: response.statusText,
+      data: response.data,
+      headers: response.headers
+    });
     return response.data;
   } catch (error) {
-    console.error('Registration error:', error);
+    console.error('Registration Error:', {
+      message: error.message,
+      response: error.response ? {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data
+      } : 'No response',
+      request: error.request ? 'Request was made but no response received' : 'Request setup failed'
+    });
     if (error.response && error.response.data) {
       return error.response.data;
     }

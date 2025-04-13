@@ -10,6 +10,8 @@
  * - Filtering and searching
  */
 
+import api from '../../../Common/js/api.js';
+
 $(document).ready(function() {
     // Global variables
     const API_BASE_URL = '/song';  // Base URL for all song API endpoints
