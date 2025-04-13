@@ -355,9 +355,9 @@
                     </div>
                 </div>
             </div>
-       
-       
-   
+        </div>
+        <!-- end::main-content -->
+    </div>
     <!-- end::main -->
 
     <!-- Upload Music Modal -->
@@ -414,11 +414,11 @@
     </footer>
     <!-- end::footer -->
 </div>
-<!-- end::main-content -->
-
-</div>
     <!-- Plugin scripts -->
     <script src="vendors/bundle.js"></script>
+
+    <!-- Axios - Add this line before api.js -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
     <!-- Slick -->
     <script src="vendors/slick/slick.min.js"></script>
@@ -441,11 +441,13 @@
 
     <!-- App scripts -->
     <script src="assets/js/app.js"></script>
+
+    <!-- Common API Module -->
+    <script type="module" src="../../../Common/js/api.js"></script> 
     
     <!-- My Music Scripts -->
     <script type="module" src="assets/js/my-music.js"></script>
     
-    <!-- 添加权限检查 -->
     <script type="module" src="assets/js/auth-check.js"></script>
 </body>
 </html>

@@ -3,6 +3,7 @@ package com.cpt202.controller;
 import com.cpt202.common.Result;
 import com.cpt202.domain.Admin;
 import com.cpt202.domain.Song;
+import com.cpt202.domain.Account;
 import com.cpt202.service.AdminService;
 import com.cpt202.utils.TokenUtils;
 import com.github.pagehelper.PageInfo;
@@ -110,9 +111,24 @@ public class AdminController {
     public Result auditSong(@PathVariable Integer songId,
                           @RequestParam Integer status,
                           @RequestParam(required = false) String reason) {
-        // 获取当前登录的管理员ID
-        Admin admin = (Admin) TokenUtils.getCurrentUser();
-        adminService.auditSong(songId, status, reason, admin.getId());
+        // 获取当前登录的用户信息 (类型为 Account)
+        Account currentUser = TokenUtils.getCurrentUser();
+
+        // 检查用户是否存在且角色是否为 ADMIN
+        if (currentUser == null) {
+            return Result.error("401", "User not logged in");
+        }
+
+        // 假设 Account 类有 getRole() 方法，并且角色名为 "ADMIN"
+        if (!"ADMIN".equals(currentUser.getRole())) { 
+            return Result.error("403", "Permission denied: User is not an admin");
+        }
+
+        // 检查通过，获取管理员 ID
+        Integer adminId = currentUser.getId();
+        
+        // 执行审核操作
+        adminService.auditSong(songId, status, reason, adminId);
         return Result.success();
     }
 

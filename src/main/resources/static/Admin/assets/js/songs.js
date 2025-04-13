@@ -507,56 +507,77 @@ function handleAddSong() {
     
     const formData = new FormData(form);
     
-    // Get current user ID from localStorage
+    // Get current user ID from localStorage (Assuming Admin might upload)
     const currentUser = JSON.parse(localStorage.getItem('user'));
-    if (!currentUser || !currentUser.id) {
-        showToast('Please log in before uploading music', 'danger');
+    // Decide how to handle admin uploads: use admin ID or maybe a specific singer ID?
+    // For now, let's assume admin uploads on behalf of a selected singer, 
+    // and user ID might not be relevant or could be the admin's own ID.
+    if (currentUser && currentUser.id) {
+        formData.append('userId', currentUser.id); // Or use a default/system ID if needed
+    } else {
+        showToast('Could not identify user/admin. Upload might fail.', 'warning');
+        // Potentially return or use a default ID
+        // formData.append('userId', '0'); // Example default
+    }
+    
+    // Get category ID(s)
+    const categorySelect = document.getElementById('addCategory'); // Use the correct ID from the modal
+    const categoryId = categorySelect.value;
+    if (!categoryId) {
+        showToast('Please select a category.', 'warning');
         return;
     }
-    formData.append('userId', currentUser.id);
+    // Remove old categoryId if it was ever part of the form data directly
+    if (formData.has('categoryId')) {
+        formData.delete('categoryId');
+    }
+    formData.append('categoryIds', categoryId); // Add the correct parameter name
 
-    // Ensure required fields are included (already handled by FormData from form)
-    // formData.append('singerId', form.elements.singerId.value);
-    // formData.append('name', form.elements.name.value);
-    // formData.append('introduction', form.elements.introduction.value || '');
-    // formData.append('lyric', form.elements.lyric.value || '');
-    // formData.append('categoryId', form.elements.categoryId.value); // Category is now part of the form
-    // formData.append('tags', form.elements.tags.value.trim()); // Tags are now part of the form
-    
-    // Check music file again (although FormData should have it)
+    // Ensure required fields like singerId, name are included (should be handled by FormData)
+    if (!formData.has('singerId') || !formData.get('singerId')) {
+        showToast('Please select an artist.', 'warning');
+        return;
+    }
+     if (!formData.has('name') || !formData.get('name')) {
+        showToast('Please enter a song name.', 'warning');
+        return;
+    }
+
+    // Check music file again
     if (!formData.has('file') || !form.elements.file.files[0]) {
         showToast('Please select a song file.', 'warning');
         return;
     }
     
     // Add MV file (if any, otherwise add empty)
-    const mvFile = form.elements.files.files[0];
-    if (mvFile) {
-        // formData.append('files', mvFile); // Already handled by FormData
-    } else {
-        // Backend needs 'files' parameter. If no MV, add an empty file.
-        // Check if 'files' is already in formData, only add if missing
-        if (!formData.has('files')) {
-             formData.append('files', new File([], 'empty.mp4', { type: 'video/mp4' }));
+    if (!formData.has('files')) { // Only add empty if 'files' field is totally missing
+        const mvFile = form.elements.files ? form.elements.files.files[0] : null;
+        if (!mvFile) { 
+            formData.append('files', new File([], 'empty.mp4', { type: 'video/mp4' }));
         }
+        // If mvFile exists, FormData(form) should have already included it.
     }
     
     // Show progress bar
-    const progressBar = $('#uploadProgress');
+    const progressBar = $('#uploadProgress'); // Ensure this ID exists in the add modal
     const progressIndicator = progressBar.find('.progress-bar');
     progressBar.show();
     progressIndicator.width('0%');
+    progressIndicator.text('0%');
     
     // Disable submit button
     $('#submitAddSong').prop('disabled', true);
     
-    // 打印表单数据便于调试
-    console.log('Form data being sent:');
+    // Log form data for debugging
+    console.log('Admin Add Song - Form data being sent:');
     for (let pair of formData.entries()) {
-        console.log(pair[0] + ': ' + pair[1]);
+        console.log(pair[0] + ': ', pair[1]);
     }
     
     api.post(`${API_BASE_URL}/add`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data' // Ensure correct header
+        },
         onUploadProgress: function(progressEvent) {
             const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
             progressIndicator.width(percentCompleted + '%');
@@ -564,26 +585,23 @@ function handleAddSong() {
         }
     })
     .then(response => {
-        console.log('Add song response:', response);
-        if (response.status === 200 && response.data) {
-            if (response.data.code === '200' || response.data.code === 200) {
-                showToast('Song added successfully!', 'success');
-                $('#addSongModal').modal('hide');
-                form.reset();
-                fetchAndDisplaySongs(true);
-            } else {
-                showToast('Failed to add song: ' + (response.data.msg || 'Unknown error'), 'error');
-            }
+        console.log('Admin Add song response:', response);
+        if (response.data && (response.data.code === '200' || response.data.code === 200)) {
+            showToast('Song added successfully!', 'success');
+            $('#addSongModal').modal('hide');
+            form.reset();
+            categorySelect.selectedIndex = 0; // Reset category dropdown
+            fetchAndDisplaySongs(true);
         } else {
-            showToast('Failed to add song: ' + (response.message || 'Unknown error'), 'error');
+            showToast('Failed to add song: ' + (response.data.msg || 'Unknown error'), 'error');
         }
     })
     .catch(error => {
-        console.error('Error adding song:', error);
-        progressBar.hide();
-        showToast('Error adding song: ' + (error.message || 'Unknown error'), 'error');
+        console.error('Error adding song (Admin):', error);
+        showToast('Error adding song: ' + (error.response?.data?.msg || error.message || 'Network error'), 'error');
     })
     .finally(() => {
+        progressBar.hide();
         $('#submitAddSong').prop('disabled', false);
     });
 }
@@ -868,33 +886,33 @@ async function handleAuditSong(songId, status) {
         return;
     }
     
-    // For rejection, you might want to add a reason input later
+    // Reason is not used in the simplified update, but keep variable for potential future use
     const reason = status === 2 ? 'Rejected by admin' : null; 
     
     try {
-        // Use the admin API endpoint (adjust base URL if necessary)
-        // Assuming the admin API is accessible without a prefix or handled by a global api instance
-        const response = await musicAdminApp.api.put(`/admin/song/audit/${songId}`, null, {
+        // Use the correct imported api object
+        // The backend PUT mapping takes parameters in the request params, not body
+        const response = await api.put(`/admin/song/audit/${songId}`, null, {
             params: {
                 status: status,
-                reason: reason
+                // reason: reason // Reason parameter removed as the target DB column doesn't exist
             }
         });
         
-        // The audit endpoint returns success() which likely means 200 OK with no specific body or a generic success message.
-        // Checking for status 200 is usually sufficient.
-        if (response.status === 200) { // Check status directly
+        // Check response status directly
+        if (response.status === 200) { 
+            // Optionally check response.data.code if backend sends it on success
+            // if (response.data && (response.data.code === '200' || response.data.code === 200)) { ... }
             showToast(`Song ${action.toLowerCase()}ed successfully!`, 'success');
             fetchAndDisplaySongs(true); // Reload the table to show updated status
         } else {
-            // Handle cases where the backend might return 200 but indicate failure in the body (if applicable)
-             showToast(`Failed to ${action.toLowerCase()} song. Server responded: ${response.status}`, 'error');
+             const errorMsg = response.data?.msg || response.data?.message || `Server responded with status ${response.status}`;
+             showToast(`Failed to ${action.toLowerCase()} song. ${errorMsg}`, 'error');
         }
     } catch (error) {
         console.error(`Error ${action.toLowerCase()}ing song:`, error);
-        // Use the shared error handler
-        musicAdminApp.handleApiError(error, `Song Audit (${action})`);
-        // showToast(`Error ${action.toLowerCase()}ing song.`, 'error');
+        showToast(`Error ${action.toLowerCase()}ing song. Check console.`, 'error'); 
+        // handleApiError(error, `Song Audit (${action})`); // Call local error handler if defined and needed
     }
 }
 
@@ -946,12 +964,15 @@ function showToast(message, type = 'info') {
 }
 
 /**
- * Form validation
+ * Form validation (Ensure category is checked)
  */
 function validateSongForm(form) {
     const songName = form.elements.name.value.trim();
     const singerId = form.elements.singerId.value.trim();
-    const categoryId = form.elements.categoryId.value; // Check category ID
+    // Validate the correct category select element ID ('addCategory' for add form, potentially different for edit)
+    const categorySelectId = form.id === 'addSongForm' ? 'addCategory' : 'editCategory'; // Example assumption for edit form
+    const categoryElement = document.getElementById(categorySelectId);
+    const categoryId = categoryElement ? categoryElement.value : null;
     
     if (!songName) {
         showToast('Please enter a song name', 'warning');
@@ -963,16 +984,16 @@ function validateSongForm(form) {
         return false;
     }
     
-    if (!categoryId) { // Add validation for category
+    if (!categoryId) { // Validate category selection
         showToast('Please select a category', 'warning');
         return false;
     }
     
-    // Validate file inputs
+    // Validate file inputs only for the add form
     if (form.id === 'addSongForm') {
         const songFile = form.elements.file;
         
-        if (!songFile.files || songFile.files.length === 0) {
+        if (!songFile || !songFile.files || songFile.files.length === 0) {
             showToast('Please select a song file', 'warning');
             return false;
         }

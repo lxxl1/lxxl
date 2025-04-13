@@ -437,7 +437,9 @@
     <!-- Toastify JS -->
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <!-- Custom scripts -->
-    <script src="assets/js/admin.js"></script>
+    <!-- <script src="../Common/js/config.js"></script> --> <!-- Ensure config.js is not loaded directly -->
+    <script type="module" src="../Common/js/api.js"></script> <!-- Ensure api is loaded as module -->
+    <script type="module" src="assets/js/admin.js"></script> <!-- Load admin.js as module -->
     <!-- Authentication check -->
     <script type="module" src="assets/js/auth-check.js"></script>
     <!-- Artist management script -->

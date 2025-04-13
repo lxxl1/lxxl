@@ -20,7 +20,6 @@
         <result column="is_vip" jdbcType="TINYINT" property="isVip"/>
         <result column="status" jdbcType="INTEGER" property="status"/>
         <result column="user_id" jdbcType="INTEGER" property="userId"/>
-        <result column="category_id" jdbcType="INTEGER" property="categoryId"/>
     </resultMap>
 
     <resultMap id="ResultMapWithBLOBs" type="com.cpt202.domain.Song"
@@ -30,15 +29,15 @@
 
     <sql id="Base_Column_List">
         id
-        ,singer_id,name,introduction,create_time,update_time,pic,url,mvurl,nums,is_vip,status,user_id,category_id
+        ,singer_id,name,introduction,create_time,update_time,pic,url,mvurl,nums,is_vip,status,user_id
     </sql>
 
     <sql id="Blob_Column_List">
         id
-        ,singer_id,name,introduction,create_time,update_time,pic,lyric,url,mvurl,nums,is_vip,status,user_id,category_id
+        ,singer_id,name,introduction,create_time,update_time,pic,lyric,url,mvurl,nums,is_vip,status,user_id
     </sql>
 
-    <insert id="insert" parameterType="com.cpt202.domain.Song">
+    <insert id="insert" parameterType="com.cpt202.domain.Song" useGeneratedKeys="true" keyProperty="id">
         insert into song
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="id != null">
@@ -74,6 +73,9 @@
         <trim prefix=" values (" suffix=")" suffixOverrides=",">
             <if test="id != null">
                 #{id},
+            </if>
+            <if test="userId != null">
+                #{userId},
             </if>
             <if test="singerId != null">
                 #{singerId},
@@ -187,6 +189,14 @@
         <include refid="Blob_Column_List"/>
         from song
         where singer_id = #{singerId}
+    </select>
+
+    <select id="songOfUserId" resultMap="ResultMapWithBLOBs"
+            parameterType="java.lang.Integer">
+        select
+        <include refid="Blob_Column_List"/>
+        from song
+        where user_id = #{userId}
     </select>
 
 </mapper>

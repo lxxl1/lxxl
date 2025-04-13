@@ -191,7 +191,8 @@ function initFormSubmit() {
         }
         
         // Check if category is selected
-        const categoryId = document.getElementById('category').value;
+        const categorySelect = document.getElementById('category');
+        const categoryId = categorySelect.value;
         if (!categoryId) {
             showMessage('Please select a category for the song', 'danger');
             return;
@@ -219,7 +220,7 @@ function initFormSubmit() {
         formData.append('name', document.getElementById('songName').value);
         formData.append('introduction', document.getElementById('introduction').value || '');
         formData.append('lyric', document.getElementById('lyric').value || '');
-        formData.append('categoryId', categoryId);
+        formData.append('categoryIds', categoryId);
         formData.append('tags', document.getElementById('tags').value.trim());
         
         // Add music file
@@ -263,6 +264,8 @@ function initFormSubmit() {
                 form.reset();
                 // Reset file input
                 document.getElementById('browseFilesBtn').textContent = 'Browse Files';
+                // Reset category dropdown
+                categorySelect.selectedIndex = 0; // Reset to the placeholder
                 // Redirect to music list page after 2 seconds
                 setTimeout(() => {
                     window.location.href = 'my-music.html';

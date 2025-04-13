@@ -1,3 +1,5 @@
+import api from '../../../Common/js/api.js'; // Corrected import path
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log("Admin dashboard script loaded.");
 
@@ -78,8 +80,8 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("Fetching all users for counting...");
         try {
             // Use the correct endpoint from UserController
-            const response = await musicAdminApp.api.get('/user/select/all'); 
-            if (response.data && response.data.code === 200 && Array.isArray(response.data.data)) {
+            const response = await api.get('/user/select/all'); // Use imported api 
+            if (response.data && (response.data.code === 200 || response.data.code === '200') && Array.isArray(response.data.data)) { // Check for number or string 200
                 const usersCount = response.data.data.length;
                 localStorage.setItem('totalUsersCount', usersCount);
                 console.log(`Total users count (${usersCount}) saved to localStorage.`);
@@ -87,13 +89,13 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 console.error('Failed to fetch users or unexpected data format:', response.data);
                  // Optionally show an error toast, but avoid flooding if called often
-                 // musicAdminApp.showToast('Could not update user count.', 'error');
+                 // showToast('Could not update user count.', 'error'); // Use local showToast
                  // Keep the old value in localStorage or set to 0?
                  // localStorage.setItem('totalUsersCount', '0'); 
             }
         } catch (error) {
             // Use the shared error handler, providing context
-            musicAdminApp.handleApiError(error, 'fetchAndCountUsers');
+            handleApiError(error, 'fetchAndCountUsers'); // Use local handleApiError
              // Keep the old value in localStorage or set to 0?
              // localStorage.setItem('totalUsersCount', '0');
         }
@@ -103,8 +105,8 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("Fetching all songs for counting...");
         try {
             // Use the correct endpoint from SongController
-            const response = await musicAdminApp.api.get('/song/allSong'); 
-            if (response.data && response.data.code === 200 && Array.isArray(response.data.data)) {
+            const response = await api.get('/song/allSong'); // Use imported api
+            if (response.data && (response.data.code === 200 || response.data.code === '200') && Array.isArray(response.data.data)) { // Check for number or string 200
                 const allSongsData = response.data.data;
                 const totalSongs = allSongsData.length;
                 // Count pending songs (status === 0)
@@ -118,12 +120,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 loadDashboardStatsFromStorage(); // Update dashboard if currently visible
             } else {
                 console.error('Failed to fetch songs or unexpected data format:', response.data);
-                // musicAdminApp.showToast('Could not update song counts.', 'error');
+                // showToast('Could not update song counts.', 'error'); // Use local showToast
                 // localStorage.setItem('totalSongsCount', '0');
                 // localStorage.setItem('pendingReviewsCount', '0');
             }
         } catch (error) {
-            musicAdminApp.handleApiError(error, 'fetchAndCountSongs');
+            handleApiError(error, 'fetchAndCountSongs'); // Use local handleApiError
             // localStorage.setItem('totalSongsCount', '0');
             // localStorage.setItem('pendingReviewsCount', '0');
         }
@@ -138,6 +140,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // --- Common Utilities (API, Toast, Error Handling) --- 
+    // Remove redundant local API setup 
+    /*
     const API_BASE_URL = window.API_BASE_URL || '/'; // Use global config or default
 
     // Setup Axios instance 
@@ -183,7 +187,7 @@ document.addEventListener('DOMContentLoaded', function() {
              delete: () => Promise.reject("Axios not available"),
          };
     }
-    
+    */
 
     // Common function for Toastify notifications
     function showToast(message, type = 'success') {

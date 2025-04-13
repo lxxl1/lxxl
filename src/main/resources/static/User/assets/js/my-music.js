@@ -13,7 +13,7 @@ async function initPage() {
     // 获取当前登录用户信息
     const currentUser = JSON.parse(localStorage.getItem('user'));
     if (!currentUser || !currentUser.id) {
-        showMessage('请先登录', 'danger');
+        showMessage('Please log in first', 'danger');
         setTimeout(() => {
             window.location.href = '../login.html';
         }, 2000);
@@ -30,8 +30,8 @@ async function initPage() {
         // 初始化统计数据
         updateStatistics();
     } catch (error) {
-        console.error('初始化页面失败:', error);
-        showMessage('加载数据失败，请稍后再试', 'danger');
+        console.error('Failed to initialize page:', error);
+        showMessage('Failed to load data, please try again later', 'danger');
     }
 }
 
@@ -42,25 +42,29 @@ async function loadUserSongs(userId) {
     try {
         // 显示加载中提示
         const tableBody = document.querySelector('table tbody');
-        tableBody.innerHTML = '<tr><td colspan="7" class="text-center">加载中...</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="7" class="text-center">Loading...</td></tr>';
         
-        // 调用API获取用户上传的歌曲
-        const response = await api.get(`/song/user/songs?userId=${userId}`);
+        // 调用API获取用户上传的歌曲 - Using the correct endpoint
+        const response = await api.get('/song/selectbyuser', {
+            params: {
+                userId: userId
+            }
+        });
         
-        // 检查响应状态
+        // 检查响应状态 (Assuming backend returns Result.success(list))
         if (response.data.code === '200') {
             const songs = response.data.data || [];
             renderSongsList(songs);
             return songs;
         } else {
-            throw new Error(response.data.msg || '获取歌曲列表失败');
+            throw new Error(response.data.msg || 'Failed to fetch song list');
         }
     } catch (error) {
-        console.error('加载用户歌曲失败:', error);
+        console.error('Failed to load user songs:', error);
         
         // 显示错误信息
         const tableBody = document.querySelector('table tbody');
-        tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">加载失败，请刷新页面重试</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">Failed to load, please refresh the page and try again</td></tr>';
         
         throw error;
     }
@@ -74,7 +78,7 @@ function renderSongsList(songs) {
     
     // 如果没有歌曲，显示提示信息
     if (!songs || songs.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="7" class="text-center">您还没有上传歌曲</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="7" class="text-center">You haven\'t uploaded any songs yet</td></tr>';
         return;
     }
     
@@ -87,20 +91,20 @@ function renderSongsList(songs) {
         const row = document.createElement('tr');
         
         // 设置状态文本和样式
-        let statusText = '未知';
+        let statusText = 'Unknown';
         let statusClass = 'secondary';
         
         switch(song.status) {
             case 0:
-                statusText = '待审核';
+                statusText = 'Pending';
                 statusClass = 'warning';
                 break;
             case 1:
-                statusText = '已通过';
+                statusText = 'Approved';
                 statusClass = 'success';
                 break;
             case 2:
-                statusText = '已拒绝';
+                statusText = 'Rejected';
                 statusClass = 'danger';
                 break;
         }
@@ -134,17 +138,17 @@ function renderSongsList(songs) {
                     </button>
                     <div class="dropdown-menu dropdown-menu-right">
                         <a class="dropdown-item play-song" href="#" data-id="${song.id}" data-url="${song.url}">
-                            <i class="mr-2" data-feather="play"></i>播放
+                            <i class="mr-2" data-feather="play"></i>Play
                         </a>
                         <a class="dropdown-item edit-song" href="#" data-id="${song.id}">
-                            <i class="mr-2" data-feather="edit-2"></i>编辑
+                            <i class="mr-2" data-feather="edit-2"></i>Edit
                         </a>
                         <a class="dropdown-item" href="song-details.html?songId=${song.id}">
-                            <i class="mr-2" data-feather="info"></i>详情
+                            <i class="mr-2" data-feather="info"></i>Details
                         </a>
                         <div class="dropdown-divider"></div>
                         <a class="dropdown-item text-danger delete-song" href="#" data-id="${song.id}">
-                            <i class="mr-2" data-feather="trash"></i>删除
+                            <i class="mr-2" data-feather="trash"></i>Delete
                         </a>
                     </div>
                 </div>
@@ -169,8 +173,12 @@ async function updateStatistics() {
     if (!currentUser || !currentUser.id) return;
     
     try {
-        // 获取用户歌曲列表
-        const response = await api.get(`/song/user/songs?userId=${currentUser.id}`);
+        // 获取用户歌曲列表 - Also use the correct endpoint here
+        const response = await api.get(`/song/selectbyuser`, { 
+            params: {
+                userId: currentUser.id
+            }
+        });
         
         if (response.data.code === '200') {
             const songs = response.data.data || [];
@@ -188,7 +196,7 @@ async function updateStatistics() {
             document.querySelector('.col-lg-3:nth-child(4) h2').textContent = formatNumber(totalPlays);
         }
     } catch (error) {
-        console.error('更新统计数据失败:', error);
+        console.error('Failed to update statistics:', error);
     }
 }
 
@@ -284,7 +292,7 @@ function filterSongs(searchTerm) {
  * 确认删除歌曲
  */
 function confirmDeleteSong(songId) {
-    if (confirm('确定要删除这首歌曲吗？此操作不可恢复。')) {
+    if (confirm('Are you sure you want to delete this song? This action cannot be undone.')) {
         deleteSong(songId);
     }
 }
@@ -297,7 +305,7 @@ async function deleteSong(songId) {
         const response = await api.get(`/song/delete?id=${songId}`);
         
         if (response.data.code === '200') {
-            showMessage('歌曲删除成功', 'success');
+            showMessage('Song deleted successfully', 'success');
             
             // 刷新歌曲列表
             const currentUser = JSON.parse(localStorage.getItem('user'));
@@ -306,11 +314,11 @@ async function deleteSong(songId) {
             // 更新统计数据
             updateStatistics();
         } else {
-            throw new Error(response.data.msg || '删除失败');
+            throw new Error(response.data.msg || 'Deletion failed');
         }
     } catch (error) {
-        console.error('删除歌曲失败:', error);
-        showMessage(`删除失败: ${error.message}`, 'danger');
+        console.error('Failed to delete song:', error);
+        showMessage(`Deletion failed: ${error.message}`, 'danger');
     }
 }
 
@@ -326,7 +334,7 @@ function playSong(songId, songUrl) {
     if (songUrl) {
         window.open(songUrl, '_blank');
     } else {
-        showMessage('无法播放：歌曲URL不可用', 'warning');
+        showMessage('Cannot play: Song URL is not available', 'warning');
     }
 }
 

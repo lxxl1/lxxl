@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cpt202.mapper.SongCategoryMapper">
+    <resultMap id="BaseResultMap" type="com.cpt202.domain.SongCategory">
+        <id column="id" jdbcType="INTEGER" property="id"/>
+        <result column="song_id" jdbcType="INTEGER" property="songId"/>
+        <result column="category_id" jdbcType="INTEGER" property="categoryId"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+    </resultMap>
+    
+    <insert id="insert" parameterType="com.cpt202.domain.SongCategory">
+        INSERT INTO song_category (song_id, category_id, create_time)
+        VALUES (#{songId}, #{categoryId}, now())
+    </insert>
+    
+    <delete id="deleteBySongAndCategory">
+        DELETE FROM song_category
+        WHERE song_id = #{songId} AND category_id = #{categoryId}
+    </delete>
+    
+    <delete id="deleteBySongId">
+        DELETE FROM song_category
+        WHERE song_id = #{songId}
+    </delete>
+    
+    <select id="selectCategoryIdsBySongId" resultType="java.lang.Integer">
+        SELECT category_id FROM song_category
+        WHERE song_id = #{songId}
+    </select>
+    
+    <select id="selectSongIdsByCategoryId" resultType="java.lang.Integer">
+        SELECT song_id FROM song_category
+        WHERE category_id = #{categoryId}
+    </select>
+</mapper> 

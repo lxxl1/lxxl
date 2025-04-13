@@ -241,7 +241,7 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public void auditSong(Integer songId, Integer status, String reason, Integer auditorId) {
-        songMapper.updateSongAuditStatus(songId, status, reason, auditorId);
+        songMapper.updateSongAuditStatus(songId, status);
     }
 
 }

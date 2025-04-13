@@ -91,12 +91,9 @@ public interface SongMapper {
     @Select("SELECT * FROM song WHERE status = #{status}")
     List<Song> selectAuditedSongs(@Param("status") Integer status);
 
-    @Update("UPDATE song SET status = #{status}, audit_reason = #{reason}, " +
-            "audit_time = NOW(), auditor_id = #{auditorId} WHERE id = #{songId}")
+    @Update("UPDATE song SET status = #{status} WHERE id = #{songId}")
     int updateSongAuditStatus(@Param("songId") Integer songId,
-                            @Param("status") Integer status,
-                            @Param("reason") String reason,
-                            @Param("auditorId") Integer auditorId);
+                            @Param("status") Integer status);
 }
 
 
