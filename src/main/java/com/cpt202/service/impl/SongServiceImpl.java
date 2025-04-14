@@ -1,13 +1,20 @@
 package com.cpt202.service.impl;
 
+import com.cpt202.dto.SongDTO;
 import com.cpt202.mapper.SongMapper;
 import com.cpt202.domain.Song;
+import com.cpt202.mapper.CategoryMapper;
+import com.cpt202.mapper.SongCategoryMapper;
 import com.cpt202.service.SongService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 歌曲service实现类
@@ -18,6 +25,12 @@ public class SongServiceImpl implements SongService {
     @Autowired
     private SongMapper songMapper;
 
+    @Autowired
+    private SongCategoryMapper songCategoryMapper;
+
+    @Autowired
+    private CategoryMapper categoryMapper;
+
     /**
      * 增加
      *
@@ -25,6 +38,8 @@ public class SongServiceImpl implements SongService {
      */
     @Override
     public boolean insert(Song song) {
+        // 确保插入前清除可能存在的临时字段值
+        // song.setCategoryNames(null); 
         return songMapper.insert(song) > 0;
     }
 
@@ -35,6 +50,8 @@ public class SongServiceImpl implements SongService {
      */
     @Override
     public boolean update(Song song) {
+         // 确保更新前清除可能存在的临时字段值
+        // song.setCategoryNames(null); 
         return songMapper.update(song) > 0;
     }
 
@@ -45,6 +62,8 @@ public class SongServiceImpl implements SongService {
      */
     @Override
     public boolean delete(Integer id) {
+        // 删除歌曲前，先删除关联表中的记录 (虽然外键设置了级联删除，但显式删除更清晰)
+        songCategoryMapper.deleteBySongId(id);
         return songMapper.delete(id) > 0;
     }
 
@@ -83,21 +102,45 @@ public class SongServiceImpl implements SongService {
      */
     @Override
     public List<Song> likeSongOfName(String name) {
-        //log.error(">>>>>>>>>>>>>搜索的名字{}", name);
-
-        List<Song> songs = songMapper.likeSongOfName("%" + name + "%");
-        //songs.forEach(song -> log.warn(">>>>>>>>>>>>>>{}", song.getIsVip()));
-        return songs;
+        return songMapper.likeSongOfName("%" + name + "%");
     }
+    
     /**
-     * 根据用户id查询歌曲
+     * 根据用户id查询歌曲，并包含类别名称
      * 
-     * 
+     * @param userId
+     * @return List of SongDTO
      */
     @Override
-    public List<Song> songOfUserId(Integer userId) {
-        return songMapper.songOfUserId(userId);    
+    public List<SongDTO> songOfUserId(Integer userId) {
+        List<Song> songList = songMapper.songOfUserId(userId);
+        if (songList == null || songList.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<SongDTO> resultList = new ArrayList<>();
+        for (Song song : songList) {
+            SongDTO dto = new SongDTO();
+            BeanUtils.copyProperties(song, dto); // 复制基础属性
+
+            // 查询并设置类别名称
+            List<Integer> categoryIds = songCategoryMapper.selectCategoryIdsBySongId(song.getId());
+            if (categoryIds != null && !categoryIds.isEmpty()) {
+                List<String> categoryNameList = categoryMapper.selectNamesByIds(categoryIds);
+                if (categoryNameList != null && !categoryNameList.isEmpty()) {
+                    dto.setCategoryNames(String.join(", ", categoryNameList));
+                } else {
+                    dto.setCategoryNames("N/A"); // Or empty string
+                }
+            } else {
+                dto.setCategoryNames("N/A"); // Or empty string
+            }
+            
+            resultList.add(dto);
+        }
+        return resultList;
     }
+    
     /**
      * 根据歌手id查询
      *

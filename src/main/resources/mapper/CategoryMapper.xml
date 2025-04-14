@@ -46,4 +46,13 @@
         </where>
     </select>
 
+    <select id="selectNamesByIds" resultType="java.lang.String">
+        SELECT name 
+        FROM category
+        WHERE id IN
+        <foreach item="id" collection="ids" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
 </mapper>

@@ -127,7 +127,7 @@ function renderSongsList(songs) {
                     </div>
                 </div>
             </td>
-            <td>${song.introduction || 'N/A'}</td>
+            <td>${song.categoryNames || 'N/A'}</td>
             <td>${formatDate(song.createTime)}</td>
             <td><span class="badge badge-${statusClass}">${statusText}</span></td>
             <td>${song.nums || 0}</td>

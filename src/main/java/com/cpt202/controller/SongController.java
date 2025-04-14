@@ -4,8 +4,11 @@ import com.cpt202.common.Result;
 import com.cpt202.domain.Song;
 import com.cpt202.service.SongService;
 import com.cpt202.service.SongCategoryService;
+import com.cpt202.service.TagService;
 import com.cpt202.utils.Consts;
 import com.cpt202.utils.OssUtil;
+import com.cpt202.dto.SongDTO;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -18,6 +21,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -26,6 +30,7 @@ import java.util.stream.Collectors;
  */
 @RestController
 @RequestMapping("/song")
+@Slf4j
 public class SongController {
 
     @Autowired
@@ -37,20 +42,26 @@ public class SongController {
     @Autowired
     private OssUtil ossUtil; // 注入OssUtil
 
+    @Autowired
+    private TagService tagService; // Inject TagService
+
     /**
-     * 添加歌曲，文件存储到OSS，并关联类别
+     * 添加歌曲，文件存储到OSS，并根据提供的Tag IDs关联标签
      */
     @RequestMapping(value = "/add", method = RequestMethod.POST)
-    public Result addSong(HttpServletRequest request, @RequestParam("file") MultipartFile mpFile, @RequestParam(name = "files", required = false) MultipartFile mvFile) {
+    public Result addSong(HttpServletRequest request,
+                          @RequestParam("file") MultipartFile mpFile,
+                          @RequestParam(name = "files", required = false) MultipartFile mvFile) {
         try {
             // 获取前端传来的参数
-            String userId = request.getParameter("userId").trim();      // 用户id
-            String singerId = request.getParameter("singerId").trim();  // 所属歌手id
-            String name = request.getParameter("name").trim();          // 歌名
-            String introduction = request.getParameter("introduction").trim();  // 简介
-            String lyric = request.getParameter("lyric").trim();                // 歌词
-            String pic = "/img/songPic/tubiao.jpg";                             // 默认图片
-            String categoryIdsParam = request.getParameter("categoryIds");      // 类别ID列表 (例如 "1,2,3")
+            String userId = request.getParameter("userId").trim();
+            String singerId = request.getParameter("singerId").trim();
+            String name = request.getParameter("name").trim();
+            String introduction = request.getParameter("introduction").trim();
+            String lyric = request.getParameter("lyric").trim();
+            String pic = "/img/songPic/tubiao.jpg";
+            String categoryIdsParam = request.getParameter("categoryIds"); // 类别 IDs
+            String tagIdsParam = request.getParameter("tagIds"); // 标签 IDs (e.g., "1,5,12")
 
             // 检查音乐文件是否为空
             if (mpFile == null || mpFile.isEmpty()) {
@@ -63,6 +74,15 @@ public class SongController {
                 return Result.failure("歌曲文件上传失败");
             }
 
+            // 如果有MV文件，上传MV文件到OSS
+            String mvUrl = null;
+            if (mvFile != null && !mvFile.isEmpty()) {
+                mvUrl = ossUtil.uploadFile(mvFile, "mv/");
+                if (mvUrl == null) {
+                    log.warn("MV file upload failed for song: {}", name);
+                }
+            }
+
             // 创建歌曲对象
             Song song = new Song();
             song.setUserId(Integer.parseInt(userId));
@@ -72,17 +92,8 @@ public class SongController {
             song.setPic(pic);
             song.setLyric(lyric);
             song.setUrl(musicUrl);
+            if (mvUrl != null) song.setMvurl(mvUrl);
             song.setStatus(0); // 设置初始状态为待审核
-
-            // 如果有MV文件，上传MV文件到OSS
-            if (mvFile != null && !mvFile.isEmpty()) {
-                String mvUrl = ossUtil.uploadFile(mvFile, "mv/");
-                if (mvUrl != null) {
-                    song.setMvurl(mvUrl);
-                } else {
-                    System.out.println("Warning: MV file upload failed for song: " + name);
-                }
-            }
 
             // 1. 保存歌曲信息到数据库 (MyBatis会回填ID到song对象)
             boolean songInsertSuccess = songService.insert(song);
@@ -96,10 +107,10 @@ public class SongController {
             // 2. 获取新插入歌曲的ID
             Integer newSongId = song.getId(); // 确保SongMapper.xml中的insert语句配置了useGeneratedKeys="true" keyProperty="id"
             if (newSongId == null) {
-                 // 如果ID未回填，可能需要额外查询或记录错误
-                 System.err.println("Error: Failed to retrieve generated song ID after insert.");
-                 return Result.failure("无法获取新歌曲ID，类别关联失败");
+                 log.error("Error: Failed to retrieve generated song ID after insert for song: {}", name);
+                 return Result.failure("无法获取新歌曲ID，后续关联失败");
             }
+            log.info("Successfully inserted song '{}' with ID: {}", name, newSongId);
 
             // 3. 处理类别关联
             if (categoryIdsParam != null && !categoryIdsParam.trim().isEmpty()) {
@@ -114,33 +125,63 @@ public class SongController {
                         // 4. 调用服务更新song_category表
                         boolean categoriesUpdateSuccess = songCategoryService.addSongCategories(newSongId, categoryIdList);
                         if (!categoriesUpdateSuccess) {
-                            // 关联失败的处理，可以记录日志，或返回部分成功信息
-                             System.out.println("Warning: Failed to associate categories for song ID: " + newSongId);
-                             // 可以考虑是否要回滚歌曲的插入，但这会增加复杂性
+                            log.warn("Failed to associate categories for song ID: {}", newSongId);
                         }
                     } else {
-                        System.out.println("Info: No valid category IDs provided after parsing for song ID: " + newSongId);
+                        log.info("No category IDs provided for song ID: {}", newSongId);
                     }
                 } catch (NumberFormatException e) {
-                    System.out.println("Warning: Invalid category IDs format for song ID: " + newSongId + ". Input: " + categoryIdsParam);
-                    // 返回成功信息，但提示类别格式错误
-                    return Result.success("歌曲添加成功，但类别ID格式无效或为空，未关联类别。URL: " + musicUrl);
+                    log.warn("Invalid category IDs format for song ID: {}. Input: {}", newSongId, categoryIdsParam, e);
+                    // Don't fail the whole request, just log the warning
                 }
             } else {
-                 System.out.println("Info: No category IDs provided for song ID: " + newSongId);
+                 log.info("No category IDs provided for song ID: {}", newSongId);
             }
 
-            return Result.success("歌曲添加成功并已处理类别关联。URL: " + musicUrl);
+            // 4. 处理标签关联 (新逻辑)
+            List<Integer> tagIdList = Collections.emptyList();
+            if (tagIdsParam != null && !tagIdsParam.trim().isEmpty()) {
+                try {
+                    tagIdList = Arrays.stream(tagIdsParam.split(","))
+                            .map(String::trim)
+                            .filter(s -> !s.isEmpty())
+                            .map(Integer::parseInt)
+                            .distinct() // Avoid duplicate tag IDs
+                            .collect(Collectors.toList());
 
-        } catch (IOException e) {
-            e.printStackTrace();
-            return Result.failure("文件上传过程中发生IO错误: " + e.getMessage());
+                    if (!tagIdList.isEmpty()) {
+                        log.info("Attempting to associate song ID {} with tag IDs: {}", newSongId, tagIdList);
+                        // Call TagService to add the associations
+                        boolean tagsUpdateSuccess = tagService.addSongTags(newSongId, tagIdList);
+                        if (!tagsUpdateSuccess) {
+                            log.warn("Failed to associate tags for song ID: {}", newSongId);
+                        } else {
+                            log.info("Successfully associated tags for song ID: {}", newSongId);
+                        }
+                    } else {
+                         log.info("No valid tag IDs found after parsing for song ID: {}", newSongId);
+                    }
+                } catch (NumberFormatException e) {
+                    log.warn("Invalid tag IDs format for song ID: {}. Input: {}", newSongId, tagIdsParam, e);
+                    // Don't fail the whole request, just log the warning
+                }
+            } else {
+                log.info("No tag IDs provided for song ID: {}", newSongId);
+                // If no tags are provided, ensure any existing (erroneous) tags are removed
+                // The addSongTags method in TagServiceImpl already handles deleting old tags first.
+                 tagService.addSongTags(newSongId, Collections.emptyList()); 
+            }
+
+            return Result.success("歌曲添加成功并已处理类别和标签关联。URL: " + musicUrl);
+
         } catch (NumberFormatException e) {
-             // 区分是用户ID/歌手ID错误还是类别ID错误
-             // 简单的判断，更精确的判断需要检查 e.getMessage()
-             return Result.failure("用户ID、歌手ID或类别ID格式错误");
+             log.error("Error parsing number in addSong: {}", e.getMessage());
+             return Result.failure("用户ID、歌手ID、类别ID或标签ID格式错误");
+        } catch (IOException e) {
+            log.error("IO Error during file upload in addSong", e);
+            return Result.failure("文件上传过程中发生IO错误: " + e.getMessage());
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Unknown error in addSong", e);
             return Result.failure("添加歌曲时发生未知错误: " + e.getMessage());
         }
     }
@@ -400,13 +441,25 @@ public class SongController {
     }
 
     /**
-     * 根据用户ID查询歌曲
+     * 根据用户ID查询歌曲 (返回DTO列表)
      */
     @RequestMapping(value = "/selectbyuser", method = RequestMethod.GET)
     public Result songOfUserId(HttpServletRequest request) {
-        String userId = request.getParameter("userId");
-        List<Song> songs = songService.songOfUserId(Integer.parseInt(userId));
-        return Result.success(songs);
+        try {
+            String userId = request.getParameter("userId");
+            if (userId == null || userId.trim().isEmpty()) {
+                return Result.failure("用户ID不能为空");
+            }
+            // Ensure the variable type matches the service return type
+            List<SongDTO> songs = songService.songOfUserId(Integer.parseInt(userId.trim()));
+            return Result.success(songs);
+        } catch (NumberFormatException e) {
+            log.error("Invalid user ID format for /selectbyuser: {}", request.getParameter("userId"), e);
+            return Result.failure("无效的用户ID格式");
+        } catch (Exception e) {
+             log.error("Error fetching songs for user ID: {}", request.getParameter("userId"), e);
+             return Result.failure("查询用户歌曲时发生错误");
+        }
     }
 
     /**

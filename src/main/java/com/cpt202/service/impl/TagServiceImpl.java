@@ -22,9 +22,11 @@ public class TagServiceImpl implements TagService {
     public boolean createTag(Tag tag) {
         Tag existingTag = tagMapper.selectByNameAndUserId(tag.getName(), tag.getUserId());
         if (existingTag != null) {
+            System.out.println("Tag with name '" + tag.getName() + "' already exists for user " + tag.getUserId());
             return false;
         }
-        return tagMapper.insert(tag) > 0;
+        int result = tagMapper.insert(tag);
+        return result > 0;
     }
     
     @Override
@@ -50,9 +52,19 @@ public class TagServiceImpl implements TagService {
     @Override
     @Transactional
     public boolean addSongTags(Integer songId, List<Integer> tagIds) {
-        songTagMapper.deleteBySongId(songId);
-        if (!tagIds.isEmpty()) {
-            return songTagMapper.batchInsert(songId, tagIds) > 0;
+        try {
+            songTagMapper.deleteBySongId(songId);
+        } catch (Exception e) {
+            System.err.println("Error deleting old tags for song " + songId + ": " + e.getMessage());
+        }
+        if (tagIds != null && !tagIds.isEmpty()) {
+            try {
+                int insertedRows = songTagMapper.batchInsert(songId, tagIds);
+                return insertedRows > 0;
+            } catch (Exception e) {
+                System.err.println("Error batch inserting tags for song " + songId + ": " + e.getMessage());
+                return false;
+            }
         }
         return true;
     }
@@ -65,7 +77,7 @@ public class TagServiceImpl implements TagService {
     @Override
     public List<Tag> getSongTags(Integer songId) {
         List<Integer> tagIds = songTagMapper.selectTagIdsBySongId(songId);
-        if (tagIds.isEmpty()) {
+        if (tagIds == null || tagIds.isEmpty()) {
             return Collections.emptyList();
         }
         return tagMapper.selectByIds(tagIds);

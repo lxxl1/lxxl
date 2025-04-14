@@ -2,6 +2,7 @@ package com.cpt202.mapper;
 
 import com.cpt202.domain.Category;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -37,4 +38,9 @@ public interface CategoryMapper {
      * 查询所有
      */
     List<Category> selectAll();
+
+    /**
+     * 根据ID列表查询类别名称列表
+     */
+    List<String> selectNamesByIds(@Param("ids") List<Integer> ids);
 }

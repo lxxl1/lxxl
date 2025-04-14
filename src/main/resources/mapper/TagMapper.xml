@@ -12,17 +12,15 @@
         id, name, user_id, create_time
     </sql>
 
-    <insert id="insert" parameterType="com.cpt202.domain.Tag">
+    <insert id="insert" parameterType="com.cpt202.domain.Tag" useGeneratedKeys="true" keyProperty="id">
         insert into tag
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="name != null">name,</if>
             <if test="userId != null">user_id,</if>
-            <if test="createTime != null">create_time,</if>
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="name != null">#{name},</if>
             <if test="userId != null">#{userId},</if>
-            <if test="createTime != null">#{createTime},</if>
         </trim>
     </insert>
 

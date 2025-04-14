@@ -1,6 +1,7 @@
 package com.cpt202.service;
 
 import com.cpt202.domain.Song;
+import com.cpt202.dto.SongDTO;
 
 import java.util.List;
 
@@ -72,8 +73,9 @@ public interface SongService {
      * 获取已审核歌曲列表
      */
     public List<Song> getAuditedSongs(Integer status);
+
     /**
-     * 根据用户id查询歌曲
+     * 根据用户id查询歌曲 (返回包含类别名称的DTO列表)
      */
-    public List<Song> songOfUserId(Integer userId);
+    List<SongDTO> songOfUserId(Integer userId);
 }

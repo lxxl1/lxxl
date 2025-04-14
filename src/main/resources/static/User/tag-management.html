@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Manage Tags</title>
+    <!-- Add necessary CSS links (e.g., Bootstrap, your app.css) -->
+    <link rel="stylesheet" href="vendors/bundle.css" type="text/css">
+    <link rel="stylesheet" href="assets/css/app.css" type="text/css">
+    <style>
+        .tag-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; padding: 5px; border: 1px solid #eee; border-radius: 4px; }
+        .tag-name { flex-grow: 1; margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>Manage Your Tags</h2>
+        
+        <!-- Add New Tag Form -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Create New Tag</h5>
+                <form id="addTagForm" class="d-flex">
+                    <input type="text" class="form-control mr-2" id="newTagName" placeholder="Enter new tag name" required>
+                    <button type="submit" class="btn btn-primary">Add Tag</button>
+                </form>
+                <div id="addTagMessage" class="mt-2"></div>
+            </div>
+        </div>
+        
+        <!-- Existing Tags List -->
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Your Tags</h5>
+                <div id="tagList" class="list-group">
+                    <p>Loading tags...</p>
+                    <!-- Tags will be loaded here by JavaScript -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-4">
+            <a href="upload-music.html" class="btn btn-secondary">Back to Upload</a>
+        </div>
+    </div>
+
+    <!-- Plugin scripts -->
+    <script src="vendors/bundle.js"></script>
+    <!-- Axios for API requests -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <!-- Common API Module -->
+    <script type="module" src="../../../Common/js/api.js"></script> 
+    <!-- Tag Management functionality -->
+    <script type="module" src="assets/js/tag-management.js"></script>
+</body>
+</html> 
