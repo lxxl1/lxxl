@@ -1,5 +1,7 @@
 // 权限检查模块 - 在所有用户界面页面自动执行
 import { checkAuthentication, checkUserRole, logout } from '../../../Common/js/auth.js';
+import { API_URL } from '../../../Common/js/config.js';
+import api from '../../../Common/js/api.js';
 
 // 立即执行函数 - 页面加载时自动执行权限检查
 (function() {
@@ -51,11 +53,43 @@ function updateUserInfo() {
 
 // 设置登出按钮事件
 function setupLogoutButton() {
-    const logoutButtons = document.querySelectorAll('a[href*="login.html"]');
+    const logoutButtons = document.querySelectorAll('a[href*="logout.html"]');
     logoutButtons.forEach(button => {
         button.addEventListener('click', function(e) {
             e.preventDefault();
             logout();
         });
     });
+}
+
+// Check if user is authenticated
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        // Check if token exists
+        const token = localStorage.getItem('token');
+        if (!token) {
+            redirectToLogin();
+            return;
+        }
+        
+        // Verify token with backend
+        const response = await api.get('/verifyToken');
+        if (!response.data || !response.data.data) {
+            redirectToLogin();
+        }
+    } catch (error) {
+        console.error('Authentication check failed:', error);
+        redirectToLogin();
+    }
+});
+
+// Redirect to login page
+function redirectToLogin() {
+    // Clear any stored authentication data
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    
+    // Redirect to login page
+    window.location.href = '../login.html';
 } 

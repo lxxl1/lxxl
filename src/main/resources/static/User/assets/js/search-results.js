@@ -3,314 +3,337 @@
  * This file handles the search functionality and displaying results
  */
 
-$(document).ready(function() {
-    // Get search query from URL parameter
-    const urlParams = new URLSearchParams(window.location.search);
-    const searchQuery = urlParams.get('q');
+import { API_URL } from '../../../Common/js/config.js';
+import api from '../../../Common/js/api.js';
+
+// Global variables
+let allSongs = [];
+let approvedSongs = []; // Only songs with status=1
+let allSingers = [];
+let searchResults = [];
+let searchQuery = '';
+
+// Page initialization
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        // Add axios and module support
+        await addScriptDependencies();
+        
+        // Get search query from URL if present
+        searchQuery = new URLSearchParams(window.location.search).get('q') || '';
+        
+        // Initialize all data
+        await Promise.all([
+            loadAllSongs(),
+            loadAllSingers()
+        ]);
+        
+        // Update UI with search query
+        document.getElementById('search-query-display').textContent = 
+            searchQuery ? `Search Results for "${searchQuery}"` : 'Search Results';
+        
+        if (searchQuery) {
+            document.getElementById('search-input').value = searchQuery;
+            performSearch(searchQuery);
+        } else {
+            // Hide spinner if no initial search
+            document.getElementById('loading-spinner').classList.add('d-none');
+            document.getElementById('search-results-container').classList.remove('d-none');
+        }
+        
+        // Setup event listeners
+        setupEventListeners();
+        
+    } catch (error) {
+        console.error('Initialization error:', error);
+        showMessage('Failed to load search results. Please try again.', 'error');
+    }
+});
+
+// Add necessary script dependencies
+async function addScriptDependencies() {
+    return new Promise((resolve) => {
+        // Check if axios is already loaded
+        if (typeof axios === 'undefined') {
+            const axiosScript = document.createElement('script');
+            axiosScript.src = 'https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js';
+            axiosScript.onload = resolve;
+            document.head.appendChild(axiosScript);
+        } else {
+            resolve();
+        }
+    });
+}
+
+/**
+ * Load all songs from API and filter approved ones
+ */
+async function loadAllSongs() {
+    try {
+        const response = await api.get('/song/allSong');
+        if (response.data && response.data.code === '200' && response.data.data) {
+            allSongs = response.data.data;
+            // Filter only approved songs (status=1)
+            approvedSongs = allSongs.filter(song => song.status === 1);
+            return true;
+        }
+        return false;
+    } catch (error) {
+        console.error('Error loading songs:', error);
+        return false;
+    }
+}
+
+/**
+ * Load all singers from API
+ */
+async function loadAllSingers() {
+    try {
+        const response = await api.get('/singer/allSinger');
+        if (response.data && response.data.code === '200' && response.data.data) {
+            allSingers = response.data.data;
+            return true;
+        }
+        return false;
+    } catch (error) {
+        console.error('Error loading singers:', error);
+        return false;
+    }
+}
+
+/**
+ * Perform a search based on the query
+ */
+function performSearch(query) {
+    // Show loading spinner
+    document.getElementById('loading-spinner').classList.remove('d-none');
+    document.getElementById('search-results-container').classList.add('d-none');
     
-    // Setup search form
-    setupSearchForm();
+    // Normalize query
+    const normalizedQuery = query.trim().toLowerCase();
     
-    // If search query is present, perform search
-    if (searchQuery && searchQuery.trim()) {
-        $('#search-input').val(searchQuery);
-        $('#search-query-display').text(`Search Results for "${searchQuery}"`);
-        performSearch(searchQuery);
+    if (!normalizedQuery) {
+        searchResults = [];
+        updateSearchResults();
+        return;
+    }
+    
+    // Search in song names and singer names
+    searchResults = approvedSongs.filter(song => {
+        const songName = song.name ? song.name.toLowerCase() : '';
+        const singerName = song.singerId ? 
+            (allSingers.find(singer => singer.id === song.singerId)?.name || '').toLowerCase() : '';
+        
+        return songName.includes(normalizedQuery) || singerName.includes(normalizedQuery);
+    });
+    
+    // Allow some time for the spinner to show
+    setTimeout(() => {
+        updateSearchResults();
+    }, 500);
+}
+
+/**
+ * Update the UI with search results
+ */
+function updateSearchResults() {
+    // Hide spinner
+    document.getElementById('loading-spinner').classList.add('d-none');
+    document.getElementById('search-results-container').classList.remove('d-none');
+    
+    // Update song count badge
+    document.getElementById('song-count-badge').textContent = searchResults.length;
+    
+    // Show or hide no results message
+    const noResultsMessage = document.getElementById('no-results-message');
+    if (searchResults.length === 0) {
+        noResultsMessage.classList.remove('d-none');
     } else {
-        // No search query, show the form
-        $('#loading-spinner').addClass('d-none');
-        $('#search-results-container').removeClass('d-none');
-        $('#no-results-message').removeClass('d-none');
+        noResultsMessage.classList.add('d-none');
     }
     
-    /**
-     * Set up search form functionality
-     */
-    function setupSearchForm() {
-        $('#search-form').on('submit', function(e) {
-            e.preventDefault();
-            const query = $('#search-input').val().trim();
-            if (query) {
-                // Update URL to include search query
-                const newUrl = `search-results.html?q=${encodeURIComponent(query)}`;
-                window.history.pushState({ path: newUrl }, '', newUrl);
-                
-                // Update display and perform search
-                $('#search-query-display').text(`Search Results for "${query}"`);
-                performSearch(query);
-            }
-        });
-        
-        // Handle search in header
-        $('#song-search-form').on('submit', function(e) {
-            e.preventDefault();
-            const query = $('#song-search-input').val().trim();
-            if (query) {
-                window.location.href = `search-results.html?q=${encodeURIComponent(query)}`;
-            }
-        });
+    // Render song results
+    renderSongResults();
+}
+
+/**
+ * Render song search results
+ */
+function renderSongResults() {
+    const resultsContainer = document.getElementById('song-results');
+    if (!resultsContainer) return;
+    
+    if (searchResults.length === 0) {
+        resultsContainer.innerHTML = '';
+        return;
     }
     
-    /**
-     * Perform search with the given query
-     */
-    function performSearch(query) {
-        // Show loading spinner
-        $('#loading-spinner').removeClass('d-none');
-        $('#search-results-container').addClass('d-none');
+    let html = '';
+    searchResults.forEach(song => {
+        const singerName = allSingers.find(singer => singer.id === song.singerId)?.name || 'Unknown Artist';
         
-        // First try exact match
-        $.ajax({
-            url: '/song/songOfSongName',
-            type: 'GET',
-            data: { songName: query },
-            success: function(exactResults) {
-                // Now try like match
-                $.ajax({
-                    url: '/song/likeSongOfName',
-                    type: 'GET',
-                    data: { songName: query },
-                    success: function(likeResults) {
-                        // Combine results, removing duplicates
-                        const combinedResults = combineAndDeduplicateResults(exactResults, likeResults);
-                        
-                        // Hide loading spinner
-                        $('#loading-spinner').addClass('d-none');
-                        $('#search-results-container').removeClass('d-none');
-                        
-                        // Display results
-                        displaySearchResults(combinedResults);
-                    },
-                    error: function(error) {
-                        handleSearchError(error);
-                    }
-                });
-            },
-            error: function(error) {
-                handleSearchError(error);
-            }
-        });
-    }
-    
-    /**
-     * Combine and deduplicate search results
-     */
-    function combineAndDeduplicateResults(exactResults, likeResults) {
-        if (!exactResults) exactResults = [];
-        if (!likeResults) likeResults = [];
-        
-        // Create a map to deduplicate by song ID
-        const resultsMap = new Map();
-        
-        // Add exact results first (higher priority)
-        exactResults.forEach(song => {
-            resultsMap.set(song.id, song);
-        });
-        
-        // Add like results that aren't already included
-        likeResults.forEach(song => {
-            if (!resultsMap.has(song.id)) {
-                resultsMap.set(song.id, song);
-            }
-        });
-        
-        // Convert back to array
-        return Array.from(resultsMap.values());
-    }
-    
-    /**
-     * Display search results
-     */
-    function displaySearchResults(songs) {
-        const $songResults = $('#song-results');
-        $songResults.empty();
-        
-        // Update song count badge
-        $('#song-count-badge').text(songs.length);
-        
-        if (songs.length === 0) {
-            // Show no results message
-            $('#no-results-message').removeClass('d-none');
-            return;
-        }
-        
-        // Hide no results message
-        $('#no-results-message').addClass('d-none');
-        
-        // Display each song
-        songs.forEach(song => {
-            const songCard = createSongCard(song);
-            $songResults.append(songCard);
-        });
-        
-        // Re-initialize feather icons
-        if (typeof feather !== 'undefined') {
-            feather.replace();
-        }
-        
-        // Attach event handlers
-        $('.play-song-btn').on('click', function() {
-            const songId = $(this).data('song-id');
-            playSong(songId);
-        });
-        
-        $('.view-details-btn').on('click', function() {
-            const songId = $(this).data('song-id');
-            viewSongDetails(songId);
-        });
-    }
-    
-    /**
-     * Create HTML for a song card
-     */
-    function createSongCard(song) {
-        return `
-            <div class="col-sm-6 col-md-4 col-lg-3 mb-4">
-                <div class="card h-100">
-                    <div class="position-relative">
-                        <img src="${song.pic || 'assets/media/image/default-cover.jpg'}" 
-                             class="card-img-top" alt="${song.name}" 
-                             style="height: 180px; object-fit: cover;">
-                        <button class="btn btn-primary rounded-circle position-absolute play-song-btn" 
-                                style="bottom: -20px; right: 20px; width: 40px; height: 40px; padding: 0;"
-                                data-song-id="${song.id}">
-                            <i data-feather="play" style="width: 18px; height: 18px;"></i>
-                        </button>
-                    </div>
-                    <div class="card-body pt-4">
-                        <h6 class="card-title text-truncate mb-1">${song.name}</h6>
-                        <p class="card-text text-muted small mb-2 singer-name" data-singer-id="${song.singerId}">Loading...</p>
-                        <p class="card-text small text-truncate">${song.introduction || 'No description available'}</p>
-                        <div class="d-flex justify-content-between align-items-center mt-3">
-                            <span class="badge badge-light">
-                                <i data-feather="headphones" class="mr-1" style="width: 14px; height: 14px;"></i>
-                                ${song.playCount || 0}
-                            </span>
-                            <button class="btn btn-sm btn-outline-info view-details-btn" data-song-id="${song.id}">
-                                Details
-                            </button>
+        html += `
+            <div class="col-md-3 col-sm-6 mb-4">
+                <div class="card">
+                    <img src="${song.pic || 'assets/media/image/default-album.png'}" class="card-img-top" alt="${song.name}">
+                    <div class="card-body">
+                        <h6 class="card-title mb-1">${song.name}</h6>
+                        <p class="small text-muted mb-2">${singerName}</p>
+                        <div class="d-flex justify-content-between">
+                            <small class="text-muted">
+                                <i data-feather="play"></i> ${song.playCount || 0}
+                            </small>
+                            <small class="text-muted">
+                                <i data-feather="heart"></i> ${song.likeCount || 0}
+                            </small>
                         </div>
+                        <button class="btn btn-primary btn-sm btn-block mt-2 play-song-btn" data-song-id="${song.id}">
+                            <i data-feather="play"></i> Play
+                        </button>
                     </div>
                 </div>
             </div>
         `;
+    });
+    
+    resultsContainer.innerHTML = html;
+    
+    // Initialize feather icons
+    if (typeof feather !== 'undefined') {
+        feather.replace();
     }
     
-    /**
-     * Handle search error
-     */
-    function handleSearchError(error) {
-        console.error('Error searching songs', error);
-        
-        // Hide loading spinner
-        $('#loading-spinner').addClass('d-none');
-        $('#search-results-container').removeClass('d-none');
-        
-        // Show error message
-        $('#song-results').html(`
-            <div class="col-12">
-                <div class="alert alert-danger">
-                    <i data-feather="alert-circle" class="mr-2"></i>
-                    Error searching songs. Please try again later.
-                </div>
-            </div>
-        `);
-        
-        // Re-initialize feather icons
-        if (typeof feather !== 'undefined') {
-            feather.replace();
-        }
+    // Add event listeners to play buttons
+    document.querySelectorAll('.play-song-btn').forEach(button => {
+        button.addEventListener('click', (event) => {
+            const songId = event.currentTarget.dataset.songId;
+            playSong(songId);
+        });
+    });
+}
+
+/**
+ * Setup event listeners
+ */
+function setupEventListeners() {
+    // Search form
+    const searchForm = document.getElementById('search-form');
+    if (searchForm) {
+        searchForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            const searchInput = document.getElementById('search-input');
+            const query = searchInput.value.trim();
+            
+            // Update URL with search query
+            const url = new URL(window.location);
+            if (query) {
+                url.searchParams.set('q', query);
+            } else {
+                url.searchParams.delete('q');
+            }
+            window.history.pushState({}, '', url);
+            
+            // Update heading
+            document.getElementById('search-query-display').textContent = 
+                query ? `Search Results for "${query}"` : 'Search Results';
+            
+            // Perform search
+            performSearch(query);
+        });
     }
     
-    /**
-     * Load singer name by ID and update relevant elements
-     */
-    function loadSingerName(singerId) {
-        $.ajax({
-            url: '/singer/detail',
-            type: 'GET',
-            data: { id: singerId },
-            success: function(response) {
-                if (response) {
-                    // Update all elements with this singer ID
-                    $(`[data-singer-id="${singerId}"]`).text(response.name);
-                }
-            },
-            error: function(error) {
-                console.error(`Error fetching singer name for ID ${singerId}`, error);
+    // Header search form
+    const headerSearchForm = document.getElementById('song-search-form');
+    if (headerSearchForm) {
+        headerSearchForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            const searchInput = document.getElementById('song-search-input');
+            const query = searchInput.value.trim();
+            
+            if (query) {
+                // Update main search input
+                document.getElementById('search-input').value = query;
+                
+                // Update URL
+                const url = new URL(window.location);
+                url.searchParams.set('q', query);
+                window.history.pushState({}, '', url);
+                
+                // Update heading
+                document.getElementById('search-query-display').textContent = `Search Results for "${query}"`;
+                
+                // Perform search
+                performSearch(query);
             }
         });
     }
-});
+}
+
+/**
+ * Play a song
+ * @param {string} songId - ID of the song to play
+ */
+function playSong(songId) {
+    const song = approvedSongs.find(s => s.id == songId);
+    if (!song) return;
+    
+    const singerName = allSingers.find(singer => singer.id === song.singerId)?.name || 'Unknown Artist';
+    
+    // Update the modal content
+    document.getElementById('playing-song-name').textContent = song.name;
+    document.getElementById('playing-song-artist').textContent = singerName;
+    document.getElementById('playing-song-cover').src = song.pic || 'assets/media/image/default-cover.jpg';
+    document.getElementById('playing-song-lyrics').innerHTML = song.lyric || 'No lyrics available';
+    
+    // Set the audio source
+    const audioSource = document.getElementById('audio-source');
+    const audioPlayer = document.getElementById('audio-player');
+    
+    if (audioSource && audioPlayer) {
+        audioSource.src = song.url;
+        audioPlayer.load();
+        audioPlayer.play();
+    }
+    
+    // Show the modal
+    $('#songPlayerModal').modal('show');
+    
+    // Increment play count
+    incrementPlayCount(songId);
+}
+
+/**
+ * Increment the play count for a song
+ * @param {string} songId - ID of the song
+ */
+async function incrementPlayCount(songId) {
+    try {
+        await api.get(`/song/addNums?songId=${songId}`);
+        console.log('Play count incremented for song ID:', songId);
+    } catch (error) {
+        console.error('Error incrementing play count:', error);
+    }
+}
+
+/**
+ * Show a message to the user
+ * @param {string} message - Message to display
+ * @param {string} type - Message type (success, error, warning, info)
+ */
+function showMessage(message, type = 'info') {
+    // Check if toastr library is available
+    if (typeof toastr !== 'undefined') {
+        toastr[type](message);
+        return;
+    }
+    
+    // If toastr is not available, use alert
+    alert(message);
+}
 
 /**
  * View song details page
  */
 function viewSongDetails(songId) {
     window.location.href = `song-details.html?id=${songId}`;
-}
-
-/**
- * Play a song by ID - leverages the music-player.js functionality
- */
-function playSong(songId) {
-    // Get the song details and play it
-    $.ajax({
-        url: '/song/detail',
-        type: 'GET',
-        data: { songId: songId },
-        success: function(song) {
-            if (song) {
-                // Update play count
-                $.ajax({
-                    url: '/song/addNums',
-                    type: 'GET',
-                    data: { songId: songId }
-                });
-                
-                // Get singer info
-                $.ajax({
-                    url: '/singer/detail',
-                    type: 'GET',
-                    data: { id: song.singerId },
-                    success: function(singer) {
-                        openPlayerModal(song, singer ? singer.name : 'Unknown Artist');
-                    },
-                    error: function() {
-                        openPlayerModal(song, 'Unknown Artist');
-                    }
-                });
-            }
-        },
-        error: function(error) {
-            console.error('Error fetching song details', error);
-            alert('Could not load song. Please try again later.');
-        }
-    });
-}
-
-/**
- * Open the player modal with song details
- */
-function openPlayerModal(song, singerName) {
-    // Update modal content
-    $('#playing-song-cover').attr('src', song.pic || 'assets/media/image/default-cover.jpg');
-    $('#playing-song-name').text(song.name);
-    $('#playing-song-artist').text(singerName);
-    $('#audio-source').attr('src', song.url);
-    
-    // Update lyrics
-    if (song.lyric && song.lyric.trim()) {
-        $('#playing-song-lyrics').html(song.lyric.replace(/\n/g, '<br>'));
-    } else {
-        $('#playing-song-lyrics').text('No lyrics available');
-    }
-    
-    // Load and play the audio
-    const audioPlayer = document.getElementById('audio-player');
-    audioPlayer.load();
-    audioPlayer.play();
-    
-    // Show the modal
-    $('#songPlayerModal').modal('show');
 } 

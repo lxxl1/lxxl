@@ -76,50 +76,110 @@ async function loadCategories() {
 }
 
 /**
- * Load user tags and display them as checkboxes
+ * Load user tags and populate the tags dropdown
  */
 async function loadUserTags() {
     if (!currentUserId) return;
     
-    const tagSelectionArea = document.getElementById('tagSelectionArea');
-    tagSelectionArea.innerHTML = '<p>Loading your tags...</p>';
+    const tagsSelect = document.getElementById('tags');
+    if (!tagsSelect) return;
     
     try {
         const response = await api.get('/tag/user', { params: { userId: currentUserId } });
         if (response.data.code === '200') {
             const tags = response.data.data;
-            renderTagCheckboxes(tags);
+            
+            // Clear loading option
+            tagsSelect.innerHTML = '';
+            
+            if (tags && tags.length > 0) {
+                // Add placeholder option
+                const placeholderOption = document.createElement('option');
+                placeholderOption.value = "";
+                placeholderOption.disabled = true;
+                placeholderOption.textContent = "Select tags (optional)";
+                tagsSelect.appendChild(placeholderOption);
+                
+                // Add tag options
+                tags.forEach(tag => {
+                    const option = document.createElement('option');
+                    option.value = tag.id;
+                    option.textContent = escapeHTML(tag.name);
+                    tagsSelect.appendChild(option);
+                });
+                
+                // Initialize select2 if available
+                if (typeof $.fn.select2 !== 'undefined') {
+                    $(tagsSelect).select2({
+                        placeholder: "Select tags",
+                        allowClear: true
+                    });
+                }
+            } else {
+                const noTagsOption = document.createElement('option');
+                noTagsOption.value = "";
+                noTagsOption.disabled = true;
+                noTagsOption.textContent = "No tags found. Use 'Manage Tags' to add some!";
+                tagsSelect.appendChild(noTagsOption);
+            }
         } else {
-            tagSelectionArea.innerHTML = '<p class="text-danger">Failed to load tags.</p>';
             console.error('Failed to load tags:', response.data.msg);
+            tagsSelect.innerHTML = '<option value="" disabled>Error loading tags</option>';
         }
     } catch (error) {
-        tagSelectionArea.innerHTML = '<p class="text-danger">Error loading tags.</p>';
         console.error('Error fetching tags:', error);
+        tagsSelect.innerHTML = '<option value="" disabled>Error loading tags</option>';
+        showMessage('Failed to load tags. Please try refreshing.', 'danger');
     }
 }
 
 /**
- * Render tag checkboxes in the selection area
+ * Validate the form before submission
+ * @returns {boolean} Whether the form is valid
  */
-function renderTagCheckboxes(tags) {
-    const tagSelectionArea = document.getElementById('tagSelectionArea');
-    tagSelectionArea.innerHTML = ''; // Clear loading message
-
-    if (!tags || tags.length === 0) {
-        tagSelectionArea.innerHTML = '<p>No tags found. Use "Manage Tags" to add some!</p>';
-        return;
+function validateForm() {
+    if (!currentUserId) {
+        showMessage('Cannot upload: User ID not found. Please log in again.', 'danger');
+        return false;
     }
-
-    tags.forEach(tag => {
-        const div = document.createElement('div');
-        div.className = 'custom-control custom-checkbox mb-1';
-        div.innerHTML = `
-            <input type="checkbox" class="custom-control-input tag-checkbox" id="tag-${tag.id}" value="${tag.id}" name="selectedTags">
-            <label class="custom-control-label" for="tag-${tag.id}">${escapeHTML(tag.name)}</label>
-        `;
-        tagSelectionArea.appendChild(div);
-    });
+    
+    // Validate music file
+    const musicFile = document.getElementById('musicFileInput').files[0];
+    if (!musicFile) {
+        showMessage('Please select a music file to upload', 'danger');
+        return false;
+    }
+    
+    // Validate terms checkbox
+    const termsCheck = document.getElementById('termsCheck');
+    if (!termsCheck.checked) {
+        showMessage('Please confirm that you have the right to share this music', 'danger');
+        return false;
+    }
+    
+    // Validate category
+    const categorySelect = document.getElementById('category');
+    const categoryId = categorySelect.value;
+    if (!categoryId) {
+        showMessage('Please select a category for the song', 'danger');
+        return false;
+    }
+    
+    // Validate song name
+    const songName = document.getElementById('songName').value.trim();
+    if (!songName) {
+        showMessage('Please enter a song name', 'danger');
+        return false;
+    }
+    
+    // Validate singer ID
+    const singerId = document.getElementById('singerId').value.trim();
+    if (!singerId) {
+        showMessage('Please enter a singer ID', 'danger');
+        return false;
+    }
+    
+    return true;
 }
 
 /**
@@ -250,120 +310,95 @@ function initFormSubmit() {
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
         
-        if (!currentUserId) {
-            showMessage('Cannot upload: User ID not found. Please log in again.', 'danger');
+        // Validate form
+        if (!validateForm()) {
             return;
         }
         
-        // --- Basic validations (file, terms, category) ---
-        const musicFile = document.getElementById('musicFileInput').files[0];
-        if (!musicFile) {
-            showMessage('Please select a music file to upload', 'danger');
-            return;
-        }
-        const termsCheck = document.getElementById('termsCheck');
-        if (!termsCheck.checked) {
-            showMessage('Please confirm that you have the right to share this music', 'danger');
-            return;
-        }
-        const categorySelect = document.getElementById('category');
-        const categoryId = categorySelect.value;
-        if (!categoryId) {
-            showMessage('Please select a category for the song', 'danger');
-            return;
-        }
-        // --- End basic validations ---
+        // Show progress bar
+        const progressBar = document.getElementById('uploadProgress');
+        progressBar.style.display = 'block';
+        const progressBarInner = progressBar.querySelector('.progress-bar');
+        progressBarInner.style.width = '0%';
+        progressBarInner.setAttribute('aria-valuenow', 0);
         
-        // Get form data
+        // Disable submit button
+        const submitButton = document.getElementById('uploadButton');
+        submitButton.disabled = true;
+        
+        // Create FormData
         const formData = new FormData();
         
-        // Add user ID
-        formData.append('userId', currentUserId);
-        
-        // Add required fields
-        formData.append('singerId', document.getElementById('singerId').value);
-        formData.append('name', document.getElementById('songName').value);
-        formData.append('introduction', document.getElementById('introduction').value || '');
-        formData.append('lyric', document.getElementById('lyric').value || '');
-        formData.append('categoryIds', categoryId); // Send selected category ID(s)
-        
-        // --- Collect selected tag IDs ---
-        const selectedTagIds = [];
-        document.querySelectorAll('#tagSelectionArea .tag-checkbox:checked').forEach(checkbox => {
-            selectedTagIds.push(checkbox.value);
-        });
-        // Add tag IDs as comma-separated string
-        if (selectedTagIds.length > 0) {
-            formData.append('tagIds', selectedTagIds.join(','));
-        }
-        // Remove the old 'tags' text input field from form data if it exists
-        if (formData.has('tags')) {
-             formData.delete('tags');
-        }
-        // --- End collecting tag IDs ---
-        
         // Add music file
-        formData.append('file', musicFile);
+        const musicFile = document.getElementById('musicFileInput').files[0];
+        if (musicFile) {
+            formData.append('file', musicFile);
+        }
         
-        // Add MV file (if any)
+        // Add MV file
         const mvFile = document.getElementById('mvFileInput').files[0];
         if (mvFile) {
-            formData.append('files', mvFile);
-        } else {
-            formData.append('files', new File([], 'empty.mp4', { type: 'video/mp4' }));
+            formData.append('mvFile', mvFile);
         }
         
-        // UI updates for upload start
-        const progressBar = document.querySelector('#uploadProgress .progress-bar');
-        const progressContainer = document.getElementById('uploadProgress');
-        progressContainer.style.display = 'flex';
-        const uploadButton = document.getElementById('uploadButton');
-        uploadButton.disabled = true;
-        uploadButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Uploading...';
+        // Add song details
+        formData.append('name', document.getElementById('songName').value);
+        formData.append('singerId', document.getElementById('singerId').value);
+        formData.append('categoryId', document.getElementById('category').value);
+        formData.append('userId', currentUserId);
         
-        // API Call
+        const introduction = document.getElementById('introduction').value;
+        if (introduction) {
+            formData.append('introduction', introduction);
+        }
+        
+        const lyric = document.getElementById('lyric').value;
+        if (lyric) {
+            formData.append('lyric', lyric);
+        }
+        
+        // Add selected tags
+        const tagsSelect = document.getElementById('tags');
+        if (tagsSelect) {
+            const selectedTags = Array.from(tagsSelect.selectedOptions).map(option => option.value);
+            if (selectedTags.length > 0) {
+                formData.append('tags', selectedTags.join(','));
+            }
+        }
+        
+        // Upload
         try {
-            const response = await api.post(`/song/add`, formData, {
+            showMessage('Uploading your music, please wait...', 'info');
+            
+            const response = await axios.post(`${API_URL}/song/upload`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 },
-                onUploadProgress: function(progressEvent) {
+                onUploadProgress: progressEvent => {
                     const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-                    progressBar.style.width = percentCompleted + '%';
-                    progressBar.setAttribute('aria-valuenow', percentCompleted);
-                    progressBar.textContent = percentCompleted + '%'; // Show percentage text
+                    progressBarInner.style.width = percentCompleted + '%';
+                    progressBarInner.setAttribute('aria-valuenow', percentCompleted);
                 }
             });
             
-            // Handle response
             if (response.data.code === '200') {
-                showMessage('Music uploaded successfully! It will be reviewed shortly.', 'success');
+                showMessage('Music uploaded successfully!', 'success');
+                // Reset form after successful upload
                 form.reset();
                 document.getElementById('browseFilesBtn').textContent = 'Browse Files';
-                categorySelect.selectedIndex = 0;
-                // Clear selected tags visually (optional, as form.reset() might do it)
-                document.querySelectorAll('#tagSelectionArea .tag-checkbox:checked').forEach(cb => cb.checked = false);
                 setTimeout(() => {
                     window.location.href = 'my-music.html';
                 }, 2000);
             } else {
-                showMessage(`Upload failed: ${response.data.msg || 'Unknown error'}`, 'danger');
+                showMessage(`Upload failed: ${response.data.msg}`, 'danger');
+                console.error('Upload failed:', response.data);
             }
         } catch (error) {
-            console.error('Upload error:', error);
-            let errorMsg = 'An error occurred during upload. Please try again later.';
-            if (error.response && error.response.data && error.response.data.msg) {
-                 errorMsg = `Upload failed: ${error.response.data.msg}`;
-            }
-            showMessage(errorMsg, 'danger');
+            console.error('Error uploading music:', error);
+            showMessage('Error uploading music. Please try again.', 'danger');
         } finally {
-            // UI updates for upload end
-            uploadButton.disabled = false;
-            uploadButton.innerHTML = 'Upload Music';
-            progressContainer.style.display = 'none';
-            progressBar.style.width = '0%';
-            progressBar.setAttribute('aria-valuenow', 0);
-            progressBar.textContent = '';
+            submitButton.disabled = false;
+            progressBar.style.display = 'none';
         }
     });
 }

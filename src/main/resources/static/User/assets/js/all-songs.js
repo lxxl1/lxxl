@@ -4,323 +4,389 @@
  * loading songs, pagination, searching, and filtering.
  */
 
-$(document).ready(function() {
-    // Initialize variables
-    let allSongs = [];
-    let currentPage = 1;
-    const songsPerPage = 12;
-    let filteredSongs = [];
-    let currentSearchTerm = '';
-    let currentCategoryFilter = '';
-    
-    // Initial data loading
-    loadAllSongs();
-    loadCategories();
-    
-    // Set up event listeners
-    setupEventListeners();
-    
-    /**
-     * Load all songs from the API
-     */
-    function loadAllSongs() {
-        $.ajax({
-            url: '/song/allSong',
-            type: 'GET',
-            success: function(response) {
-                if (response && response.length > 0) {
-                    allSongs = response;
-                    filteredSongs = allSongs; // Initial filtered songs is all songs
-                    displaySongs(currentPage);
-                    setupPagination();
-                } else {
-                    // Show no songs message
-                    $('#all-songs-grid').html('<div class="col-12 text-center py-5"><p>No songs available</p></div>');
-                }
-            },
-            error: function(error) {
-                console.error('Error fetching songs', error);
-                $('#all-songs-grid').html('<div class="col-12 text-center py-5"><p>Error loading songs. Please try again later.</p></div>');
-            }
-        });
-    }
-    
-    /**
-     * Load all categories for the filter dropdown
-     */
-    function loadCategories() {
-        // This would typically call an API endpoint for categories
-        // For now, we'll use a placeholder until that endpoint is available
+import { API_URL } from '../../../Common/js/config.js';
+import api from '../../../Common/js/api.js';
+
+// Global variables
+let allSongs = [];
+let approvedSongs = []; // Only songs with status=1
+let allCategories = [];
+let allSingers = [];
+let filteredSongs = [];
+
+// Pagination variables
+let currentPage = 1;
+const songsPerPage = 12;
+
+// Page initialization
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        // Add axios and module support
+        await addScriptDependencies();
         
-        const dummyCategories = [
-            { id: 1, name: 'Pop' },
-            { id: 2, name: 'Rock' },
-            { id: 3, name: 'Classical' },
-            { id: 4, name: 'Jazz' },
-            { id: 5, name: 'Electronic' }
-        ];
+        // Initialize all data
+        await Promise.all([
+            loadAllSongs(),
+            loadAllCategories(),
+            loadAllSingers()
+        ]);
         
-        const $categoryFilter = $('#category-filter');
-        dummyCategories.forEach(category => {
-            $categoryFilter.append(`<option value="${category.id}">${category.name}</option>`);
-        });
-    }
-    
-    /**
-     * Set up event listeners for the page
-     */
-    function setupEventListeners() {
-        // Category filter change
-        $('#category-filter').on('change', function() {
-            currentCategoryFilter = $(this).val();
-            filterSongs();
-        });
-        
-        // Search button click
-        $('#song-list-search-btn').on('click', function() {
-            currentSearchTerm = $('#song-list-search').val().trim().toLowerCase();
-            filterSongs();
-        });
-        
-        // Search input enter key
-        $('#song-list-search').on('keyup', function(e) {
-            if (e.key === 'Enter') {
-                currentSearchTerm = $(this).val().trim().toLowerCase();
-                filterSongs();
-            }
-        });
-    }
-    
-    /**
-     * Filter songs based on current search term and category filter
-     */
-    function filterSongs() {
-        filteredSongs = allSongs.filter(song => {
-            const matchesSearch = !currentSearchTerm || 
-                                 song.name.toLowerCase().includes(currentSearchTerm);
-            
-            const matchesCategory = !currentCategoryFilter || 
-                                   (song.categoryId && song.categoryId.toString() === currentCategoryFilter);
-            
-            return matchesSearch && matchesCategory;
-        });
-        
-        // Reset to first page when filtering
-        currentPage = 1;
-        
-        // Re-display and re-paginate
-        displaySongs(currentPage);
+        // Setup initial view
+        filteredSongs = [...approvedSongs];
+        setupCategoryFilter();
+        renderSongs();
         setupPagination();
+        
+        // Setup event listeners
+        setupEventListeners();
+        
+    } catch (error) {
+        console.error('Initialization error:', error);
+        showMessage('Failed to load songs. Please refresh the page.', 'error');
+    }
+});
+
+// Add necessary script dependencies
+async function addScriptDependencies() {
+    return new Promise((resolve) => {
+        // Check if axios is already loaded
+        if (typeof axios === 'undefined') {
+            const axiosScript = document.createElement('script');
+            axiosScript.src = 'https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js';
+            axiosScript.onload = resolve;
+            document.head.appendChild(axiosScript);
+        } else {
+            resolve();
+        }
+    });
+}
+
+/**
+ * Load all songs from API and filter approved ones
+ */
+async function loadAllSongs() {
+    try {
+        const response = await api.get('/song/allSong');
+        if (response.data && response.data.code === '200' && response.data.data) {
+            allSongs = response.data.data;
+            // Filter only approved songs (status=1)
+            approvedSongs = allSongs.filter(song => song.status === 1);
+            return true;
+        }
+        return false;
+    } catch (error) {
+        console.error('Error loading songs:', error);
+        return false;
+    }
+}
+
+/**
+ * Load all categories from API
+ */
+async function loadAllCategories() {
+    try {
+        const response = await api.get('/category/selectAll');
+        if (response.data && response.data.code === '200' && response.data.data) {
+            allCategories = response.data.data;
+            return true;
+        }
+        return false;
+    } catch (error) {
+        console.error('Error loading categories:', error);
+        return false;
+    }
+}
+
+/**
+ * Load all singers from API
+ */
+async function loadAllSingers() {
+    try {
+        const response = await api.get('/singer/allSinger');
+        if (response.data && response.data.code === '200' && response.data.data) {
+            allSingers = response.data.data;
+            return true;
+        }
+        return false;
+    } catch (error) {
+        console.error('Error loading singers:', error);
+        return false;
+    }
+}
+
+/**
+ * Setup category filter dropdown
+ */
+function setupCategoryFilter() {
+    const categoryFilter = document.getElementById('category-filter');
+    if (!categoryFilter) return;
+    
+    let options = '<option value="">All Categories</option>';
+    
+    allCategories.forEach(category => {
+        options += `<option value="${category.id}">${category.name}</option>`;
+    });
+    
+    categoryFilter.innerHTML = options;
+}
+
+/**
+ * Render songs with pagination
+ */
+function renderSongs() {
+    const songsGrid = document.getElementById('all-songs-grid');
+    if (!songsGrid) return;
+    
+    // Calculate pagination
+    const startIndex = (currentPage - 1) * songsPerPage;
+    const endIndex = startIndex + songsPerPage;
+    const paginatedSongs = filteredSongs.slice(startIndex, endIndex);
+    
+    if (paginatedSongs.length === 0) {
+        songsGrid.innerHTML = '<div class="col-12 text-center py-5"><p>No songs found matching your criteria.</p></div>';
+        return;
     }
     
-    /**
-     * Display songs for the current page
-     */
-    function displaySongs(page) {
-        const startIndex = (page - 1) * songsPerPage;
-        const endIndex = startIndex + songsPerPage;
-        const songsToDisplay = filteredSongs.slice(startIndex, endIndex);
+    let html = '';
+    paginatedSongs.forEach(song => {
+        const singerName = allSingers.find(singer => singer.id === song.singerId)?.name || 'Unknown Artist';
         
-        const $grid = $('#all-songs-grid');
-        $grid.empty();
-        
-        if (songsToDisplay.length === 0) {
-            $grid.html('<div class="col-12 text-center py-5"><p>No songs match your criteria</p></div>');
-            return;
-        }
-        
-        songsToDisplay.forEach(song => {
-            const songCard = createSongCard(song);
-            $grid.append(songCard);
-        });
-        
-        // Re-initialize feather icons
-        if (typeof feather !== 'undefined') {
-            feather.replace();
-        }
-        
-        // Attach event handlers
-        $('.play-song-btn').on('click', function() {
-            const songId = $(this).data('song-id');
-            playSong(songId);
-        });
-        
-        $('.view-details-btn').on('click', function() {
-            const songId = $(this).data('song-id');
-            viewSongDetails(songId);
-        });
-    }
-    
-    /**
-     * Create HTML for a song card
-     */
-    function createSongCard(song) {
-        return `
-            <div class="col-sm-6 col-md-4 col-lg-3 mb-4">
-                <div class="card h-100">
-                    <div class="position-relative">
-                        <img src="${song.pic || 'assets/media/image/default-cover.jpg'}" 
-                             class="card-img-top" alt="${song.name}" 
-                             style="height: 180px; object-fit: cover;">
-                        <button class="btn btn-primary rounded-circle position-absolute play-song-btn" 
-                                style="bottom: -20px; right: 20px; width: 40px; height: 40px; padding: 0;"
-                                data-song-id="${song.id}">
-                            <i data-feather="play" style="width: 18px; height: 18px;"></i>
-                        </button>
-                    </div>
-                    <div class="card-body pt-4">
-                        <h6 class="card-title text-truncate mb-1">${song.name}</h6>
-                        <p class="card-text text-muted small mb-2 singer-name" data-singer-id="${song.singerId}">Loading...</p>
-                        <p class="card-text small text-truncate">${song.introduction || 'No description available'}</p>
-                        <div class="d-flex justify-content-between align-items-center mt-3">
-                            <span class="badge badge-light">
-                                <i data-feather="headphones" class="mr-1" style="width: 14px; height: 14px;"></i>
-                                ${song.playCount || 0}
-                            </span>
-                            <button class="btn btn-sm btn-outline-info view-details-btn" data-song-id="${song.id}">
-                                Details
-                            </button>
+        html += `
+            <div class="col-md-3 col-sm-6 mb-4">
+                <div class="card">
+                    <img src="${song.pic || 'assets/media/image/default-album.png'}" class="card-img-top" alt="${song.name}">
+                    <div class="card-body">
+                        <h6 class="card-title mb-1">${song.name}</h6>
+                        <p class="small text-muted mb-2">${singerName}</p>
+                        <div class="d-flex justify-content-between">
+                            <small class="text-muted">
+                                <i data-feather="play"></i> ${song.playCount || 0}
+                            </small>
+                            <small class="text-muted">
+                                <i data-feather="heart"></i> ${song.likeCount || 0}
+                            </small>
                         </div>
+                        <button class="btn btn-primary btn-sm btn-block mt-2 play-song-btn" data-song-id="${song.id}">
+                            <i data-feather="play"></i> Play
+                        </button>
                     </div>
                 </div>
             </div>
         `;
+    });
+    
+    songsGrid.innerHTML = html;
+    
+    // Initialize feather icons
+    if (typeof feather !== 'undefined') {
+        feather.replace();
     }
     
-    /**
-     * Set up pagination based on filtered songs
-     */
-    function setupPagination() {
-        const totalPages = Math.ceil(filteredSongs.length / songsPerPage);
-        const $pagination = $('#songs-pagination');
-        $pagination.empty();
-        
-        if (totalPages <= 1) {
-            return; // No pagination needed
-        }
-        
-        // Previous button
-        $pagination.append(`
-            <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-                <a class="page-link" href="#" data-page="${currentPage - 1}" aria-label="Previous">
-                    <span aria-hidden="true">&laquo;</span>
-                </a>
+    // Add event listeners to play buttons
+    document.querySelectorAll('.play-song-btn').forEach(button => {
+        button.addEventListener('click', (event) => {
+            const songId = event.currentTarget.dataset.songId;
+            playSong(songId);
+        });
+    });
+}
+
+/**
+ * Setup pagination
+ */
+function setupPagination() {
+    const pagination = document.getElementById('songs-pagination');
+    if (!pagination) return;
+    
+    const totalPages = Math.ceil(filteredSongs.length / songsPerPage);
+    
+    if (totalPages <= 1) {
+        pagination.innerHTML = '';
+        return;
+    }
+    
+    let html = '';
+    
+    // Previous button
+    html += `
+        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+            <a class="page-link" href="#" data-page="${currentPage - 1}" aria-label="Previous">
+                <span aria-hidden="true">&laquo;</span>
+            </a>
+        </li>
+    `;
+    
+    // Page numbers
+    for (let i = 1; i <= totalPages; i++) {
+        html += `
+            <li class="page-item ${i === currentPage ? 'active' : ''}">
+                <a class="page-link" href="#" data-page="${i}">${i}</a>
             </li>
-        `);
-        
-        // Page numbers
-        for (let i = 1; i <= totalPages; i++) {
-            $pagination.append(`
-                <li class="page-item ${i === currentPage ? 'active' : ''}">
-                    <a class="page-link" href="#" data-page="${i}">${i}</a>
-                </li>
-            `);
-        }
-        
-        // Next button
-        $pagination.append(`
-            <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-                <a class="page-link" href="#" data-page="${currentPage + 1}" aria-label="Next">
-                    <span aria-hidden="true">&raquo;</span>
-                </a>
-            </li>
-        `);
-        
-        // Add click event to pagination links
-        $pagination.find('.page-link').on('click', function(e) {
-            e.preventDefault();
-            if ($(this).parent().hasClass('disabled')) {
-                return;
+        `;
+    }
+    
+    // Next button
+    html += `
+        <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+            <a class="page-link" href="#" data-page="${currentPage + 1}" aria-label="Next">
+                <span aria-hidden="true">&raquo;</span>
+            </a>
+        </li>
+    `;
+    
+    pagination.innerHTML = html;
+    
+    // Add event listeners to pagination links
+    pagination.querySelectorAll('.page-link').forEach(link => {
+        link.addEventListener('click', (event) => {
+            event.preventDefault();
+            const page = parseInt(event.target.closest('.page-link').dataset.page);
+            if (page >= 1 && page <= totalPages) {
+                currentPage = page;
+                renderSongs();
+                setupPagination();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             }
-            
-            const page = parseInt($(this).data('page'));
-            currentPage = page;
-            displaySongs(currentPage);
-            
-            // Scroll to top of grid
-            $('html, body').animate({
-                scrollTop: $('#all-songs-grid').offset().top - 100
-            }, 200);
-            
-            // Update active state
-            $pagination.find('.page-item').removeClass('active');
-            $pagination.find(`.page-item:has(a[data-page="${currentPage}"])`).addClass('active');
-            
-            // Update disabled state for prev/next
-            $pagination.find('.page-item:first-child').toggleClass('disabled', currentPage === 1);
-            $pagination.find('.page-item:last-child').toggleClass('disabled', currentPage === totalPages);
+        });
+    });
+}
+
+/**
+ * Setup event listeners
+ */
+function setupEventListeners() {
+    // Category filter
+    const categoryFilter = document.getElementById('category-filter');
+    if (categoryFilter) {
+        categoryFilter.addEventListener('change', filterSongs);
+    }
+    
+    // Search input
+    const searchInput = document.getElementById('song-list-search');
+    const searchButton = document.getElementById('song-list-search-btn');
+    
+    if (searchInput && searchButton) {
+        searchButton.addEventListener('click', filterSongs);
+        searchInput.addEventListener('keyup', event => {
+            if (event.key === 'Enter') {
+                filterSongs();
+            }
         });
     }
-});
+}
+
+/**
+ * Filter songs based on search and category
+ */
+async function filterSongs() {
+    const searchInput = document.getElementById('song-list-search');
+    const categoryFilter = document.getElementById('category-filter');
+    
+    const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
+    const categoryId = categoryFilter ? categoryFilter.value : '';
+    
+    // Filter by search term
+    let searchResults = [...approvedSongs];
+    
+    if (searchTerm) {
+        searchResults = searchResults.filter(song => {
+            const songName = song.name ? song.name.toLowerCase() : '';
+            const singerName = song.singerId ? 
+                (allSingers.find(singer => singer.id === song.singerId)?.name || '').toLowerCase() : '';
+            
+            return songName.includes(searchTerm) || singerName.includes(searchTerm);
+        });
+    }
+    
+    // Filter by category
+    if (categoryId) {
+        try {
+            const response = await api.get(`/song/categories?songId=${categoryId}`);
+            if (response.data && response.data.code === '200' && response.data.data) {
+                const songIds = response.data.data;
+                searchResults = searchResults.filter(song => songIds.includes(song.id));
+            }
+        } catch (error) {
+            console.error('Error fetching songs by category:', error);
+        }
+    }
+    
+    // Update filtered songs
+    filteredSongs = searchResults;
+    
+    // Reset to first page
+    currentPage = 1;
+    
+    // Render with new filters
+    renderSongs();
+    setupPagination();
+}
+
+/**
+ * Play a song
+ * @param {string} songId - ID of the song to play
+ */
+function playSong(songId) {
+    const song = approvedSongs.find(s => s.id == songId);
+    if (!song) return;
+    
+    const singerName = allSingers.find(singer => singer.id === song.singerId)?.name || 'Unknown Artist';
+    
+    // Update the modal content
+    document.getElementById('playing-song-name').textContent = song.name;
+    document.getElementById('playing-song-artist').textContent = singerName;
+    document.getElementById('playing-song-cover').src = song.pic || 'assets/media/image/default-cover.jpg';
+    document.getElementById('playing-song-lyrics').innerHTML = song.lyric || 'No lyrics available';
+    
+    // Set the audio source
+    const audioSource = document.getElementById('audio-source');
+    const audioPlayer = document.getElementById('audio-player');
+    
+    if (audioSource && audioPlayer) {
+        audioSource.src = song.url;
+        audioPlayer.load();
+        audioPlayer.play();
+    }
+    
+    // Show the modal
+    $('#songPlayerModal').modal('show');
+    
+    // Increment play count
+    incrementPlayCount(songId);
+}
+
+/**
+ * Increment the play count for a song
+ * @param {string} songId - ID of the song
+ */
+async function incrementPlayCount(songId) {
+    try {
+        await api.get(`/song/addNums?songId=${songId}`);
+        console.log('Play count incremented for song ID:', songId);
+    } catch (error) {
+        console.error('Error incrementing play count:', error);
+    }
+}
+
+/**
+ * Show a message to the user
+ * @param {string} message - Message to display
+ * @param {string} type - Message type (success, error, warning, info)
+ */
+function showMessage(message, type = 'info') {
+    // Check if toastr library is available
+    if (typeof toastr !== 'undefined') {
+        toastr[type](message);
+        return;
+    }
+    
+    // If toastr is not available, use alert
+    alert(message);
+}
 
 /**
  * View song details page
  */
 function viewSongDetails(songId) {
     window.location.href = `song-details.html?id=${songId}`;
-}
-
-/**
- * Play a song by ID - leverages the music-player.js functionality
- */
-function playSong(songId) {
-    // Get the song details and play it
-    $.ajax({
-        url: '/song/detail',
-        type: 'GET',
-        data: { songId: songId },
-        success: function(song) {
-            if (song) {
-                // Update play count
-                $.ajax({
-                    url: '/song/addNums',
-                    type: 'GET',
-                    data: { songId: songId }
-                });
-                
-                // Get singer info
-                $.ajax({
-                    url: '/singer/detail',
-                    type: 'GET',
-                    data: { id: song.singerId },
-                    success: function(singer) {
-                        openPlayerModal(song, singer ? singer.name : 'Unknown Artist');
-                    },
-                    error: function() {
-                        openPlayerModal(song, 'Unknown Artist');
-                    }
-                });
-            }
-        },
-        error: function(error) {
-            console.error('Error fetching song details', error);
-            alert('Could not load song. Please try again later.');
-        }
-    });
-}
-
-/**
- * Open the player modal with song details
- */
-function openPlayerModal(song, singerName) {
-    // Update modal content
-    $('#playing-song-cover').attr('src', song.pic || 'assets/media/image/default-cover.jpg');
-    $('#playing-song-name').text(song.name);
-    $('#playing-song-artist').text(singerName);
-    $('#audio-source').attr('src', song.url);
-    
-    // Update lyrics
-    if (song.lyric && song.lyric.trim()) {
-        $('#playing-song-lyrics').html(song.lyric.replace(/\n/g, '<br>'));
-    } else {
-        $('#playing-song-lyrics').text('No lyrics available');
-    }
-    
-    // Load and play the audio
-    const audioPlayer = document.getElementById('audio-player');
-    audioPlayer.load();
-    audioPlayer.play();
-    
-    // Show the modal
-    $('#songPlayerModal').modal('show');
 } 

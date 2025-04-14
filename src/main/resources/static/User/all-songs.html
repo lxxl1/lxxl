@@ -151,13 +151,13 @@
                         </a>
                     </li>
                     <li>
-                        <a href="#" data-toggle="tooltip" data-placement="right" title="Upload" data-nav-target="#upload">
+                        <a href="#" data-toggle="tooltip" data-placement="right" title="Upload Music" data-nav-target="#upload">
                             <i data-feather="upload"></i>
                         </a>
                     </li>
                     <li>
-                        <a href="#" data-toggle="tooltip" data-placement="right" title="Explore" data-nav-target="#explore">
-                            <i data-feather="compass"></i>
+                        <a href="#" data-toggle="tooltip" data-placement="right" title="Tags" data-nav-target="#tags">
+                            <i data-feather="tag"></i>
                         </a>
                     </li>
                     <li>
@@ -180,11 +180,20 @@
         </div>
         <div class="navigation-menu-body">
             <div class="navigation-menu-group">
-                <div id="dashboards">
+                <div id="dashboards" class="open">
                     <ul>
                         <li class="navigation-divider">Dashboard</li>
                         <li>
                             <a href="index.html">Overview</a>
+                        </li>
+                        <li>
+                            <a class="active" href="all-songs.html">All Songs</a>
+                        </li>
+                        <li>
+                            <a href="top-songs.html">Top Songs</a>
+                        </li>
+                        <li>
+                            <a href="search-results.html">Search</a>
                         </li>
                     </ul>
                 </div>
@@ -206,21 +215,10 @@
                     <ul>
                         <li class="navigation-divider">Categories</li>
                         <li>
-                            <a href="categories.html">Browse Categories</a>
-                        </li>
-                    </ul>
-                </div>
-                <div id="explore" class="open">
-                    <ul>
-                        <li class="navigation-divider">Explore</li>
-                        <li>
-                            <a class="active" href="all-songs.html">All Songs</a>
+                            <a href="categories.html">Manage Categories</a>
                         </li>
                         <li>
-                            <a href="top-songs.html">Top Songs</a>
-                        </li>
-                        <li>
-                            <a href="singers.html">Artists</a>
+                            <a href="category-songs.html">Browse by Category</a>
                         </li>
                     </ul>
                 </div>
@@ -230,8 +228,13 @@
                         <li>
                             <a href="upload-music.html">Upload Music</a>
                         </li>
+                    </ul>
+                </div>
+                <div id="tags">
+                    <ul>
+                        <li class="navigation-divider">Tags</li>
                         <li>
-                            <a href="upload-history.html">Upload History</a>
+                            <a href="tag-management.html">Manage Tags</a>
                         </li>
                     </ul>
                 </div>
@@ -255,9 +258,6 @@
             <ol class="breadcrumb">
                 <li class="breadcrumb-item">
                     <a href="index.html">Home</a>
-                </li>
-                <li class="breadcrumb-item">
-                    <a href="#">Explore</a>
                 </li>
                 <li class="breadcrumb-item active" aria-current="page">All Songs</li>
             </ol>
@@ -374,12 +374,22 @@
 <!-- DataTable -->
 <script src="vendors/dataTable/datatables.min.js"></script>
 
+<!-- Axios library -->
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
 <!-- App scripts -->
 <script src="assets/js/app.js"></script>
 
+<!-- Import config and API utils -->
+<script src="../Common/js/config.js" type="module"></script>
+<script src="../Common/js/api.js" type="module"></script>
+
 <!-- Custom scripts for song management -->
 <script src="assets/js/music-player.js"></script>
-<script src="assets/js/all-songs.js"></script>
+<script src="assets/js/all-songs.js" type="module"></script>
+
+<!-- Auth check -->
+<script src="assets/js/auth-check.js" type="module"></script>
 
 </body>
 </html> 

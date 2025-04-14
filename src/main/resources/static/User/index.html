@@ -136,7 +136,7 @@
             <div class="flex-grow-1">
                 <ul>
                     <li>
-                        <a href="#" data-toggle="tooltip" data-placement="right" title="Dashboard" data-nav-target="#dashboards">
+                        <a class="active" href="#" data-toggle="tooltip" data-placement="right" title="Dashboard" data-nav-target="#dashboards">
                             <i data-feather="home"></i>
                         </a>
                     </li>
@@ -151,13 +151,13 @@
                         </a>
                     </li>
                     <li>
-                        <a href="#" data-toggle="tooltip" data-placement="right" title="Upload" data-nav-target="#upload">
+                        <a href="#" data-toggle="tooltip" data-placement="right" title="Upload Music" data-nav-target="#upload">
                             <i data-feather="upload"></i>
                         </a>
                     </li>
                     <li>
-                        <a href="#" data-toggle="tooltip" data-placement="right" title="Explore" data-nav-target="#explore">
-                            <i data-feather="compass"></i>
+                        <a href="#" data-toggle="tooltip" data-placement="right" title="Tags" data-nav-target="#tags">
+                            <i data-feather="tag"></i>
                         </a>
                     </li>
                     <li>
@@ -180,59 +180,40 @@
         </div>
         <div class="navigation-menu-body">
             <div class="navigation-menu-group">
-                <div class="open" id="dashboards">
+                <div id="dashboards" class="open">
                     <ul>
                         <li class="navigation-divider">Dashboard</li>
-                        <li>
-                            <a class="active" href="index.html">Overview</a>
-                        </li>
+                        <li><a class="active" href="index.html">Overview</a></li>
+                        <li><a href="all-songs.html">All Songs</a></li>
+                        <li><a href="top-songs.html">Top Songs</a></li>
+                        <li><a href="search-results.html">Search</a></li>
                     </ul>
                 </div>
                 <div id="my-music">
                     <ul>
                         <li class="navigation-divider">My Music</li>
-                        <li>
-                            <a href="my-music.html">All Songs</a>
-                        </li>
-                        <li>
-                            <a href="playlists.html">Playlists</a>
-                        </li>
-                        <li>
-                            <a href="favorites.html">Favorites</a>
-                        </li>
+                        <li><a href="my-music.html">All Songs</a></li>
+                        <li><a href="playlists.html">Playlists</a></li>
+                        <li><a href="favorites.html">Favorites</a></li>
                     </ul>
                 </div>
                 <div id="categories">
                     <ul>
                         <li class="navigation-divider">Categories</li>
-                        <li>
-                            <a href="categories.html">Browse Categories</a>
-                        </li>
-                    </ul>
-                </div>
-                <div id="explore">
-                    <ul>
-                        <li class="navigation-divider">Explore</li>
-                        <li>
-                            <a href="all-songs.html">All Songs</a>
-                        </li>
-                        <li>
-                            <a href="top-songs.html">Top Songs</a>
-                        </li>
-                        <li>
-                            <a href="singers.html">Artists</a>
-                        </li>
+                        <li><a href="categories.html">Manage Categories</a></li>
+                        <li><a href="category-songs.html">Browse by Category</a></li>
                     </ul>
                 </div>
                 <div id="upload">
                     <ul>
                         <li class="navigation-divider">Upload</li>
-                        <li>
-                            <a href="upload-music.html">Upload Music</a>
-                        </li>
-                        <li>
-                            <a href="upload-history.html">Upload History</a>
-                        </li>
+                        <li><a href="upload-music.html">Upload Music</a></li>
+                    </ul>
+                </div>
+                <div id="tags">
+                    <ul>
+                        <li class="navigation-divider">Tags</li>
+                        <li><a href="tag-management.html">Manage Tags</a></li>
                     </ul>
                 </div>
                 <div id="settings">
@@ -298,7 +279,7 @@
                                 <i data-feather="trending-up"></i>
                             </span>
                         </figure>
-                        <h2 class="font-weight-bold mb-3">10</h2>
+                        <h2 class="font-weight-bold mb-3" id="top-songs-count">5</h2>
                         <h5 class="mb-0">Top Songs</h5>
                     </div>
                 </div>
@@ -311,7 +292,7 @@
                                 <i data-feather="folder"></i>
                             </span>
                         </figure>
-                        <h2 class="font-weight-bold mb-3">8</h2>
+                        <h2 class="font-weight-bold mb-3">0</h2>
                         <h5 class="mb-0">Categories</h5>
                     </div>
                 </div>
@@ -324,7 +305,7 @@
                                 <i data-feather="users"></i>
                             </span>
                         </figure>
-                        <h2 class="font-weight-bold mb-3">12</h2>
+                        <h2 class="font-weight-bold mb-3">0</h2>
                         <h5 class="mb-0">Artists</h5>
                     </div>
                 </div>
@@ -351,6 +332,9 @@
                         </thead>
                         <tbody>
                             <!-- Will be populated by AJAX -->
+                            <tr>
+                                <td colspan="5" class="text-center">Loading songs...</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -366,6 +350,9 @@
                 </div>
                 <div class="row" id="latest-songs-container">
                     <!-- Will be populated by AJAX -->
+                    <div class="col-12 text-center">
+                        <p>Loading latest songs...</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -423,7 +410,7 @@
 </div>
 <!-- end::main -->
 
-<!-- Plugin scripts -->
+<!-- Bundle scripts -->
 <script src="vendors/bundle.js"></script>
 
 <!-- Slick -->
@@ -442,11 +429,21 @@
 <!-- DataTable -->
 <script src="vendors/dataTable/datatables.min.js"></script>
 
+<!-- Axios library -->
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
 <!-- App scripts -->
 <script src="assets/js/app.js"></script>
 
 <!-- Custom scripts for song management -->
 <script src="assets/js/music-player.js"></script>
+
+<!-- Import config and API utils -->
+<script src="../Common/js/config.js" type="module"></script>
+<script src="../Common/js/api.js" type="module"></script>
+
+<!-- Index page script -->
+<script src="assets/js/index.js" type="module"></script>
 
 <!-- 添加权限检查 -->
 <script type="module" src="assets/js/auth-check.js"></script>

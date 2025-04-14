@@ -3,46 +3,256 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Manage Tags</title>
-    <!-- Add necessary CSS links (e.g., Bootstrap, your app.css) -->
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Manage Tags - Music Resource Management</title>
+
+    <!-- Favicon -->
+    <link rel="shortcut icon" href="assets/media/image/favicon.png"/>
+
+    <!-- Plugin styles -->
     <link rel="stylesheet" href="vendors/bundle.css" type="text/css">
+
+    <!-- App styles -->
     <link rel="stylesheet" href="assets/css/app.css" type="text/css">
-    <style>
-        .tag-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; padding: 5px; border: 1px solid #eee; border-radius: 4px; }
-        .tag-name { flex-grow: 1; margin-right: 10px; }
+     <style>
+        /* Style for tag items if needed */
+        .tag-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; padding: 8px 12px; border: 1px solid #e0e0e0; border-radius: 4px; background-color: #f9f9f9; }
+        .tag-name { flex-grow: 1; margin-right: 10px; font-weight: 500; }
+        /* Add styles for delete/edit buttons if you add them */
     </style>
 </head>
 <body>
-    <div class="container mt-5">
-        <h2>Manage Your Tags</h2>
-        
-        <!-- Add New Tag Form -->
-        <div class="card mb-4">
-            <div class="card-body">
-                <h5 class="card-title">Create New Tag</h5>
-                <form id="addTagForm" class="d-flex">
-                    <input type="text" class="form-control mr-2" id="newTagName" placeholder="Enter new tag name" required>
-                    <button type="submit" class="btn btn-primary">Add Tag</button>
-                </form>
-                <div id="addTagMessage" class="mt-2"></div>
+    <!-- begin::preloader-->
+    <div class="preloader">
+        <div class="preloader-icon"></div>
+    </div>
+    <!-- end::preloader -->
+
+    <!-- begin::header -->
+    <div class="header">
+        <div class="header-left">
+            <div class="navigation-toggler">
+                <a href="#" data-action="navigation-toggler">
+                    <i data-feather="menu"></i>
+                </a>
+            </div>
+            <div class="header-logo">
+                <a href="index.html">
+                    <img class="logo" src="assets/media/image/music-logo.png" alt="Music Resource Management">
+                    <img class="logo-light" src="assets/media/image/music-logo-light.png" alt="Music Resource Management">
+                </a>
             </div>
         </div>
-        
-        <!-- Existing Tags List -->
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Your Tags</h5>
-                <div id="tagList" class="list-group">
-                    <p>Loading tags...</p>
-                    <!-- Tags will be loaded here by JavaScript -->
+        <!-- ... other header content (assuming it's the same) ... -->
+         <div class="header-right">
+            <ul class="navbar-nav">
+                <!-- Search -->
+                <li class="nav-item dropdown">
+                    <a href="#" class="nav-link" data-toggle="dropdown">
+                        <i data-feather="search"></i>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right dropdown-menu-big">
+                        <div class="bg-light px-3 py-3">
+                            <form class="form-inline">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" placeholder="Search" aria-label="Search">
+                                    <div class="input-group-append">
+                                        <button class="btn btn-outline-light" type="button">
+                                            <i data-feather="search"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </li>
+                <!-- Notifications -->
+                <li class="nav-item dropdown">
+                    <a href="#" class="nav-link nav-link-notify" data-toggle="dropdown">
+                        <i data-feather="bell"></i>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right dropdown-menu-big">
+                        <!-- Notification content here -->
+                    </div>
+                </li>
+                <!-- Profile -->
+                <li class="nav-item dropdown">
+                    <a href="#" class="nav-link" data-toggle="dropdown">
+                        <figure class="avatar avatar-sm">
+                            <img src="assets/media/image/user/man_avatar3.jpg" class="rounded-circle" alt="avatar">
+                        </figure>
+                        <span class="ml-2 d-sm-inline d-none" id="profileUserName">User</span> <!-- Placeholder for username -->
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right">
+                        <a href="settings.html" class="dropdown-item">Profile</a>
+                        <a href="#" class="dropdown-item" id="logoutButton">Sign Out</a>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+    <!-- end::header -->
+
+    <!-- begin::main -->
+    <div id="main">
+        <!-- begin::navigation -->
+        <div class="navigation">
+            <div class="navigation-menu-tab">
+                <div class="flex-grow-1">
+                    <ul>
+                        <li>
+                            <a href="#" data-toggle="tooltip" data-placement="right" title="Dashboard" data-nav-target="#dashboards">
+                                <i data-feather="home"></i>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" data-toggle="tooltip" data-placement="right" title="My Music" data-nav-target="#my-music">
+                                <i data-feather="music"></i>
+                            </a>
+                        </li>
+                        <li>
+                             <a href="#" data-toggle="tooltip" data-placement="right" title="Categories" data-nav-target="#categories">
+                                <i data-feather="folder"></i>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" data-toggle="tooltip" data-placement="right" title="Upload Music" data-nav-target="#upload">
+                                <i data-feather="upload"></i>
+                            </a>
+                        </li>
+                         <li>
+                            <!-- Changed: Added Tags icon and made it active -->
+                            <a class="active" href="#" data-toggle="tooltip" data-placement="right" title="Tags" data-nav-target="#tags">
+                                <i data-feather="tag"></i> <!-- Using tag icon -->
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" data-toggle="tooltip" data-placement="right" title="Settings" data-nav-target="#settings">
+                                <i data-feather="settings"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div>
+                    <ul>
+                        <li>
+                            <a href="../login.html" data-toggle="tooltip" data-placement="right" title="Logout">
+                                <i data-feather="log-out"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Secondary Navigation Panel -->
+            <div class="navigation-menu-body">
+                <div class="navigation-menu-group">
+                    <div id="dashboards">
+                        <ul>
+                            <li class="navigation-divider">Dashboard</li>
+                            <li><a href="index.html">Overview</a></li>
+                        </ul>
+                    </div>
+                    <div id="my-music">
+                        <ul>
+                            <li class="navigation-divider">My Music</li>
+                            <li><a href="my-music.html">All Songs</a></li>
+                            <li><a href="playlists.html">Playlists</a></li>
+                            <li><a href="favorites.html">Favorites</a></li>
+                        </ul>
+                    </div>
+                    <div id="categories">
+                        <ul>
+                            <li class="navigation-divider">Categories</li>
+                            <li><a href="categories.html">Manage Categories</a></li>
+                             <li><a href="category-songs.html">Browse by Category</a></li>
+                        </ul>
+                    </div>
+                    <div id="upload"> <!-- Keep upload section, but not active -->
+                        <ul>
+                            <li class="navigation-divider">Upload</li>
+                            <li><a href="upload-music.html">Upload Music</a></li>
+                            <!-- Removed Upload History -->
+                        </ul>
+                    </div>
+                    <!-- Added Tags Section -->
+                     <div id="tags" class="open"> 
+                        <ul>
+                            <li class="navigation-divider">Tags</li>
+                            <li><a class="active" href="tag-management.html">Manage Tags</a></li>
+                        </ul>
+                    </div>
+                    <div id="settings">
+                        <ul>
+                            <li class="navigation-divider">Settings</li>
+                            <li><a href="settings.html">Profile</a></li>
+                            <li><a href="account-settings.html">Account Settings</a></li>
+                            <li><a href="notification-settings.html">Notifications</a></li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>
-        
-        <div class="mt-4">
-            <a href="upload-music.html" class="btn btn-secondary">Back to Upload</a>
+        <!-- end::navigation -->
+
+        <!-- begin::main-content -->
+        <div class="main-content">
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Manage Tags</li> <!-- Changed Breadcrumb -->
+                </ol>
+            </nav>
+
+            <!-- Tag Management Content Area -->
+            <div class="row">
+                <div class="col-md-8 offset-md-2"> <!-- Centered content -->
+                
+                    <!-- Add New Tag Form -->
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">Create New Tag</h5>
+                            <form id="addTagForm" class="d-flex">
+                                <input type="text" class="form-control mr-2 flex-grow-1" id="newTagName" placeholder="Enter new tag name" required>
+                                <button type="submit" class="btn btn-primary ml-2">Add Tag</button>
+                            </form>
+                            <div id="addTagMessage" class="mt-2"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Existing Tags List -->
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Your Tags</h5>
+                            <div id="tagList" class="list-group">
+                                <p>Loading tags...</p>
+                                <!-- Tags will be loaded here by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 text-center"> <!-- Centered button -->
+                        <a href="upload-music.html" class="btn btn-secondary">Back to Upload</a>
+                    </div>
+                
+                </div> 
+            </div>
+            <!-- End Tag Management Content Area -->
+
         </div>
+        <!-- end::main-content -->
+        
     </div>
+    <!-- end::main -->
+
+    <!-- begin::footer -->
+    <footer>
+        <div class="container-fluid">
+            <div>© Music Resource Management - <a href="" target="_blank">MusicWebsite</a></div>
+        </div>
+    </footer>
+    <!-- end::footer -->
 
     <!-- Plugin scripts -->
     <script src="vendors/bundle.js"></script>
@@ -50,7 +260,12 @@
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <!-- Common API Module -->
     <script type="module" src="../../../Common/js/api.js"></script> 
+    <!-- App scripts (needed for layout interactions like toggler) -->
+    <script src="assets/js/app.js"></script> 
     <!-- Tag Management functionality -->
-    <script type="module" src="assets/js/tag-management.js"></script>
+    <script type="module" src="assets/js/tag-management.js"></script> 
+    <!-- Auth Check (if needed on this page) -->
+    <script type="module" src="assets/js/auth-check.js"></script> 
+
 </body>
 </html> 
