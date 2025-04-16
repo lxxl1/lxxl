@@ -126,7 +126,7 @@
                         <ul>
                             <li class="navigation-divider">Categories</li>
                             <li><a href="categories.html">Manage Categories</a></li>
-                             <li><a href="category-songs.html">Browse by Category</a></li>
+                             
                         </ul>
                     </div>
                     <div id="upload" class="open">
@@ -218,17 +218,13 @@
 
                                 <div class="form-group mt-3">
                                     <label for="tags">Tags (Optional)</label>
-                                    <select class="form-control" id="tags" name="tags" multiple>
-                                        <option value="">Loading tags...</option>
-                                        <!-- Tags will be loaded by JavaScript -->
-                                    </select>
+                                    <div class="select2-container w-100">
+                                        <select class="form-control select2-tags" id="tags" name="tags" multiple>
+                                            <option value="">Loading tags...</option>
+                                            <!-- Tags will be loaded by JavaScript -->
+                                        </select>
+                                    </div>
                                     <small class="form-text text-muted">You can select multiple tags. Hold Ctrl (or Cmd on Mac) to select multiple items.</small>
-                                </div>
-
-                                <div class="form-group mt-3">
-                                    <label for="mvFileInput">MV Video (Optional)</label>
-                                    <input type="file" class="form-control" id="mvFileInput" accept="video/*">
-                                    <small class="form-text text-muted">Supported video formats: MP4, AVI, MOV (Max 500MB)</small>
                                 </div>
 
                                 <div class="custom-control custom-checkbox mt-3 mb-3">

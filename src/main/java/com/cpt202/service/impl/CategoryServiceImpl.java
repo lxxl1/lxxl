@@ -52,4 +52,9 @@ public class CategoryServiceImpl implements CategoryService {
         List<Category> list = categoryMapper.selectAll(); // 这里可以根据条件查询
         return new PageInfo<>(list);
     }
+    
+    @Override
+    public List<Category> selectCategoriesByUserId(Integer userId) {
+        return categoryMapper.selectCategoriesByUserId(userId);
+    }
 }

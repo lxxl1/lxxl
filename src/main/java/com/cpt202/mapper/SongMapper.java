@@ -94,6 +94,11 @@ public interface SongMapper {
     @Update("UPDATE song SET status = #{status} WHERE id = #{songId}")
     int updateSongAuditStatus(@Param("songId") Integer songId,
                             @Param("status") Integer status);
+
+    /**
+     * 根据用户ID和类别ID查询歌曲列表
+     */
+    List<Song> selectUserSongsByCategory(@Param("userId") Integer userId, @Param("categoryId") Integer categoryId);
 }
 
 

@@ -110,10 +110,14 @@ async function loadUserTags() {
                 
                 // Initialize select2 if available
                 if (typeof $.fn.select2 !== 'undefined') {
-                    $(tagsSelect).select2({
-                        placeholder: "Select tags",
-                        allowClear: true
-                    });
+                    setTimeout(() => {
+                        $(tagsSelect).select2({
+                            placeholder: "Select tags",
+                            allowClear: true,
+                            width: '100%',
+                            dropdownParent: $(tagsSelect).parent()
+                        });
+                    }, 100);
                 }
             } else {
                 const noTagsOption = document.createElement('option');
@@ -210,21 +214,6 @@ function initUploadFunctionality() {
             }
         } else {
             browseButton.textContent = 'Browse Files';
-        }
-    });
-    
-    // MV file upload
-    const mvFileInput = document.getElementById('mvFileInput');
-    
-    mvFileInput.addEventListener('change', function() {
-        if (this.files.length > 0) {
-            const fileSize = (this.files[0].size / (1024 * 1024)).toFixed(2); // Convert to MB
-            
-            // Check file size
-            if (this.files[0].size > 500 * 1024 * 1024) { // 500MB limit
-                showMessage('File is too large. Please select a video file under 500MB', 'danger');
-                this.value = '';
-            }
         }
     });
 }
@@ -335,16 +324,10 @@ function initFormSubmit() {
             formData.append('file', musicFile);
         }
         
-        // Add MV file
-        const mvFile = document.getElementById('mvFileInput').files[0];
-        if (mvFile) {
-            formData.append('mvFile', mvFile);
-        }
-        
         // Add song details
         formData.append('name', document.getElementById('songName').value);
         formData.append('singerId', document.getElementById('singerId').value);
-        formData.append('categoryId', document.getElementById('category').value);
+        formData.append('categoryIds', document.getElementById('category').value);
         formData.append('userId', currentUserId);
         
         const introduction = document.getElementById('introduction').value;
@@ -360,9 +343,40 @@ function initFormSubmit() {
         // Add selected tags
         const tagsSelect = document.getElementById('tags');
         if (tagsSelect) {
-            const selectedTags = Array.from(tagsSelect.selectedOptions).map(option => option.value);
-            if (selectedTags.length > 0) {
-                formData.append('tags', selectedTags.join(','));
+            let selectedTags = [];
+            
+            // Try to use Select2 method first if available
+            if (typeof $ === 'function' && $.fn.select2) {
+                try {
+                    const select2Tags = $(tagsSelect).val();
+                    if (select2Tags && Array.isArray(select2Tags)) {
+                        selectedTags = select2Tags;
+                    }
+                } catch (e) {
+                    console.warn('Error getting tags from Select2:', e);
+                }
+            }
+            
+            // If we still don't have tags (Select2 not available or failed),
+            // fall back to a safer DOM approach
+            if (selectedTags.length === 0) {
+                try {
+                    // Manually check each option rather than using selectedOptions
+                    const options = tagsSelect.options || [];
+                    for (let i = 0; i < options.length; i++) {
+                        if (options[i] && options[i].selected && options[i].value) {
+                            selectedTags.push(options[i].value);
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Error getting selected tags from DOM:', e);
+                }
+            }
+            
+            // Only append if we have valid tags
+            const validTags = selectedTags.filter(tag => tag && tag !== '');
+            if (validTags.length > 0) {
+                formData.append('tagIds', validTags.join(','));
             }
         }
         
@@ -370,7 +384,7 @@ function initFormSubmit() {
         try {
             showMessage('Uploading your music, please wait...', 'info');
             
-            const response = await axios.post(`${API_URL}/song/upload`, formData, {
+            const response = await axios.post(`${API_URL}/song/add`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 },

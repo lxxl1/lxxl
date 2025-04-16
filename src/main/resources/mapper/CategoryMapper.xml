@@ -54,5 +54,18 @@
             #{id}
         </foreach>
     </select>
+    
+    <select id="selectCategoriesByUserId" resultType="com.cpt202.domain.Category">
+        SELECT DISTINCT
+            c.id, c.name, c.description, c.create_time, c.update_time
+        FROM 
+            category c
+        INNER JOIN 
+            song_category sc ON c.id = sc.category_id
+        INNER JOIN 
+            song s ON sc.song_id = s.id
+        WHERE 
+            s.user_id = #{userId}
+    </select>
 
 </mapper>

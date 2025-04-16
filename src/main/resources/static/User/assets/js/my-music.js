@@ -1,5 +1,6 @@
 import { API_URL } from '../../../Common/js/config.js';
 import api from '../../../Common/js/api.js';
+import { playSongAudioPlayer } from './audio-player.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     // 初始化页面
@@ -42,16 +43,16 @@ async function loadUserSongs(userId) {
     try {
         // 显示加载中提示
         const tableBody = document.querySelector('table tbody');
-        tableBody.innerHTML = '<tr><td colspan="7" class="text-center">Loading...</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="8" class="text-center">Loading...</td></tr>';
         
-        // 调用API获取用户上传的歌曲 - Using the correct endpoint
+        // 调用API获取用户上传的歌曲 - Using the correct endpoint returning SongDTO
         const response = await api.get('/song/selectbyuser', {
             params: {
                 userId: userId
             }
         });
         
-        // 检查响应状态 (Assuming backend returns Result.success(list))
+        // 检查响应状态
         if (response.data.code === '200') {
             const songs = response.data.data || [];
             renderSongsList(songs);
@@ -64,7 +65,7 @@ async function loadUserSongs(userId) {
         
         // 显示错误信息
         const tableBody = document.querySelector('table tbody');
-        tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">Failed to load, please refresh the page and try again</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Failed to load, please refresh the page and try again</td></tr>';
         
         throw error;
     }
@@ -78,7 +79,7 @@ function renderSongsList(songs) {
     
     // 如果没有歌曲，显示提示信息
     if (!songs || songs.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="7" class="text-center">You haven\'t uploaded any songs yet</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="8" class="text-center">You haven\'t uploaded any songs yet</td></tr>';
         return;
     }
     
@@ -122,16 +123,17 @@ function renderSongsList(songs) {
                     <img src="${song.pic || 'assets/media/image/music-thumbnail.jpg'}" alt="" class="mr-3" 
                         style="width: 40px; height: 40px; object-fit: cover;">
                     <div>
-                        <h6 class="mb-0">${song.name}</h6>
+                        <h6 class="mb-0">${escapeHTML(song.name)}</h6>
                         <small class="text-muted">${song.singerId ? 'Singer ID: ' + song.singerId : ''}</small>
                     </div>
                 </div>
             </td>
-            <td>${song.categoryNames || 'N/A'}</td>
+            <td>${escapeHTML(song.categoryNames || 'N/A')}</td>
+            <td>${escapeHTML(song.tagNames || 'N/A')}</td>
             <td>${formatDate(song.createTime)}</td>
             <td><span class="badge badge-${statusClass}">${statusText}</span></td>
             <td>${song.nums || 0}</td>
-            <td>
+            <td class="text-right">
                 <div class="dropdown">
                     <button class="btn btn-light btn-sm" type="button" data-toggle="dropdown">
                         <i data-feather="more-horizontal"></i>
@@ -140,8 +142,8 @@ function renderSongsList(songs) {
                         <a class="dropdown-item play-song" href="#" data-id="${song.id}" data-url="${song.url}">
                             <i class="mr-2" data-feather="play"></i>Play
                         </a>
-                        <a class="dropdown-item edit-song" href="#" data-id="${song.id}">
-                            <i class="mr-2" data-feather="edit-2"></i>Edit
+                        <a class="dropdown-item" href="edit-song.html?songId=${song.id}">
+                            <i class="mr-2" data-feather="edit-2"></i>Edit Details
                         </a>
                         <a class="dropdown-item" href="song-details.html?songId=${song.id}">
                             <i class="mr-2" data-feather="info"></i>Details
@@ -174,7 +176,7 @@ async function updateStatistics() {
     
     try {
         // 获取用户歌曲列表 - Also use the correct endpoint here
-        const response = await api.get(`/song/selectbyuser`, { 
+        const response = await api.get(`/song/selectbyuser`, {
             params: {
                 userId: currentUser.id
             }
@@ -223,18 +225,19 @@ function setupEventListeners() {
     document.addEventListener('click', function(e) {
         if (e.target.closest('.play-song')) {
             e.preventDefault();
-            const songId = e.target.closest('.play-song').getAttribute('data-id');
-            const songUrl = e.target.closest('.play-song').getAttribute('data-url');
-            playSong(songId, songUrl);
-        }
-    });
-    
-    // 编辑歌曲
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('.edit-song')) {
-            e.preventDefault();
-            const songId = e.target.closest('.edit-song').getAttribute('data-id');
-            window.location.href = `edit-song.html?songId=${songId}`;
+            // Extract necessary info directly from attributes
+            const button = e.target.closest('.play-song');
+            const songId = button.getAttribute('data-id');
+            const songUrl = button.getAttribute('data-url');
+            
+            // Try to get name/pic from the table row for the player UI
+            const row = button.closest('tr');
+            const name = row?.querySelector('h6')?.textContent || 'Unknown Song';
+            const pic = row?.querySelector('img')?.src || 'assets/media/image/music-thumbnail.jpg';
+            const singer = row?.querySelector('small')?.textContent || '';
+
+            // Call the correctly named function with appropriate arguments
+            playSongAudioPlayer(songUrl, name, singer, pic);
         }
     });
     
@@ -277,10 +280,12 @@ function filterSongs(searchTerm) {
     const rows = document.querySelectorAll('tbody tr');
     
     rows.forEach(row => {
-        const songName = row.querySelector('h6')?.textContent.toLowerCase() || '';
-        const introduction = row.querySelector('td:nth-child(3)')?.textContent.toLowerCase() || '';
+        // Search in song name, category, and tags
+        const songName = row.querySelector('td:nth-child(2) h6')?.textContent.toLowerCase() || '';
+        const categoryNames = row.querySelector('td:nth-child(3)')?.textContent.toLowerCase() || '';
+        const tagNames = row.querySelector('td:nth-child(4)')?.textContent.toLowerCase() || '';
         
-        if (songName.includes(searchTerm) || introduction.includes(searchTerm)) {
+        if (songName.includes(searchTerm) || categoryNames.includes(searchTerm) || tagNames.includes(searchTerm)) {
             row.style.display = '';
         } else {
             row.style.display = 'none';
@@ -323,22 +328,6 @@ async function deleteSong(songId) {
 }
 
 /**
- * 播放歌曲
- */
-function playSong(songId, songUrl) {
-    // 增加播放次数
-    api.get(`/song/addNums?songId=${songId}`).catch(console.error);
-    
-    // 如果有音乐播放器组件，这里可以调用它
-    // 临时解决方案：在新窗口打开音频链接
-    if (songUrl) {
-        window.open(songUrl, '_blank');
-    } else {
-        showMessage('Cannot play: Song URL is not available', 'warning');
-    }
-}
-
-/**
  * 格式化日期
  */
 function formatDate(dateString) {
@@ -356,10 +345,27 @@ function formatDate(dateString) {
  * 格式化数字
  */
 function formatNumber(num) {
+    if (!num) return 0;
     if (num >= 1000) {
         return (num / 1000).toFixed(1) + 'k';
     }
     return num;
+}
+
+/**
+ * HTML转义函数
+ */
+function escapeHTML(str) {
+    if (!str) return '';
+    return str.replace(/[&<>"']/g, 
+        tag => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[tag] || tag)
+    );
 }
 
 /**
@@ -392,17 +398,25 @@ function showMessage(message, type) {
     
     // 自动关闭
     setTimeout(() => {
-        messageElement.classList.remove('show');
-        setTimeout(() => {
-            messageElement.remove();
-        }, 300);
+        // Use Bootstrap's alert method if available, otherwise remove directly
+        if (typeof $(messageElement).alert === 'function') {
+             $(messageElement).alert('close');
+        } else {
+             messageElement.classList.remove('show');
+             setTimeout(() => messageElement.remove(), 150); // Delay removal for fade effect
+        }
     }, 5000);
     
-    // 关闭按钮功能
-    messageElement.querySelector('.close').addEventListener('click', function() {
-        messageElement.classList.remove('show');
-        setTimeout(() => {
-            messageElement.remove();
-        }, 300);
-    });
+    // 关闭按钮功能 (ensure compatibility even if jQuery isn't fully loaded)
+    const closeButton = messageElement.querySelector('.close');
+    if (closeButton) {
+        closeButton.addEventListener('click', function() {
+             if (typeof $(messageElement).alert === 'function') {
+                 $(messageElement).alert('close');
+             } else {
+                 messageElement.classList.remove('show');
+                 setTimeout(() => messageElement.remove(), 150);
+             }
+        });
+    }
 } 

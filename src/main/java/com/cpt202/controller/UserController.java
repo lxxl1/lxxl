@@ -101,7 +101,6 @@ public class UserController {
         PageInfo<User> page = userService.selectPage(user, pageNum, pageSize);
         return Result.success(page);
     }
-
     @PostMapping("/status/{id}")
     public Result updateStatus(@PathVariable Integer id, @RequestParam Byte status) {
         if (userService.updateStatus(id, status)) {

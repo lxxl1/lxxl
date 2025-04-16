@@ -10,10 +10,7 @@ import com.cpt202.utils.OssUtil;
 import com.cpt202.dto.SongDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 
@@ -23,6 +20,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -518,6 +516,21 @@ public class SongController {
             return Result.success(songs);
         } catch (Exception e) {
             return Result.failure("获取类别歌曲失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取指定用户在指定类别下的歌曲
+     */
+    @GetMapping("/user/{userId}/category/{categoryId}")
+    public Result getUserSongsByCategory(@PathVariable Integer userId, @PathVariable Integer categoryId) {
+        try {
+            log.info("Fetching songs for user ID: {} in category ID: {}", userId, categoryId);
+            List<SongDTO> songList = songService.getUserSongsByCategory(userId, categoryId);
+            return Result.success(songList);
+        } catch (Exception e) {
+            log.error("Error fetching songs for user ID: {} in category ID: {}", userId, categoryId, e);
+            return Result.failure("获取歌曲列表失败: " + e.getMessage());
         }
     }
 }

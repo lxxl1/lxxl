@@ -25,4 +25,9 @@ public interface CategoryService {
 
     
     PageInfo<Category> selectPage(Category category, Integer pageNum, Integer pageSize);
+    
+    /**
+     * 根据用户ID查询该用户歌曲关联的类别
+     */
+    List<Category> selectCategoriesByUserId(Integer userId);
 }

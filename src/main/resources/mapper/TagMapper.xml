@@ -9,7 +9,7 @@
     </resultMap>
 
     <sql id="Base_Column_List">
-        id, name, user_id, create_time
+        id, name, user_id, create_time, update_time
     </sql>
 
     <insert id="insert" parameterType="com.cpt202.domain.Tag" useGeneratedKeys="true" keyProperty="id">
@@ -65,6 +65,15 @@
         from tag
         where id in
         <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="selectNamesByIds" resultType="java.lang.String">
+        SELECT name 
+        FROM tag
+        WHERE id IN
+        <foreach item="id" collection="ids" open="(" separator="," close=")">
             #{id}
         </foreach>
     </select>

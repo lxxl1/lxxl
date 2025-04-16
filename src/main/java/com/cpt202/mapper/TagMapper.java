@@ -2,6 +2,7 @@ package com.cpt202.mapper;
 
 import com.cpt202.domain.Tag;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 import java.util.List;
 
 @Mapper
@@ -13,4 +14,5 @@ public interface TagMapper {
     Tag selectByNameAndUserId(String name, Integer userId);
     List<Tag> selectByUserId(Integer userId);
     List<Tag> selectByIds(List<Integer> ids);
+    List<String> selectNamesByIds(@Param("ids") List<Integer> ids);
 } 

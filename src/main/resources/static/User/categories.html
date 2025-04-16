@@ -1,308 +1,320 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Manage Song Categories - Music Resource Management</title>
+
+    <!-- Favicon -->
+    <link rel="shortcut icon" href="assets/media/image/favicon.png"/>
+
+    <!-- Plugin styles -->
+    <link rel="stylesheet" href="vendors/bundle.css" type="text/css">
+
+    <!-- Slick -->
+    <link rel="stylesheet" href="vendors/slick/slick.css" type="text/css">
+    <link rel="stylesheet" href="vendors/slick/slick-theme.css" type="text/css">
+
+    <!-- Daterangepicker -->
+    <link rel="stylesheet" href="vendors/datepicker/daterangepicker.css" type="text/css">
+
+    <!-- DataTable -->
+    <link rel="stylesheet" href="vendors/dataTable/datatables.min.css" type="text/css">
+
+    <!-- App styles -->
     <link rel="stylesheet" href="assets/css/app.css" type="text/css">
-    <link rel="shortcut icon" href="../Common/img/favicon.png">
-    <title>Manage Song Categories - LXXL Music</title>
+    
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" /> 
+    <!-- Custom styles for Select2 in modal if needed -->
+    <style>
+        .select2-container--bootstrap-5 .select2-dropdown {
+            z-index: 1060; /* Ensure dropdown is above modal backdrop */
+        }
+        /* Style for the song list area */
+        #category-song-list-container {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #dee2e6;
+        }
+        .song-edit-item {
+            padding: 1rem 0;
+            border-bottom: 1px solid #eee;
+        }
+        .song-edit-item:last-child {
+            border-bottom: none;
+        }
+    </style>
 </head>
 <body>
-    <!-- Preloader -->
+    
+    <!-- begin::preloader-->
     <div class="preloader">
         <div class="preloader-icon"></div>
     </div>
-    <!-- ./ Preloader -->
+    <!-- end::preloader -->
+    <!-- begin::main -->
+    <div id="main">
 
-    <!-- Layout wrapper -->
-    <div class="layout-wrapper">
-        <!-- Header -->
-        <div class="header d-print-none">
-            <div class="header-container">
-                <div class="header-left">
-                    <div class="navigation-toggler">
-                        <a href="#" data-action="navigation-toggler">
-                            <i data-feather="menu"></i>
-                        </a>
-                    </div>
-                    <div class="header-logo">
-                        <a href="index.html">
-                            <img class="logo" src="../Common/img/logo.png" alt="LXXL Music">
-                        </a>
-                    </div>
-                </div>
-                <div class="header-body">
-                    <div class="header-body-left">
-                        <div class="page-title">
-                            <h1>Manage Song Categories</h1>
-                        </div>
-                    </div>
-                    <div class="header-body-right">
-                        <ul class="navbar-nav">
-                            <!-- User menu -->
-                            <li class="nav-item dropdown">
-                                <a href="#" class="nav-link" data-toggle="dropdown">
-                                    <figure class="avatar avatar-sm avatar-state-success">
-                                        <img src="assets/media/image/user/profile-pic.jpg" class="rounded-circle" alt="avatar">
-                                    </figure>
-                                </a>
-                                <div class="dropdown-menu dropdown-menu-right">
-                                    <a href="profile.html" class="dropdown-item">Profile</a>
-                                    <a href="account-settings.html" class="dropdown-item">Settings</a>
-                                    <a href="../logout.html" class="dropdown-item text-danger">Logout</a>
-                                </div>
-                            </li>
-                            <!-- ./ User menu -->
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- ./ Header -->
-
-        <!-- Content wrapper -->
-        <div class="content-wrapper">
-            <!-- begin::navigation -->
-            <div class="navigation">
-                <div class="navigation-menu-tab">
-                    <div>
-                        <div class="navigation-menu-tab-header" data-toggle="tooltip" title="User Menu" data-placement="right">
-                            <a href="#" class="nav-link" data-toggle="dropdown" aria-expanded="false">
-                                <figure class="avatar avatar-sm avatar-state-success">
-                                    <img src="assets/media/image/user/profile-pic.jpg" class="rounded-circle" alt="avatar">
-                                </figure>
+        <!-- begin::navigation -->
+        <div class="navigation">
+            <div class="navigation-menu-tab">
+                <div class="flex-grow-1">
+                    <ul>
+                        <li>
+                            <a href="#" data-toggle="tooltip" data-placement="right" title="Dashboard" data-nav-target="#dashboards">
+                                <i data-feather="home"></i>
                             </a>
+                        </li>
+                        <li>
+                            <a href="#" data-toggle="tooltip" data-placement="right" title="My Music" data-nav-target="#my-music">
+                                <i data-feather="music"></i>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="active" href="#" data-toggle="tooltip" data-placement="right" title="Categories" data-nav-target="#categories">
+                                <i data-feather="folder"></i>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" data-toggle="tooltip" data-placement="right" title="Upload Music" data-nav-target="#upload">
+                                <i data-feather="upload"></i>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" data-toggle="tooltip" data-placement="right" title="Tags" data-nav-target="#tags">
+                                <i data-feather="tag"></i>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" data-toggle="tooltip" data-placement="right" title="Settings" data-nav-target="#settings">
+                                <i data-feather="settings"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div>
+                    <ul>
+                        <li>
+                            <a href="../login.html" data-toggle="tooltip" data-placement="right" title="Logout">
+                                <i data-feather="log-out"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Secondary Navigation Panel -->
+            <div class="navigation-menu-body">
+                <div class="navigation-menu-group">
+                    <div id="dashboards">
+                        <ul>
+                            <li class="navigation-divider">Dashboard</li>
+                            <li><a href="index.html">Overview</a></li>
+                        </ul>
+                    </div>
+                    <div id="my-music">
+                        <ul>
+                            <li class="navigation-divider">My Music</li>
+                            <li><a href="my-music.html">All Songs</a></li>
+                            <li><a href="playlists.html">Playlists</a></li>
+                            <li><a href="favorites.html">Favorites</a></li>
+                        </ul>
+                    </div>
+                    <div id="categories" class="open">
+                        <ul>
+                            <li class="navigation-divider">Categories</li>
+                            <li><a class="active" href="categories.html">Manage Categories</a></li>
+                            
+                        </ul>
+                    </div>
+                    <div id="upload">
+                        <ul>
+                            <li class="navigation-divider">Upload</li>
+                            <li><a href="upload-music.html">Upload Music</a></li>
+                        </ul>
+                    </div>
+                    <div id="tags">
+                        <ul>
+                            <li class="navigation-divider">Tags</li>
+                            <li><a href="tag-management.html">Manage Tags</a></li>
+                        </ul>
+                    </div>
+                    <div id="settings">
+                        <ul>
+                            <li class="navigation-divider">Settings</li>
+                            <li><a href="settings.html">Profile</a></li>
+                            <li><a href="account-settings.html">Account Settings</a></li>
+                            <li><a href="notification-settings.html">Notifications</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- end::navigation -->
+
+        <!-- begin::main-content -->
+        <div class="main-content">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Manage Song Categories</li>
+                </ol>
+            </nav>
+
+             <!-- Statistics Cards -->
+             <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card bg-info-gradient border-0">
+                        <div class="card-body text-center">
+                            <figure class="avatar mb-3 border-0">
+                                <span class="avatar-title bg-white text-info rounded-circle">
+                                    <i data-feather="layers"></i>
+                                </span>
+                            </figure>
+                            <h2 class="font-weight-bold mb-3">0</h2>
+                            <h5 class="mb-0">Available Categories</h5> 
                         </div>
                     </div>
-                    <div class="flex-grow-1">
-                        <ul>
-                            <li>
-                                <a class="icon" href="dashboard.html" data-toggle="tooltip" data-placement="right" title="Dashboard">
-                                    <i data-feather="bar-chart-2"></i>
-                                </a>
-                            </li>
-                            <li>
-                                <a class="icon" href="my-music.html" data-toggle="tooltip" data-placement="right" title="My Music">
+                </div>
+                <div class="col-md-4">
+                     <div class="card bg-success-gradient border-0">
+                        <div class="card-body text-center">
+                            <figure class="avatar mb-3 border-0">
+                                <span class="avatar-title bg-white text-success rounded-circle">
                                     <i data-feather="music"></i>
-                                </a>
-                            </li>
-                            <li>
-                                <a class="active icon" href="categories.html" data-toggle="tooltip" data-placement="right" title="Categories">
-                                    <i data-feather="tag"></i>
-                                </a>
-                            </li>
-                            <li>
-                                <a class="icon" href="playlists.html" data-toggle="tooltip" data-placement="right" title="Playlists">
-                                    <i data-feather="list"></i>
-                                </a>
-                            </li>
-                            <li>
-                                <a class="icon" href="favorites.html" data-toggle="tooltip" data-placement="right" title="Favorites">
-                                    <i data-feather="heart"></i>
-                                </a>
-                            </li>
-                            <li>
-                                <a class="icon" href="profile.html" data-toggle="tooltip" data-placement="right" title="Profile">
-                                    <i data-feather="user"></i>
-                                </a>
-                            </li>
-                            <li>
-                                <a class="icon" href="account-settings.html" data-toggle="tooltip" data-placement="right" title="Settings">
-                                    <i data-feather="settings"></i>
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                    <div>
-                        <ul>
-                            <li>
-                                <a class="icon" href="../logout.html" data-toggle="tooltip" data-placement="right" title="Logout">
-                                    <i data-feather="log-out"></i>
-                                </a>
-                            </li>
-                        </ul>
+                                </span>
+                            </figure>
+                            <h2 class="font-weight-bold mb-3">0</h2>
+                            <h5 class="mb-0">Your Songs</h5>
+                        </div>
                     </div>
                 </div>
-                <div class="navigation-menu-body">
-                    <div class="navigation-menu-group">
-                        <div class="open" id="dashboards">
-                            <ul>
-                                <li class="navigation-divider">MENU</li>
-                                <li><a href="dashboard.html">Dashboard</a></li>
-                                <li><a href="my-music.html">My Music</a></li>
-                                <li><a class="active" href="categories.html">Manage Categories</a></li>
-                                <li><a href="playlists.html">Playlists</a></li>
-                                <li><a href="favorites.html">Favorites</a></li>
-                                <li class="navigation-divider">USER</li>
-                                <li><a href="profile.html">My Profile</a></li>
-                                <li><a href="account-settings.html">Account Settings</a></li>
-                                <li><a href="../logout.html">Logout</a></li>
-                            </ul>
+                 <div class="col-md-4">
+                    <!-- Placeholder or different statistic -->
+                     <div class="card bg-secondary-gradient border-0">
+                        <div class="card-body text-center">
+                             <figure class="avatar mb-3 border-0">
+                                <span class="avatar-title bg-white text-secondary rounded-circle">
+                                    <i data-feather="help-circle"></i> 
+                                </span>
+                            </figure>
+                            <h2 class="font-weight-bold mb-3">...</h2>
+                            <h5 class="mb-0">Statistic</h5>
                         </div>
                     </div>
                 </div>
             </div>
-            <!-- end::navigation -->
 
-            <!-- Content body -->
-            <div class="content-body">
-                <!-- Content -->
-                <div class="content">
-                    <div class="row">
-                        <div class="col-md-12">
-                            <div class="card">
-                                <div class="card-body">
-                                    <h6 class="card-title">Category Statistics</h6>
-                                    <div class="row">
-                                        <div class="col-md-4">
-                                            <div class="card border">
-                                                <div class="card-body text-center">
-                                                    <h2 class="font-weight-bold" id="total-songs">0</h2>
-                                                    <div>Total Songs</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="card border">
-                                                <div class="card-body text-center">
-                                                    <h2 class="font-weight-bold" id="total-categories">0</h2>
-                                                    <div>Available Categories</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="card border">
-                                                <div class="card-body text-center">
-                                                    <h2 class="font-weight-bold" id="avg-categories">0</h2>
-                                                    <div>Avg Categories per Song</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-12">
-                            <div class="card">
-                                <div class="card-body">
-                                    <h6 class="card-title">Manage Song Categories</h6>
-                                    <p class="text-muted">Assign categories to your uploaded songs for better organization.</p>
-                                    <div class="row mb-3">
-                                        <div class="col-md-6 mb-3 mb-md-0">
-                                            <div class="input-group">
-                                                <input type="text" class="form-control" id="song-search" placeholder="Search songs...">
-                                                <div class="input-group-append">
-                                                    <button class="btn btn-primary" type="button" id="search-btn">
-                                                        <i data-feather="search"></i>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <select class="form-control" id="category-filter">
-                                                <option value="">All Categories</option>
-                                                <!-- Categories will be loaded here -->
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="table-responsive">
-                                        <table class="table table-hover table-striped">
-                                            <thead>
-                                                <tr>
-                                                    <th>Song</th>
-                                                    <th>Categories</th>
-                                                    <th>Created Date</th>
-                                                    <th>Status</th>
-                                                    <th>Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="song-categories-table">
-                                                <tr>
-                                                    <td colspan="5" class="text-center">Loading songs...</td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
+
+            <!-- Main Content Card for Selecting Categories -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h6 class="card-title">Select a Category to Manage Songs</h6>
+                    </div>
+
+                    <!-- Search/Filter Section -->
+                    <div class="row mb-4">
+                         <div class="col-md-12">
+                            <div class="input-group">
+                                <input type="text" class="form-control" placeholder="Search available categories...">
+                                <div class="input-group-append">
+                                    <button class="btn btn-outline-light" type="button">
+                                        <i data-feather="search"></i>
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                <!-- ./ Content -->
 
-                <!-- Footer -->
-                <footer class="content-footer">
-                    <div>&copy; 2023 LXXL Music - All Rights Reserved</div>
-                    <div>
-                        <nav class="nav">
-                            <a href="../Legal/terms.html" class="nav-link">Terms of Use</a>
-                            <a href="../Legal/privacy.html" class="nav-link">Privacy Policy</a>
-                        </nav>
+                    <!-- Category List Table (Shows ALL available categories) -->
+                    <div class="table-responsive">
+                        <table id="category-table" class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Category Name</th>
+                                    <th>Description</th>
+                                    <th class="text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Categories will be loaded by JS -->
+                                <tr>
+                                    <td colspan="3" class="text-center">Loading available categories...</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
-                </footer>
-                <!-- ./ Footer -->
-            </div>
-            <!-- ./ Content body -->
-        </div>
-        <!-- ./ Content wrapper -->
-    </div>
-    <!-- ./ Layout wrapper -->
-
-    <!-- Edit Categories Modal -->
-    <div class="modal fade" id="editCategoriesModal" tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Edit Song Categories</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <i data-feather="x"></i>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <input type="hidden" id="edit-song-id">
-                    <div class="form-group">
-                        <label for="edit-song-name">Song Name</label>
-                        <input type="text" class="form-control" id="edit-song-name" readonly>
+                     <!-- Info alert -->
+                    <div class="alert alert-light mt-4">
+                        <i data-feather="info" class="mr-2"></i>
+                        请点击上方类别旁的 "Manage Songs" 按钮来查看和修改属于该类别的您的歌曲。
                     </div>
-                    <div class="form-group">
-                        <label for="edit-categories">Categories</label>
-                        <select class="form-control" id="edit-categories" multiple>
-                            <!-- Categories will be loaded here -->
-                        </select>
-                        <small class="form-text text-muted">Select one or more categories</small>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="save-categories">Save Changes</button>
                 </div>
             </div>
-        </div>
-    </div>
-    <!-- ./ Edit Categories Modal -->
 
-    <!-- Bundle scripts -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Select2 -->
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    <!-- Feather Icons -->
-    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
-    <!-- Axios library -->
+            <!-- Section to display songs for the selected category -->
+            <div id="category-song-list-container" class="mt-4" style="display: none;">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title" id="category-songs-title">Songs in Category: ...</h5>
+                         <p class="text-muted">在这里，您可以为下列歌曲添加或移除其他类别。</p>
+                        <div id="category-songs-list-content">
+                            <!-- Song list and edit controls will be loaded here by JS -->
+                            <p>Select a category above to see your songs.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <!-- end::main-content -->
+   
+    <!-- end::main -->
+
+</div>
+
+    <!-- REMOVED Category Songs Modal -->
+
+    <!-- Plugin scripts -->
+    <script src="vendors/bundle.js"></script>
+
+    <!-- Axios -->
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <!-- Import config and API utils -->
-    <script src="../Common/js/config.js" type="module"></script>
-    <script src="../Common/js/api.js" type="module"></script>
-    <!-- Categories script -->
-    <script src="assets/js/categories.js" type="module"></script>
+
+    <!-- Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <!-- Slick -->
+    <script src="vendors/slick/slick.min.js"></script>
+
+    <!-- Chartjs -->
+    <script src="vendors/charts/chartjs/chart.min.js"></script>
+
+    <!-- Apex chart -->
+    <script src="https://apexcharts.com/samples/assets/irregular-data-series.js"></script>
+    <script src="vendors/charts/apex/apexcharts.min.js"></script>
+
+    <!-- Daterangepicker -->
+    <script src="vendors/datepicker/daterangepicker.js"></script>
+
+    <!-- DataTable -->
+    <script src="vendors/dataTable/datatables.min.js"></script>
+
+    <!-- App scripts -->
+    <script src="assets/js/app.js"></script>
+
+    <!-- Common API Module -->
+    <script type="module" src="../../../Common/js/api.js"></script>
+
+    <!-- Category Management Scripts -->
+    <script type="module" src="assets/js/categories.js"></script>
     
-    <!-- Initialize feather icons -->
-    <script>
-      document.addEventListener('DOMContentLoaded', () => {
-        feather.replace();
-      });
-    </script>
+    <!-- Auth Check -->
+    <script type="module" src="assets/js/auth-check.js"></script>
+
 </body>
-</html>
+</html> 

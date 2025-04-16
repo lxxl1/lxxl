@@ -4,6 +4,7 @@ import com.cpt202.domain.Song;
 import com.cpt202.dto.SongDTO;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 歌曲service接口
@@ -78,4 +79,14 @@ public interface SongService {
      * 根据用户id查询歌曲 (返回包含类别名称的DTO列表)
      */
     List<SongDTO> songOfUserId(Integer userId);
+
+    /**
+     * 根据用户ID和类别ID查询歌曲列表 (返回包含当前所有类别ID的DTO列表)
+     */
+    List<SongDTO> getUserSongsByCategory(Integer userId, Integer categoryId);
+
+    /**
+     * 更新歌曲的类别关联
+     */
+    boolean updateSongCategories(Integer songId, List<Integer> categoryIds);
 }

@@ -1,40 +1,350 @@
 import { API_URL } from '../../../Common/js/config.js';
 import api from '../../../Common/js/api.js';
 
-// 全局变量
-let currentUser = null;
-let allCategories = [];
-let userSongs = [];
-let filteredSongs = [];
+// Global variable to store all categories
+let allAvailableCategories = [];
+let currentUserId = null; // Store current user ID
 
-// 处理API响应
-async function handleResponse(response) {
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API request failed: ${response.status} ${response.statusText} ${errorText}`);
+document.addEventListener('DOMContentLoaded', function() {
+    initPage();
+});
+
+/**
+ * Initialize page
+ */
+async function initPage() {
+    try {
+        // Get current logged-in user
+        const currentUser = JSON.parse(localStorage.getItem('user'));
+        if (!currentUser || !currentUser.id) {
+            showMessage('Please log in first', 'danger');
+            setTimeout(() => window.location.href = '../login.html', 2000);
+            return;
+        }
+        currentUserId = currentUser.id; // Store user ID globally
+        
+        // Load all available categories and render to main table
+        allAvailableCategories = await loadAllCategories();
+        renderAvailableCategoriesList(allAvailableCategories); // New render function for the main table
+        
+        // Update statistics data
+        await updateCategoryStatistics(currentUserId);
+        
+        // Set up event listeners
+        setupEventListeners();
+    } catch (error) {
+        console.error('Failed to initialize page:', error);
+        showMessage('Failed to load data, please try again later', 'danger');
     }
-    return await response.json();
 }
 
-// 定义通用消息显示函数
-function showMessage(message, type = 'info') {
-    // 检查是否已存在消息容器
-    let messageContainer = document.getElementById('message-container');
+/**
+ * Load all categories
+ */
+async function loadAllCategories() {
+    try {
+        const response = await api.get('/category/selectAll');
+        if (response.data.code === '200') {
+            return response.data.data || [];
+        } else {
+            throw new Error(response.data.msg || 'Failed to fetch categories');
+        }
+    } catch (error) {
+        console.error('Failed to load all categories:', error);
+        // Update main table with error
+        const tableBody = document.querySelector('#category-table tbody');
+        if(tableBody) tableBody.innerHTML = '<tr><td colspan="3" class="text-center text-danger">Failed to load categories.</td></tr>';
+        throw error; // Re-throw error to be caught by initPage
+    }
+}
+
+/**
+ * Render *all available* categories list to main table
+ */
+function renderAvailableCategoriesList(categories) {
+    const tableBody = document.querySelector('#category-table tbody'); // Target main table
     
+    if (!categories || categories.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="3" class="text-center">No categories available.</td></tr>';
+        return;
+    }
+    
+    tableBody.innerHTML = ''; // Clear loading/error message
+    
+    categories.forEach(category => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${escapeHTML(category.name)}</td>
+            <td>${category.description ? escapeHTML(category.description) : 'N/A'}</td>
+            <td class="text-right">
+                <button class="btn btn-sm btn-outline-primary manage-category-songs" 
+                        data-id="${category.id}" 
+                        data-name="${escapeHTML(category.name)}">
+                    <i data-feather="settings" class="mr-1" style="width: 1em; height: 1em;"></i>Manage Songs
+                </button>
+            </td>
+        `;
+        tableBody.appendChild(row);
+    });
+    
+    if (window.feather) {
+        feather.replace();
+    }
+}
+
+/**
+ * Update statistics data (only update available categories and user songs count)
+ */
+async function updateCategoryStatistics(userId) {
+    try {
+        // Available Categories count (already loaded)
+        document.querySelector('.col-md-4:nth-child(1) h2').textContent = allAvailableCategories.length; // First card is Available Categories now
+        
+        // Your Songs count
+        const songsResponse = await api.get('/song/selectbyuser', { params: { userId: userId } });
+        if (songsResponse.data.code === '200') {
+            const songs = songsResponse.data.data || [];
+            document.querySelector('.col-md-4:nth-child(2) h2').textContent = songs.length; // Second card is Your Songs
+        } else {
+             document.querySelector('.col-md-4:nth-child(2) h2').textContent = '?';
+        }
+        // Third card is unused for now
+         document.querySelector('.col-md-4:nth-child(3) h2').textContent = '-';
+
+    } catch (error) {
+        console.error('Failed to update statistics:', error);
+         document.querySelector('.col-md-4:nth-child(1) h2').textContent = '?';
+         document.querySelector('.col-md-4:nth-child(2) h2').textContent = '?';
+         document.querySelector('.col-md-4:nth-child(3) h2').textContent = '?';
+    }
+}
+
+/**
+ * Set up event listeners
+ */
+function setupEventListeners() {
+    // Manage category songs event - redirect to dedicated management page
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.manage-category-songs')) {
+            e.preventDefault();
+            const button = e.target.closest('.manage-category-songs');
+            const categoryId = button.getAttribute('data-id');
+            const categoryName = button.getAttribute('data-name');
+            
+            if (categoryId && categoryName) {
+                // Redirect to new category-songs.html page, passing category ID and name as parameters
+                window.location.href = `category-songs.html?id=${categoryId}&name=${encodeURIComponent(categoryName)}`;
+            } else {
+                showMessage('Error getting category details.', 'danger');
+            }
+        }
+    });
+    
+    // Search categories (targets main category table)
+    const searchInput = document.querySelector('input[placeholder="Search available categories..."]');
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function(e) {
+            if (e.key === 'Enter') {
+                filterCategories(this.value.trim().toLowerCase());
+            }
+        });
+        const searchButton = searchInput.parentElement.querySelector('button'); // Adjusted selector
+        if (searchButton) {
+            searchButton.addEventListener('click', function() {
+                filterCategories(searchInput.value.trim().toLowerCase());
+            });
+        }
+    }
+    
+    // Event delegation: handle click on save button in song list below
+    document.addEventListener('click', async function(e) {
+        if (e.target.classList.contains('save-song-categories-btn')) {
+            e.preventDefault();
+            const songId = e.target.getAttribute('data-song-id');
+            const selectElement = document.getElementById(`song-category-select-${songId}`);
+            
+            if (songId && selectElement) {
+                const selectedCategoryIds = $(selectElement).val() || []; 
+                await updateSongCategories(songId, selectedCategoryIds);
+            }
+        }
+    });
+}
+
+/**
+ * Load and display user songs in specified category
+ * Note: This function is now deprecated as we redirect to a dedicated page for management
+ * Kept for backward compatibility
+ */
+async function loadAndDisplaySongsForCategory(userId, categoryId, categoryName) {
+    // Redirect to new page
+    window.location.href = `category-songs.html?id=${categoryId}&name=${encodeURIComponent(categoryName)}`;
+}
+
+/**
+ * Render songs list in bottom area for editing
+ */
+function renderSongsForEditing(songs, containerElement) {
+    if (!songs || songs.length === 0) {
+        containerElement.innerHTML = '<p class="text-center text-muted">You have no songs in this category.</p>';
+        return;
+    }
+    
+    let html = ''; 
+    songs.forEach(song => {
+        // Note: categoryIds must be returned by the backend API for this song
+        const currentCategoryIds = song.categoryIds || []; 
+        
+        html += `
+            <div class="song-edit-item d-flex justify-content-between align-items-center">
+                <div class="flex-grow-1 mr-3">
+                    <h6 class="mb-1">${escapeHTML(song.name)}</h6>
+                    <small class="text-muted">Singer ID: ${song.singerId || 'N/A'}</small>
+                </div>
+                <div class="w-50 d-flex align-items-center">
+                    <select class="form-control select2-edit-categories mr-2" 
+                            id="song-category-select-${song.id}" 
+                            multiple="multiple" 
+                            style="width: 100%;">
+                        <!-- Options populated by populateCategoryOptions -->
+                    </select>
+                    <button class="btn btn-sm btn-primary save-song-categories-btn" data-song-id="${song.id}">
+                       <i data-feather="save" style="width: 1em; height: 1em;"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    
+    containerElement.innerHTML = html;
+
+    // Initialize Select2 for each song's dropdown
+    songs.forEach(song => {
+        const selectElement = document.getElementById(`song-category-select-${song.id}`);
+        if (selectElement) {
+            populateCategoryOptions(selectElement, song.categoryIds || []); 
+            
+             if (typeof $.fn.select2 !== 'undefined') {
+                $(selectElement).select2({
+                    placeholder: "Select categories",
+                    width: '100%', 
+                    theme: 'bootstrap-5', // Apply Bootstrap theme
+                    dropdownParent: $(containerElement) // Attach dropdown relative to container
+                });
+            } else {
+                 console.warn("Select2 is not loaded");
+            }
+        }
+    });
+
+    // Re-initialize Feather Icons for the save buttons
+     if (window.feather) {
+        feather.replace();
+    }
+}
+
+
+/**
+ * Populate category options for dropdown (Used by renderSongsForEditing)
+ */
+function populateCategoryOptions(selectElement, selectedIds = []) {
+    selectElement.innerHTML = ''; // Clear existing options
+    
+    allAvailableCategories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category.id;
+        option.textContent = escapeHTML(category.name);
+        if (selectedIds.includes(parseInt(category.id))) { // Ensure comparison is correct type
+            option.selected = true;
+        }
+        selectElement.appendChild(option);
+    });
+}
+
+/**
+ * Update song categories (Remains the same)
+ */
+async function updateSongCategories(songId, categoryIds) {
+    // Convert IDs to numbers just in case they came from Select2 as strings
+    const numericCategoryIds = categoryIds.map(id => parseInt(id)).filter(id => !isNaN(id));
+    
+    try {
+        const response = await api.put('/song/updateCategories', { 
+            songId: parseInt(songId), // Ensure songId is a number
+            categoryIds: numericCategoryIds 
+        });
+        
+        if (response.data.code === '200') {
+            showMessage('Song categories updated successfully!', 'success');
+            // Optional: Maybe add a visual cue like a checkmark next to the save button briefly
+        } else {
+            throw new Error(response.data.msg || 'Failed to update categories');
+        }
+    } catch (error) {
+        console.error('Error updating song categories:', error);
+        showMessage(`Error updating categories: ${error.message}`, 'danger');
+    }
+}
+
+/**
+ * Filter main category list
+ */
+function filterCategories(searchTerm) {
+    const rows = document.querySelectorAll('#category-table tbody tr'); // Target main table
+    
+    rows.forEach(row => {
+        // Check if it's the 'loading' or 'no results' row
+        if (row.querySelector('td[colspan]')) {
+             row.style.display = 'none'; // Hide placeholder rows during search
+             return; 
+        }
+        
+        const categoryName = row.querySelector('td:first-child')?.textContent.toLowerCase() || '';
+        const description = row.querySelector('td:nth-child(2)')?.textContent.toLowerCase() || '';
+        
+        if (categoryName.includes(searchTerm) || description.includes(searchTerm)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+/**
+ * HTML escape function
+ */
+function escapeHTML(str) {
+    if (!str) return '';
+    return str.replace(/[&<>"']/g, 
+        tag => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[tag] || tag)
+    );
+}
+
+/**
+ * Show message notification
+ */
+function showMessage(message, type) {
+    // Check if message container already exists
+    let messageContainer = document.querySelector('.message-container');
     if (!messageContainer) {
-        // 创建消息容器
         messageContainer = document.createElement('div');
-        messageContainer.id = 'message-container';
-        messageContainer.style.position = 'fixed';
-        messageContainer.style.top = '20px';
-        messageContainer.style.right = '20px';
+        messageContainer.className = 'message-container position-fixed top-0 end-0 p-3';
         messageContainer.style.zIndex = '9999';
+        messageContainer.style.top = '1rem';
+        messageContainer.style.right = '1rem';
         document.body.appendChild(messageContainer);
     }
     
-    // 创建消息元素
+    // Create message element
     const messageElement = document.createElement('div');
     messageElement.className = `alert alert-${type} alert-dismissible fade show`;
+    messageElement.setAttribute('role', 'alert');
     messageElement.innerHTML = `
         ${message}
         <button type="button" class="close" data-dismiss="alert" aria-label="Close">
@@ -42,365 +352,11 @@ function showMessage(message, type = 'info') {
         </button>
     `;
     
-    // 添加到容器
+    // Add to container
     messageContainer.appendChild(messageElement);
     
-    // 3秒后自动关闭
+    // Auto close
     setTimeout(() => {
-        messageElement.classList.remove('show');
-        setTimeout(() => {
-            messageContainer.removeChild(messageElement);
-        }, 150);
-    }, 3000);
-}
-
-// 页面加载时初始化
-document.addEventListener('DOMContentLoaded', async () => {
-    try {
-        // 从localStorage获取用户信息，而不是调用API
-        const userDataString = localStorage.getItem('currentUser');
-        if (userDataString) {
-            try {
-                currentUser = JSON.parse(userDataString);
-                
-                // 初始化Select2插件
-                $('#edit-categories').select2({
-                    placeholder: 'Select categories',
-                    allowClear: true,
-                    width: '100%'
-                });
-                
-                // 加载分类和用户歌曲
-                await loadAllCategories();
-                await loadUserSongs();
-                
-                // 计算统计数据
-                updateStatistics();
-                
-                // 设置事件监听
-                setupEventListeners();
-            } catch (error) {
-                console.error('解析用户数据失败:', error);
-                window.location.href = '../login.html';
-            }
-        } else {
-            // 如果localStorage中没有用户信息，则重定向到登录页面
-            window.location.href = '../login.html';
-        }
-    } catch (error) {
-        console.error('初始化失败:', error);
-        showMessage('初始化失败，请刷新页面重试', 'error');
-    }
-});
-
-/**
- * 加载所有分类
- */
-async function loadAllCategories() {
-    try {
-        const response = await fetch(`${API_URL}/getAllCategories`, {
-            method: 'GET',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json',
-                'Authorization': localStorage.getItem('token')
-            }
-        });
-        
-        const data = await handleResponse(response);
-        if (data) {
-            allCategories = data;
-            
-            // 更新类别计数
-            document.getElementById('total-categories').textContent = allCategories.length;
-            
-            // 填充类别过滤下拉框
-            const categoryFilter = document.getElementById('category-filter');
-            categoryFilter.innerHTML = '<option value="">All Categories</option>';
-            
-            // 填充编辑模态框的类别选择
-            const editCategories = document.getElementById('edit-categories');
-            editCategories.innerHTML = '';
-            
-            allCategories.forEach(category => {
-                // 添加到过滤下拉框
-                const filterOption = document.createElement('option');
-                filterOption.value = category.id;
-                filterOption.textContent = category.name;
-                categoryFilter.appendChild(filterOption);
-                
-                // 添加到编辑模态框
-                const editOption = document.createElement('option');
-                editOption.value = category.id;
-                editOption.textContent = category.name;
-                editCategories.appendChild(editOption);
-            });
-        }
-    } catch (error) {
-        console.error('加载分类失败:', error);
-        showMessage('加载分类失败，请刷新页面重试', 'error');
-    }
-}
-
-/**
- * 加载用户歌曲
- */
-async function loadUserSongs() {
-    try {
-        const response = await fetch(`${API_URL}/getUserSongs?userId=${currentUser.id}`, {
-            method: 'GET',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json',
-                'Authorization': localStorage.getItem('token')
-            }
-        });
-        
-        const data = await handleResponse(response);
-        if (data) {
-            userSongs = data;
-            filteredSongs = [...userSongs];
-            
-            // 更新歌曲计数
-            document.getElementById('total-songs').textContent = userSongs.length;
-            
-            // 渲染歌曲列表
-            renderSongsList(filteredSongs);
-        }
-    } catch (error) {
-        console.error('加载歌曲失败:', error);
-        showMessage('加载歌曲失败，请刷新页面重试', 'error');
-    }
-}
-
-/**
- * 渲染歌曲列表
- * @param {Array} songs - 要渲染的歌曲列表
- */
-function renderSongsList(songs) {
-    const tableBody = document.getElementById('song-categories-table');
-    
-    if (!songs || songs.length === 0) {
-        tableBody.innerHTML = `
-            <tr>
-                <td colspan="5" class="text-center">No songs found</td>
-            </tr>
-        `;
-        return;
-    }
-    
-    let html = '';
-    
-    songs.forEach(song => {
-        // 获取歌曲的类别
-        const songCategories = song.categories || [];
-        let categoriesHtml = '';
-        
-        if (songCategories.length > 0) {
-            songCategories.forEach(categoryId => {
-                const category = allCategories.find(c => c.id === categoryId);
-                if (category) {
-                    categoriesHtml += `<span class="badge badge-primary mr-1">${category.name}</span>`;
-                }
-            });
-        } else {
-            categoriesHtml = '<span class="text-muted">No categories</span>';
-        }
-        
-        // 格式化创建日期
-        const createdDate = new Date(song.createdAt).toLocaleDateString();
-        
-        // 状态标签
-        const statusHtml = song.status === 'ACTIVE' 
-            ? '<span class="badge badge-success">Active</span>'
-            : '<span class="badge badge-warning">Inactive</span>';
-        
-        html += `
-            <tr>
-                <td>
-                    <div class="d-flex align-items-center">
-                        <div class="song-img-container mr-3">
-                            <img src="${song.coverImage || 'assets/media/image/default-album.png'}" alt="${song.name}" width="40" height="40" class="rounded">
-                        </div>
-                        <div>
-                            <h6 class="mb-0">${song.name}</h6>
-                            <small class="text-muted">${song.artist || 'Unknown Artist'}</small>
-                        </div>
-                    </div>
-                </td>
-                <td>${categoriesHtml}</td>
-                <td>${createdDate}</td>
-                <td>${statusHtml}</td>
-                <td>
-                    <button class="btn btn-sm btn-primary edit-categories-btn" data-song-id="${song.id}" data-song-name="${song.name}">
-                        <i data-feather="edit-2"></i> Edit Categories
-                    </button>
-                </td>
-            </tr>
-        `;
-    });
-    
-    tableBody.innerHTML = html;
-    
-    // 重新初始化 Feather 图标
-    if (typeof feather !== 'undefined') {
-        feather.replace();
-    }
-    
-    // 添加编辑按钮的点击事件
-    document.querySelectorAll('.edit-categories-btn').forEach(button => {
-        button.addEventListener('click', openEditCategoriesModal);
-    });
-}
-
-/**
- * 打开编辑类别模态框
- * @param {Event} event - 点击事件
- */
-function openEditCategoriesModal(event) {
-    const button = event.currentTarget;
-    const songId = button.dataset.songId;
-    const songName = button.dataset.songName;
-    
-    // 设置模态框数据
-    document.getElementById('edit-song-id').value = songId;
-    document.getElementById('edit-song-name').value = songName;
-    
-    // 查找歌曲对象
-    const song = userSongs.find(s => s.id === songId);
-    
-    if (song) {
-        // 清除并重新设置选中的类别
-        $('#edit-categories').val(song.categories || []).trigger('change');
-    }
-    
-    // 显示模态框
-    $('#editCategoriesModal').modal('show');
-}
-
-/**
- * 更新歌曲分类
- * @param {string} songId - 歌曲ID
- * @param {Array} categoryIds - 分类ID数组
- */
-async function updateSongCategories(songId, categoryIds) {
-    try {
-        const response = await fetch(`${API_URL}/updateSongCategories`, {
-            method: 'POST',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json',
-                'Authorization': localStorage.getItem('token'),
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                songId: songId,
-                categoryIds: categoryIds
-            })
-        });
-        
-        const data = await handleResponse(response);
-        if (data) {
-            // 更新本地数据
-            const songIndex = userSongs.findIndex(song => song.id === songId);
-            if (songIndex !== -1) {
-                userSongs[songIndex].categories = categoryIds;
-                
-                // 如果是筛选后的结果中也有这首歌，也要更新
-                const filteredIndex = filteredSongs.findIndex(song => song.id === songId);
-                if (filteredIndex !== -1) {
-                    filteredSongs[filteredIndex].categories = categoryIds;
-                }
-                
-                // 重新渲染歌曲列表
-                renderSongsList(filteredSongs);
-                
-                // 更新统计信息
-                updateStatistics();
-                
-                // 显示成功消息
-                showMessage('Categories updated successfully', 'success');
-            }
-        }
-    } catch (error) {
-        console.error('更新类别失败:', error);
-        showMessage('Failed to update categories. Please try again.', 'error');
-    }
-}
-
-/**
- * 更新统计数据
- */
-function updateStatistics() {
-    document.getElementById('total-songs').textContent = userSongs.length;
-    document.getElementById('total-categories').textContent = allCategories.length;
-    
-    // 计算平均每首歌曲的类别数
-    if (userSongs.length > 0) {
-        const totalCategories = userSongs.reduce((sum, song) => {
-            return sum + (song.categories ? song.categories.length : 0);
-        }, 0);
-        const avgCategories = (totalCategories / userSongs.length).toFixed(1);
-        document.getElementById('avg-categories').textContent = avgCategories;
-    } else {
-        document.getElementById('avg-categories').textContent = '0';
-    }
-}
-
-/**
- * 过滤歌曲
- * @param {string} searchTerm - 搜索关键字
- * @param {string} categoryId - 分类ID
- */
-function filterSongs(searchTerm, categoryId) {
-    searchTerm = searchTerm ? searchTerm.toLowerCase() : '';
-    
-    filteredSongs = userSongs.filter(song => {
-        // 按名称和艺术家搜索
-        const matchesSearch = !searchTerm || 
-            song.name.toLowerCase().includes(searchTerm) || 
-            (song.artist && song.artist.toLowerCase().includes(searchTerm));
-        
-        // 按类别筛选
-        const matchesCategory = !categoryId || (song.categories && song.categories.includes(categoryId));
-        
-        return matchesSearch && matchesCategory;
-    });
-    
-    renderSongsList(filteredSongs);
-}
-
-/**
- * 设置事件监听器
- */
-function setupEventListeners() {
-    // 保存类别按钮
-    document.getElementById('save-categories').addEventListener('click', async () => {
-        const songId = document.getElementById('edit-song-id').value;
-        const selectedCategories = Array.from($('#edit-categories').val() || []);
-        
-        await updateSongCategories(songId, selectedCategories);
-        $('#editCategoriesModal').modal('hide');
-    });
-    
-    // 搜索框
-    document.getElementById('song-search').addEventListener('input', event => {
-        const searchTerm = event.target.value;
-        const categoryId = document.getElementById('category-filter').value;
-        filterSongs(searchTerm, categoryId);
-    });
-    
-    // 搜索按钮
-    document.getElementById('search-btn').addEventListener('click', () => {
-        const searchTerm = document.getElementById('song-search').value;
-        const categoryId = document.getElementById('category-filter').value;
-        filterSongs(searchTerm, categoryId);
-    });
-    
-    // 类别过滤器
-    document.getElementById('category-filter').addEventListener('change', event => {
-        const categoryId = event.target.value;
-        const searchTerm = document.getElementById('song-search').value;
-        filterSongs(searchTerm, categoryId);
-    });
+        $(messageElement).alert('close');
+    }, 5000);
 } 

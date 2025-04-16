@@ -71,17 +71,82 @@ api.interceptors.response.use((response) => {
         return Promise.reject(error);
     }
     
-    // 非管理员页面处理401错误
-    if (error.response && error.response.status === 401) {
-        // 清除存储并重定向到登录页
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-        localStorage.removeItem('role');
-        window.location.href = '/login.html';
+    // 检测JWT令牌过期错误
+    if (error.response) {
+        // 401未授权错误处理
+        if (error.response.status === 401) {
+            // 清除存储
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            localStorage.removeItem('role');
+            
+            // 显示友好提示，令牌过期
+            showTokenExpiredMessage();
+            
+            // 延迟跳转，让用户有时间看到消息
+            setTimeout(() => {
+                window.location.href = '/login.html';
+            }, 2000);
+            
+            return Promise.reject(new Error('Session expired. Redirecting to login page...'));
+        }
+        
+        // 检查响应中是否包含令牌验证失败的自定义错误消息
+        if (error.response.data && 
+           (error.response.data.message && error.response.data.message.includes('token') || 
+            error.response.data.msg && error.response.data.msg.includes('token'))) {
+            
+            // 清除存储
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            localStorage.removeItem('role');
+            
+            // 显示友好提示，令牌验证失败
+            showTokenExpiredMessage();
+            
+            // 延迟跳转，让用户有时间看到消息
+            setTimeout(() => {
+                window.location.href = '/login.html';
+            }, 2000);
+            
+            return Promise.reject(new Error('Session expired. Redirecting to login page...'));
+        }
     }
     
     return Promise.reject(error);
 });
+
+// 显示令牌过期的友好提示
+function showTokenExpiredMessage() {
+    // 创建提示元素
+    const messageContainer = document.createElement('div');
+    messageContainer.style.position = 'fixed';
+    messageContainer.style.top = '20px';
+    messageContainer.style.left = '50%';
+    messageContainer.style.transform = 'translateX(-50%)';
+    messageContainer.style.zIndex = '9999';
+    messageContainer.style.backgroundColor = '#f8d7da';
+    messageContainer.style.color = '#721c24';
+    messageContainer.style.padding = '15px 30px';
+    messageContainer.style.borderRadius = '5px';
+    messageContainer.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+    messageContainer.style.textAlign = 'center';
+    messageContainer.style.fontSize = '16px';
+    messageContainer.style.fontWeight = 'bold';
+    
+    // 设置提示文本
+    messageContainer.innerText = 'Your session has expired. Please log in again.';
+    
+    // 添加到页面
+    document.body.appendChild(messageContainer);
+    
+    // 2秒后自动移除
+    setTimeout(() => {
+        if (document.body.contains(messageContainer)) {
+            document.body.removeChild(messageContainer);
+        }
+    }, 5000);
+}
 
 // 立即加载时关闭任何打开的权限对话框
 document.addEventListener('DOMContentLoaded', function() {

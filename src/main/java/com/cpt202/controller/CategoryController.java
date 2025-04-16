@@ -83,4 +83,13 @@ public class CategoryController {
         PageInfo<Category> page = categoryService.selectPage(category, pageNum, pageSize);
         return Result.success(page);
     }
+    
+    /**
+     * 根据用户ID查询该用户歌曲关联的类别
+     */
+    @GetMapping("/user/{userId}")
+    public Result selectCategoriesByUserId(@PathVariable Integer userId) {
+        List<Category> categories = categoryService.selectCategoriesByUserId(userId);
+        return Result.success(categories);
+    }
 }

@@ -21,24 +21,6 @@ public class TagController {
     @Autowired
     private TagService tagService;
 
-    /**
-     * 创建标签
-     */
-    @RequestMapping(value = "/add", method = RequestMethod.POST)
-    public Result createTag(HttpServletRequest request) {
-        String name = request.getParameter("name").trim();
-        String userId = request.getParameter("userId").trim();
-
-        Tag tag = new Tag();
-        tag.setName(name);
-        tag.setUserId(Integer.parseInt(userId));
-
-        boolean flag = tagService.createTag(tag);
-        if (flag) {
-            return Result.success();
-        }
-        return Result.failure("创建标签失败");
-    }
 
     /**
      * 删除标签

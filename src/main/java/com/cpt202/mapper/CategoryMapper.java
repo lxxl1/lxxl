@@ -43,4 +43,9 @@ public interface CategoryMapper {
      * 根据ID列表查询类别名称列表
      */
     List<String> selectNamesByIds(@Param("ids") List<Integer> ids);
+    
+    /**
+     * 根据用户ID查询该用户所有歌曲关联的类别
+     */
+    List<Category> selectCategoriesByUserId(@Param("userId") Integer userId);
 }

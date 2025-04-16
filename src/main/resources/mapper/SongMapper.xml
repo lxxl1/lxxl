@@ -198,6 +198,17 @@
         from song
         where user_id = #{userId}
     </select>
+    
+    <select id="selectUserSongsByCategory" resultMap="ResultMapWithBLOBs">
+        SELECT 
+            s.*
+        FROM 
+            song s
+        INNER JOIN 
+            song_category sc ON s.id = sc.song_id
+        WHERE 
+            s.user_id = #{userId} AND sc.category_id = #{categoryId}
+    </select>
 
 </mapper>
 

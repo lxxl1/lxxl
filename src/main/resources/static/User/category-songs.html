@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Category Songs - Music Resource Management</title>
+    
+    <!-- Favicon -->
+    <link rel="shortcut icon" href="assets/media/image/favicon.png"/>
+    
+    <!-- Bootstrap CDN -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    
+    <!-- Plugin styles -->
+    <link rel="stylesheet" href="vendors/bundle.css" type="text/css">
+    
+    <!-- Slick -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick-theme.css">
+    
+    <!-- App styles -->
+    <link rel="stylesheet" href="assets/css/app.css" type="text/css">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    
+    <!-- 添加Axios CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    
+    <style>
+        .song-card {
+            transition: all 0.3s ease;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            height: 100%;
+        }
+        
+        .song-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .song-image {
+            height: 160px;
+            object-fit: cover;
+            border-top-left-radius: 0.75rem;
+            border-top-right-radius: 0.75rem;
+        }
+        
+        .song-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 5px;
+            z-index: 10;
+        }
+        
+        .search-container {
+            position: relative;
+        }
+        
+        .search-container .fas {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            right: 15px;
+            color: #6c757d;
+        }
+
+        /* Add gradient cards like in categories.html */
+        .card.bg-info-gradient {
+            background: linear-gradient(45deg, #11cdef, #1171ef) !important;
+            color: white;
+        }
+
+        .card.bg-success-gradient {
+            background: linear-gradient(45deg, #2dce89, #2dcecc) !important;
+            color: white;
+        }
+
+        .card.bg-secondary-gradient {
+            background: linear-gradient(45deg, #8898aa, #888aaa) !important;
+            color: white;
+        }
+
+        .avatar {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 3.5rem;
+            height: 3.5rem;
+            border-radius: 50%;
+        }
+
+        .avatar-title {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .audio-player {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 1rem;
+            background: #fff;
+            box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.05);
+            z-index: 1000;
+        }
+        
+        /* 播放器样式 */
+        .player-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+        
+        .song-info {
+            display: flex;
+            align-items: center;
+            width: 30%;
+        }
+        
+        .cover {
+            width: 50px;
+            height: 50px;
+            margin-right: 1rem;
+            overflow: hidden;
+            border-radius: 4px;
+        }
+        
+        .cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .details h5 {
+            margin: 0;
+            font-size: 1rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+        }
+        
+        .details p {
+            margin: 0;
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+        
+        .controls {
+            width: 40%;
+        }
+        
+        .player-controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .control-button {
+            background: none;
+            border: none;
+            color: #495057;
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .control-button:hover {
+            background-color: #f8f9fa;
+            color: #007bff;
+        }
+        
+        .progress-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .progress {
+            flex-grow: 1;
+            height: 4px;
+            background-color: #e9ecef;
+        }
+        
+        .progress-bar {
+            background-color: #007bff;
+        }
+        
+        #currentTime, #duration {
+            font-size: 0.7rem;
+            color: #6c757d;
+            width: 35px;
+            text-align: center;
+        }
+        
+        .volume {
+            display: flex;
+            align-items: center;
+            width: 20%;
+            justify-content: flex-end;
+            gap: 0.5rem;
+        }
+        
+        .volume-slider {
+            width: 80px;
+        }
+        
+        input[type="range"] {
+            -webkit-appearance: none;
+            height: 4px;
+            background: #e9ecef;
+            border-radius: 2px;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            background: #007bff;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- begin::preloader-->
+    <div class="preloader">
+        <div class="preloader-icon"></div>
+    </div>
+    <!-- end::preloader -->
+    
+    <!-- begin::main -->
+    <div id="main">
+        <!-- begin::navigation -->
+        <div class="navigation">
+            <div class="navigation-menu-tab">
+                <div class="flex-grow-1">
+                    <ul>
+                        <li>
+                            <a href="#" data-toggle="tooltip" data-placement="right" title="Dashboard" data-nav-target="#dashboards">
+                                <i data-feather="home"></i>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" data-toggle="tooltip" data-placement="right" title="My Music" data-nav-target="#my-music">
+                                <i data-feather="music"></i>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="active" href="#" data-toggle="tooltip" data-placement="right" title="Categories" data-nav-target="#categories">
+                                <i data-feather="folder"></i>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" data-toggle="tooltip" data-placement="right" title="Upload Music" data-nav-target="#upload">
+                                <i data-feather="upload"></i>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" data-toggle="tooltip" data-placement="right" title="Tags" data-nav-target="#tags">
+                                <i data-feather="tag"></i>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" data-toggle="tooltip" data-placement="right" title="Settings" data-nav-target="#settings">
+                                <i data-feather="settings"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div>
+                    <ul>
+                        <li>
+                            <a href="../login.html" data-toggle="tooltip" data-placement="right" title="Logout">
+                                <i data-feather="log-out"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Secondary Navigation Panel -->
+            <div class="navigation-menu-body">
+                <div class="navigation-menu-group">
+                    <div id="dashboards">
+                        <ul>
+                            <li class="navigation-divider">Dashboard</li>
+                            <li><a href="index.html">Overview</a></li>
+                        </ul>
+                    </div>
+                    <div id="my-music">
+                        <ul>
+                            <li class="navigation-divider">My Music</li>
+                            <li><a href="my-music.html">All Songs</a></li>
+                            <li><a href="playlists.html">Playlists</a></li>
+                            <li><a href="favorites.html">Favorites</a></li>
+                        </ul>
+                    </div>
+                    <div id="categories" class="open">
+                        <ul>
+                            <li class="navigation-divider">Categories</li>
+                            <li><a class="active" href="categories.html">Manage Categories</a></li>
+                        </ul>
+                    </div>
+                    <div id="upload">
+                        <ul>
+                            <li class="navigation-divider">Upload</li>
+                            <li><a href="upload-music.html">Upload Music</a></li>
+                        </ul>
+                    </div>
+                    <div id="tags">
+                        <ul>
+                            <li class="navigation-divider">Tags</li>
+                            <li><a href="tag-management.html">Manage Tags</a></li>
+                        </ul>
+                    </div>
+                    <div id="settings">
+                        <ul>
+                            <li class="navigation-divider">Settings</li>
+                            <li><a href="settings.html">Profile</a></li>
+                            <li><a href="account-settings.html">Account Settings</a></li>
+                            <li><a href="notification-settings.html">Notifications</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- end::navigation -->
+        
+        <!-- begin::main-content -->
+        <div class="main-content">
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+                    <li class="breadcrumb-item"><a href="categories.html">Categories</a></li>
+                    <li class="breadcrumb-item active" aria-current="page" id="categoryNameBreadcrumb">Category Songs</li>
+                </ol>
+            </nav>
+            
+            <!-- Statistics Cards -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card bg-info-gradient border-0">
+                        <div class="card-body text-center">
+                            <figure class="avatar mb-3 border-0">
+                                <span class="avatar-title bg-white text-info rounded-circle">
+                                    <i data-feather="folder"></i>
+                                </span>
+                            </figure>
+                            <h2 class="font-weight-bold mb-3" id="categoryNameStat">-</h2>
+                            <h5 class="mb-0">Current Category</h5> 
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                     <div class="card bg-success-gradient border-0">
+                        <div class="card-body text-center">
+                            <figure class="avatar mb-3 border-0">
+                                <span class="avatar-title bg-white text-success rounded-circle">
+                                    <i data-feather="music"></i>
+                                </span>
+                            </figure>
+                            <h2 class="font-weight-bold mb-3" id="songCountStat">0</h2>
+                            <h5 class="mb-0">Songs in Category</h5>
+                        </div>
+                    </div>
+                </div>
+                 <div class="col-md-4">
+                    <div class="card bg-secondary-gradient border-0">
+                        <div class="card-body text-center">
+                             <figure class="avatar mb-3 border-0">
+                                <span class="avatar-title bg-white text-secondary rounded-circle">
+                                    <i data-feather="tag"></i> 
+                                </span>
+                            </figure>
+                            <h2 class="font-weight-bold mb-3" id="tagCountStat">-</h2>
+                            <h5 class="mb-0">Total Tags</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Alerts Container -->
+            <div id="alerts" class="mb-4"></div>
+                
+            <!-- Page Title and Back Button -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h6 class="card-title mb-1" id="categoryPageTitle">Category Songs</h6>
+                            <p class="text-muted small">查看和管理此类别中的歌曲</p>
+                        </div>
+                        <a href="categories.html" class="btn btn-outline-primary btn-sm">
+                            <i data-feather="arrow-left" class="mr-1"></i> Back to Categories
+                        </a>
+                    </div>
+                
+                    <!-- Search and Stats -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <input type="text" id="searchInput" class="form-control" placeholder="Search songs...">
+                                <div class="input-group-append">
+                                    <button class="btn btn-outline-light" type="button" id="searchButton">
+                                        <i data-feather="search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 text-md-right mt-3 mt-md-0">
+                            <span class="badge badge-primary badge-pill p-2" id="songCountBadge">0 songs</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Info Alert -->
+                    <div class="alert alert-light mb-4">
+                        <i data-feather="info" class="mr-2"></i>
+                        点击 "Remove" 按钮从此类别中移除歌曲。此操作不会删除歌曲本身，只会解除与类别的关联。
+                    </div>
+                    
+                    <!-- Songs List -->
+                    <div id="songsContainer" class="row">
+                        <!-- Songs will be displayed here -->
+                        <div class="col-12 text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-3">Loading songs...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- No Songs Message -->
+                    <div id="noSongsMessage" class="text-center py-5" style="display: none;">
+                        <img src="assets/media/image/empty.svg" alt="No songs" class="mb-3" style="width: 150px; opacity: 0.6;">
+                        <h4>没有歌曲在此类别中</h4>
+                        <p class="text-muted mb-4">从您的音乐库中添加歌曲到此类别</p>
+                        <a href="my-music.html" class="btn btn-primary">
+                            <i data-feather="music" class="mr-2"></i> 前往我的音乐库
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- end::main-content -->
+    </div>
+    <!-- end::main -->
+    
+    <!-- Audio Player -->
+    <div class="audio-player">
+        <div class="player-content">
+            <div class="song-info">
+                <div class="cover">
+                    <img id="currentSongCover" src="assets/media/image/default-cover.jpg" alt="Cover">
+                </div>
+                <div class="details">
+                    <h5 id="currentSongTitle">No song playing</h5>
+                    <p id="currentSongArtist">-</p>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <div class="player-controls">
+                    <button id="prevButton" class="control-button">
+                        <i class="fas fa-step-backward"></i>
+                    </button>
+                    <button id="playPauseButton" class="control-button">
+                        <i class="fas fa-play"></i>
+                    </button>
+                    <button id="nextButton" class="control-button">
+                        <i class="fas fa-step-forward"></i>
+                    </button>
+                </div>
+                
+                <div class="progress-container">
+                    <span id="currentTime">0:00</span>
+                    <div class="progress">
+                        <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <span id="duration">0:00</span>
+                </div>
+            </div>
+            
+            <div class="volume">
+                <button id="muteButton" class="control-button">
+                    <i class="fas fa-volume-up"></i>
+                </button>
+                <div class="volume-slider">
+                    <input type="range" class="form-range" id="volumeSlider" min="0" max="100" value="100">
+                </div>
+            </div>
+        </div>
+        
+        <audio id="audioPlayer"></audio>
+    </div>
+    
+    <!-- jQuery CDN -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Bootstrap CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- SweetAlert2 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- Feather Icons CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    
+    <!-- Plugin scripts -->
+    <script src="vendors/bundle.js"></script>
+    
+    <!-- App scripts -->
+    <script src="assets/js/app.js"></script>
+    
+    <!-- Common API Module -->
+    <script type="module" src="../Common/js/api.js"></script>
+    
+    <!-- Custom Scripts -->
+    <script type="module" src="assets/js/category-songs.js"></script>
+    <script type="module" src="assets/js/audio-player.js"></script>
+    
+    <script>
+        // Initialize Feather Icons
+        if (typeof feather !== 'undefined') {
+            feather.replace();
+        }
+    </script>
+</body>
+</html> 
