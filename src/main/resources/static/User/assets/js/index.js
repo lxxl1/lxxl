@@ -1,5 +1,6 @@
 import { API_URL } from '../../../Common/js/config.js';
 import api from '../../../Common/js/api.js';
+import { playSongAudioPlayer } from './audio-player.js'; // Ensure this import exists
 
 // Global variables
 let allSongs = [];
@@ -248,33 +249,21 @@ function setupEventListeners() {
 }
 
 /**
- * Play a song
- * @param {string} songId - ID of the song to play
+ * Finds song details and plays it using the shared audio player.
+ * @param {string} songId - ID of the song to play.
  */
 function playSong(songId) {
     const song = approvedSongs.find(s => s.id == songId);
-    if (!song) return;
+    if (!song) {
+        console.error(`Song with ID ${songId} not found.`);
+        showMessage('Could not find the song to play.', 'error');
+        return;
+    }
     
     const singerName = allSingers.find(singer => singer.id === song.singerId)?.name || 'Unknown Artist';
     
-    // Update the modal content
-    document.getElementById('playing-song-name').textContent = song.name;
-    document.getElementById('playing-song-artist').textContent = singerName;
-    document.getElementById('playing-song-cover').src = song.pic || 'assets/media/image/default-cover.jpg';
-    document.getElementById('playing-song-lyrics').innerHTML = song.lyric || 'No lyrics available';
-    
-    // Set the audio source
-    const audioSource = document.getElementById('audio-source');
-    const audioPlayer = document.getElementById('audio-player');
-    
-    if (audioSource && audioPlayer) {
-        audioSource.src = song.url;
-        audioPlayer.load();
-        audioPlayer.play();
-    }
-    
-    // Show the modal
-    $('#songPlayerModal').modal('show');
+    // Use the shared audio player
+    playSongAudioPlayer(song.url, song.name, singerName, song.pic);
     
     // Increment play count
     incrementPlayCount(songId);

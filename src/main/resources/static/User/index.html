@@ -24,6 +24,148 @@
 
     <!-- App styles -->
     <link rel="stylesheet" href="assets/css/app.css" type="text/css">
+    
+    <!-- Font Awesome (for player controls) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+    <!-- Added Player Styles -->
+    <style>
+        .audio-player {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 1rem;
+            background: #fff;
+            box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.05);
+            z-index: 1000;
+        }
+        
+        /* 播放器样式 */
+        .player-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+        
+        .song-info {
+            display: flex;
+            align-items: center;
+            width: 30%;
+        }
+        
+        .cover {
+            width: 50px;
+            height: 50px;
+            margin-right: 1rem;
+            overflow: hidden;
+            border-radius: 4px;
+        }
+        
+        .cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .details h5 {
+            margin: 0;
+            font-size: 1rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+        }
+        
+        .details p {
+            margin: 0;
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+        
+        .controls {
+            width: 40%;
+        }
+        
+        .player-controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .control-button {
+            background: none;
+            border: none;
+            color: #495057;
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .control-button:hover {
+            background-color: #f8f9fa;
+            color: #007bff;
+        }
+        
+        .progress-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .progress {
+            flex-grow: 1;
+            height: 4px;
+            background-color: #e9ecef;
+        }
+        
+        .progress-bar {
+            background-color: #007bff;
+        }
+        
+        #currentTime, #duration {
+            font-size: 0.7rem;
+            color: #6c757d;
+            width: 35px;
+            text-align: center;
+        }
+        
+        .volume {
+            display: flex;
+            align-items: center;
+            width: 20%;
+            justify-content: flex-end;
+            gap: 0.5rem;
+        }
+        
+        .volume-slider {
+            width: 80px;
+        }
+        
+        input[type=\"range\"] {
+            -webkit-appearance: none;
+            height: 4px;
+            background: #e9ecef;
+            border-radius: 2px;
+        }
+        
+        input[type=\"range\"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            background: #007bff;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
 
@@ -135,58 +277,24 @@
         <div class="navigation-menu-tab">
             <div class="flex-grow-1">
                 <ul>
-                    <li>
-                        <a class="active" href="#" data-toggle="tooltip" data-placement="right" title="Dashboard" data-nav-target="#dashboards">
-                            <i data-feather="home"></i>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" data-toggle="tooltip" data-placement="right" title="My Music" data-nav-target="#my-music">
-                            <i data-feather="music"></i>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" data-toggle="tooltip" data-placement="right" title="Categories" data-nav-target="#categories">
-                            <i data-feather="folder"></i>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" data-toggle="tooltip" data-placement="right" title="Upload Music" data-nav-target="#upload">
-                            <i data-feather="upload"></i>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" data-toggle="tooltip" data-placement="right" title="Tags" data-nav-target="#tags">
-                            <i data-feather="tag"></i>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" data-toggle="tooltip" data-placement="right" title="Settings" data-nav-target="#settings">
-                            <i data-feather="settings"></i>
-                        </a>
-                    </li>
+                    <li><a class="active" href="#" data-toggle="tooltip" data-placement="right" title="Dashboard" data-nav-target="#dashboards"><i data-feather="home"></i></a></li>
+                    <li><a href="#" data-toggle="tooltip" data-placement="right" title="My Music" data-nav-target="#my-music"><i data-feather="music"></i></a></li>
+                    <li><a href="#" data-toggle="tooltip" data-placement="right" title="Categories" data-nav-target="#categories"><i data-feather="folder"></i></a></li>
+                    <li><a href="#" data-toggle="tooltip" data-placement="right" title="Upload Music" data-nav-target="#upload"><i data-feather="upload"></i></a></li>
+                    <li><a href="#" data-toggle="tooltip" data-placement="right" title="Tags" data-nav-target="#tags"><i data-feather="tag"></i></a></li>
+                    <li><a href="#" data-toggle="tooltip" data-placement="right" title="Settings" data-nav-target="#settings"><i data-feather="settings"></i></a></li>
                 </ul>
             </div>
-            <div>
-                <ul>
-                    <li>
-                        <a href="../login.html" data-toggle="tooltip" data-placement="right" title="Logout"
-                           target="_blank">
-                            <i data-feather="log-out"></i>
-                        </a>
-                    </li>
-                </ul>
-            </div>
+            <div><ul><li><a href="../login.html" data-toggle="tooltip" data-placement="right" title="Logout"><i data-feather="log-out"></i></a></li></ul></div>
         </div>
+
+        <!-- Standard Secondary Navigation Panel -->
         <div class="navigation-menu-body">
             <div class="navigation-menu-group">
                 <div id="dashboards" class="open">
                     <ul>
                         <li class="navigation-divider">Dashboard</li>
                         <li><a class="active" href="index.html">Overview</a></li>
-                        <li><a href="all-songs.html">All Songs</a></li>
-                        <li><a href="top-songs.html">Top Songs</a></li>
-                        <li><a href="search-results.html">Search</a></li>
                     </ul>
                 </div>
                 <div id="my-music">
@@ -201,7 +309,6 @@
                     <ul>
                         <li class="navigation-divider">Categories</li>
                         <li><a href="categories.html">Manage Categories</a></li>
-                        
                     </ul>
                 </div>
                 <div id="upload">
@@ -357,44 +464,54 @@
             </div>
         </div>
 
-        <!-- Song Player Modal -->
-        <div class="modal fade" id="songPlayerModal" tabindex="-1" role="dialog" aria-labelledby="songPlayerModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-lg" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="songPlayerModalLabel">Now Playing</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <i data-feather="x"></i>
+        <!-- Added Audio Player HTML -->
+        <div class="audio-player">
+            <div class="player-content">
+                <div class="song-info">
+                    <div class="cover">
+                        <img id="currentSongCover" src="assets/media/image/default-cover.jpg" alt="Cover">
+                    </div>
+                    <div class="details">
+                        <h5 id="currentSongTitle">No song playing</h5>
+                        <p id="currentSongArtist">-</p>
+                    </div>
+                </div>
+                
+                <div class="controls">
+                    <div class="player-controls">
+                        <button id="prevButton" class="control-button">
+                            <i class="fas fa-step-backward"></i>
+                        </button>
+                        <button id="playPauseButton" class="control-button">
+                            <i class="fas fa-play"></i>
+                        </button>
+                        <button id="nextButton" class="control-button">
+                            <i class="fas fa-step-forward"></i>
                         </button>
                     </div>
-                    <div class="modal-body">
-                        <div class="row">
-                            <div class="col-md-4">
-                                <img id="playing-song-cover" src="assets/media/image/default-cover.jpg" class="img-fluid rounded" alt="Album Cover">
-                                <div class="mt-3">
-                                    <h5 id="playing-song-name">Song Name</h5>
-                                    <p id="playing-song-artist">Artist Name</p>
-                                </div>
-                            </div>
-                            <div class="col-md-8">
-                                <div class="audio-player">
-                                    <audio id="audio-player" controls class="w-100">
-                                        <source id="audio-source" src="" type="audio/mp3">
-                                        Your browser does not support the audio element.
-                                    </audio>
-                                </div>
-                                <div class="mt-3">
-                                    <h6>Lyrics</h6>
-                                    <div id="playing-song-lyrics" class="p-3 bg-light rounded" style="max-height: 200px; overflow-y: auto;">
-                                        No lyrics available
-                                    </div>
-                                </div>
-                            </div>
+                    
+                    <div class="progress-container">
+                        <span id="currentTime">0:00</span>
+                        <div class="progress">
+                            <div class="progress-bar" role="progressbar" style="width: 0%"></div>
                         </div>
+                        <span id="duration">0:00</span>
+                    </div>
+                </div>
+                
+                <div class="volume">
+                    <button id="muteButton" class="control-button">
+                        <i class="fas fa-volume-up"></i>
+                    </button>
+                    <div class="volume-slider">
+                        <input type="range" class="form-range" id="volumeSlider" min="0" max="100" value="100">
                     </div>
                 </div>
             </div>
+            
+            <audio id="audioPlayer"></audio>
         </div>
+        <!-- End Added Audio Player HTML -->
 
         <!-- begin::footer -->
         <footer>
@@ -447,6 +564,7 @@
 
 <!-- 添加权限检查 -->
 <script type="module" src="assets/js/auth-check.js"></script>
+<script type="module" src="assets/js/audio-player.js"></script>
 
 </body>
 </html>

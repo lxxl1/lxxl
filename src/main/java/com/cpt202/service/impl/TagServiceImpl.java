@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Collections;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 @Service
 public class TagServiceImpl implements TagService {
@@ -25,8 +27,38 @@ public class TagServiceImpl implements TagService {
             System.out.println("Tag with name '" + tag.getName() + "' already exists for user " + tag.getUserId());
             return false;
         }
+        if (tag.getCreateTime() == null) {
+            tag.setCreateTime(Timestamp.valueOf(LocalDateTime.now()));
+        }
+        if (tag.getUpdateTime() == null) {
+            tag.setUpdateTime(Timestamp.valueOf(LocalDateTime.now()));
+        }
         int result = tagMapper.insert(tag);
         return result > 0;
+    }
+    
+    @Override
+    public boolean addTag(String name, Integer userId) {
+        Tag existingTag = tagMapper.selectByNameAndUserId(name, userId);
+        if (existingTag != null) {
+            System.out.println("Tag with name '" + name + "' already exists for user " + userId);
+            return false;
+        }
+
+        Tag newTag = new Tag();
+        newTag.setName(name);
+        newTag.setUserId(userId);
+        Timestamp now = Timestamp.valueOf(LocalDateTime.now());
+        newTag.setCreateTime(now);
+        newTag.setUpdateTime(now);
+        
+        try {
+            int result = tagMapper.insert(newTag);
+            return result > 0;
+        } catch (Exception e) {
+            System.err.println("Database error adding tag: " + e.getMessage());
+            return false;
+        }
     }
     
     @Override

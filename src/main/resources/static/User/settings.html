@@ -207,12 +207,6 @@
                                 <a class="nav-link" data-toggle="pill" href="#security">
                                     <i data-feather="shield" class="mr-2"></i> Security
                                 </a>
-                                <a class="nav-link" data-toggle="pill" href="#notifications">
-                                    <i data-feather="bell" class="mr-2"></i> Notifications
-                                </a>
-                                <a class="nav-link" data-toggle="pill" href="#connected-apps">
-                                    <i data-feather="link" class="mr-2"></i> Connected Apps
-                                </a>
                             </div>
                         </div>
                     </div>
@@ -224,49 +218,64 @@
                             <div class="card">
                                 <div class="card-body">
                                     <h6 class="card-title">Profile Information</h6>
-                                    <form>
+                                    <form id="profile-form">
                                         <div class="d-flex align-items-center mb-4">
                                             <div class="avatar avatar-xl">
-                                                <img src="assets/media/image/user/women_avatar1.jpg" class="rounded-circle" alt="avatar">
+                                                <img id="profile-avatar-img" src="assets/media/image/user/women_avatar1.jpg" class="rounded-circle" alt="avatar">
                                             </div>
                                             <div class="ml-3">
-                                                <button class="btn btn-primary">Change Avatar</button>
-                                                <button class="btn btn-light ml-2">Remove</button>
-                                            </div>
-                                        </div>
-
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="form-group">
-                                                    <label>First Name</label>
-                                                    <input type="text" class="form-control" value="John">
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="form-group">
-                                                    <label>Last Name</label>
-                                                    <input type="text" class="form-control" value="Doe">
-                                                </div>
+                                                <button type="button" class="btn btn-primary">Change Avatar</button>
+                                                <button type="button" class="btn btn-light ml-2">Remove</button>
                                             </div>
                                         </div>
 
                                         <div class="form-group">
-                                            <label>Email</label>
-                                            <input type="email" class="form-control" value="johndoe@example.com">
+                                            <label for="profile-name">Name</label>
+                                            <input type="text" class="form-control" id="profile-name" value="">
                                         </div>
 
                                         <div class="form-group">
-                                            <label>Bio</label>
-                                            <textarea class="form-control" rows="4"></textarea>
+                                            <label for="profile-email">Email</label>
+                                            <input type="email" class="form-control" id="profile-email" value="" readonly>
+                                            <small class="form-text text-muted">Email cannot be changed.</small>
                                         </div>
 
-                                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                                        <div id="profile-update-message" class="mt-3"></div>
+                                        <button type="submit" id="save-profile-button" class="btn btn-primary">Save Changes</button>
                                     </form>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Other tab panes... -->
+                        <!-- Security Settings -->
+                        <div class="tab-pane fade" id="security">
+                             <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">Security Settings</h6>
+                                    <!-- Add Security related form fields here -->
+                                    <form id="password-change-form">
+                                        <div class="form-group">
+                                            <label for="current-password">Current Password</label>
+                                            <input type="password" class="form-control" id="current-password" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="new-password">New Password</label>
+                                            <input type="password" class="form-control" id="new-password" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="confirm-new-password">Confirm New Password</label>
+                                            <input type="password" class="form-control" id="confirm-new-password" required>
+                                        </div>
+                                        <div id="password-change-message" class="mt-3"></div>
+                                        <button type="submit" id="change-password-button" class="btn btn-primary">Change Password</button>
+                                    </form>
+                                     <hr>
+                                     <h6>Two-Factor Authentication</h6>
+                                     <p>Enable two-factor authentication for added security.</p>
+                                     <button class="btn btn-outline-secondary">Enable 2FA</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -294,5 +303,18 @@
     <script src="vendors/dataTable/datatables.min.js"></script>
     <script src="assets/js/examples/dashboard.js"></script>
     <script src="assets/js/app.js"></script>
+
+    <!-- Axios for API requests -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <!-- Common API Module -->
+    <!-- REMOVED redundant script tag for api.js -->
+
+    <!-- Auth Check -->
+    <script type="module" src="assets/js/auth-check.js"></script>
+
+    <!-- Settings Page Script -->
+    <script type="module" src="assets/js/settings.js"></script>
+
 </body>
 </html> 

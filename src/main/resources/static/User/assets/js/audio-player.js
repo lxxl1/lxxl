@@ -373,92 +373,77 @@ window.audioPlayerControls = {
 };
 
 // 添加playSongAudioPlayer函数用于ES模块导出
-function playSongAudioPlayer(url, name, artist, cover) {
+export function playSongAudioPlayer(url, name, artist, cover) {
     try {
-        console.log('播放歌曲:', { url, name, artist, cover });
-        
-        // 确保播放列表已更新
-        collectSongs();
-        
-        // 检查是否是使用my-music.html的播放器
-        const myMusicPlayer = document.getElementById('audioPlayerContainer');
-        if (myMusicPlayer) {
-            console.log('使用my-music.html的音频播放器');
-            
-            // 设置音频源
-            const audioPlayer = document.getElementById('audioPlayer');
-            if (!audioPlayer) {
-                console.error('找不到audioPlayer元素');
-                return;
-            }
-            
-            // 显示播放器
-            myMusicPlayer.style.display = 'block';
-            
-            // 设置音频信息
-            audioPlayer.src = url;
-            
-            // 更新播放器UI (确保每个元素存在)
-            const titleElement = document.getElementById('nowPlayingTitle');
-            const artistElement = document.getElementById('nowPlayingSinger');
-            const coverElement = document.getElementById('nowPlayingImg');
-            
-            if (titleElement) titleElement.textContent = name || 'Unknown Song';
-            if (artistElement) artistElement.textContent = artist || 'Unknown Artist';
-            if (coverElement && cover) coverElement.src = cover;
-            
-            // 播放
-            audioPlayer.play().catch(error => {
-                console.error('播放失败:', error);
-            });
-            
-            // 添加关闭按钮事件
-            const closeBtn = document.getElementById('closePlayerBtn');
-            if (closeBtn) {
-                closeBtn.onclick = function() {
-                    audioPlayer.pause();
-                    myMusicPlayer.style.display = 'none';
-                };
-            }
-            
-            return;
-        }
-        
-        // 默认播放器行为 (category-songs.html)
         const audioPlayer = document.getElementById('audioPlayer');
         if (!audioPlayer) {
-            console.error('找不到audioPlayer元素');
+            console.error('Audio player element not found');
             return;
         }
-        
+
+        console.log(`Attempting to play: ${name} from ${url}`); // Debug log
+
+        // Update UI first
+        document.getElementById('currentSongTitle').textContent = name;
+        document.getElementById('currentSongArtist').textContent = artist;
+        document.getElementById('currentSongCover').src = cover;
+
+        // Stop current playback before loading new source
+        if (!audioPlayer.paused) {
+            console.log('Pausing current playback before loading new song.'); // Debug log
+            audioPlayer.pause();
+        }
+
+        // Reset progress bar and time display
+        const progressBar = document.querySelector('.progress-bar');
+        const currentTimeDisplay = document.getElementById('currentTime');
+        if (progressBar) progressBar.style.width = '0%';
+        if (currentTimeDisplay) currentTimeDisplay.textContent = '0:00';
+
+        // Set the new source
+        console.log('Setting new audio source.'); // Debug log
         audioPlayer.src = url;
-        
-        // 更新播放器UI (添加null检查)
-        const titleElement = document.getElementById('currentSongTitle');
-        const artistElement = document.getElementById('currentSongArtist');
-        const coverElement = document.getElementById('currentSongCover');
-        
-        if (titleElement) titleElement.textContent = name || 'Unknown Song';
-        if (artistElement) artistElement.textContent = artist || 'Unknown Artist';
-        if (coverElement && cover) coverElement.src = cover || 'assets/media/image/default-cover.jpg';
-        
-        // 播放
+
+        // Explicitly load the new source
+        console.log('Explicitly loading new source.'); // Debug log
+        audioPlayer.load();
+
+        // Play the audio
+        console.log('Calling play().'); // Debug log
         const playPromise = audioPlayer.play();
+
         if (playPromise !== undefined) {
-            playPromise.then(() => {
+            playPromise.then(_ => {
+                // Playback started successfully
                 isPlaying = true;
                 const playPauseButton = document.getElementById('playPauseButton');
                 if (playPauseButton) {
                     playPauseButton.innerHTML = '<i class="fas fa-pause"></i>';
                 }
-            }).catch(error => {
-                console.error('播放失败:', error);
+                console.log(`Playback started successfully for: ${name}`); // Debug log
+            })
+            .catch(error => {
+                // Playback failed or was interrupted.
+                console.error(`Playback error for ${name}:`, error);
+                // Avoid setting isPlaying to false here, as the state might be indeterminate
+                showMessage(`无法播放歌曲: ${name}. ${error.message}`, 'error');
             });
         }
-    } catch (error) {
-        console.error('播放歌曲出错:', error);
-    }
-}
 
-// 导出函数供ES模块使用
-export { playSongAudioPlayer }; 
+        // Update playlist logic if needed
+        const existingIndex = playlist.findIndex(item => item.url === url);
+        if (existingIndex !== -1) {
+            currentSongIndex = existingIndex;
+        } else {
+            // Optionally add the newly played song to the playlist
+             const newSong = { url, name, artist, cover };
+             playlist.push(newSong);
+             currentSongIndex = playlist.length - 1;
+             console.log("Added new song to playlist and set as current.");
+        }
+
+    } catch (error) {
+        console.error('Error in playSongAudioPlayer:', error);
+        showMessage('播放器发生内部错误', 'error');
+    }
+} 

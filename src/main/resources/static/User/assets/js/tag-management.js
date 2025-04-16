@@ -1,298 +1,329 @@
 import { API_URL } from '../../../Common/js/config.js';
 import api from '../../../Common/js/api.js';
 
-// Current user ID
 let currentUserId = null;
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Get current user ID
-    getCurrentUserId();
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('Tag Management page loaded.');
     
-    // Initialize page
-    initPage();
-    
-    // Bind events
-    bindEvents();
-});
-
-/**
- * Get current user ID
- */
-function getCurrentUserId() {
+    // Check login and get user ID
     try {
         const user = JSON.parse(localStorage.getItem('user'));
         if (user && user.id) {
             currentUserId = user.id;
-            return currentUserId;
+            console.log('User ID:', currentUserId);
+            initializeTagManagement();
         } else {
-            console.error('User not logged in or ID missing');
-            showMessage('Please login first', 'danger');
-            setTimeout(() => {
-                window.location.href = '../login.html';
-            }, 2000);
-            return null;
+            console.error('User not logged in or ID not found.');
+            showAlert('Please log in to manage tags.', 'danger');
+            // Optionally disable functionality or redirect
         }
-    } catch (e) {
-        console.error('Error parsing user data:', e);
-        return null;
-    }
-}
-
-/**
- * Initialize page
- */
-async function initPage() {
-    if (!currentUserId) return;
-    
-    try {
-        // Load user tags
-        await loadUserTags();
     } catch (error) {
-        console.error('Failed to initialize page:', error);
-        showMessage('Failed to load data. Please try again later.', 'danger');
+        console.error('Error getting user ID:', error);
+        showAlert('Error initializing page. Please try again.', 'danger');
     }
+});
+
+function initializeTagManagement() {
+    if (!currentUserId) return;
+
+    loadUserTags();
+    setupEventListeners();
 }
 
-/**
- * Bind events
- */
-function bindEvents() {
-    // Add tag form submission
+function setupEventListeners() {
+    // Add Tag Form
     const addTagForm = document.getElementById('addTagForm');
     if (addTagForm) {
-        addTagForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            if (!currentUserId) {
-                showMessage('Please login first', 'danger');
-                return;
-            }
-            
-            const tagNameInput = document.getElementById('newTagName');
-            if (!tagNameInput) {
-                console.error('Cannot find tag name input field');
-                return;
-            }
-            
-            const tagName = tagNameInput.value.trim();
-            
-            if (!tagName) {
-                showMessage('Please enter a tag name', 'warning');
-                return;
-            }
-            
-            try {
-                await createTag(tagName, currentUserId);
-                
-                // Clear input
-                tagNameInput.value = '';
-                
-                // Reload tag list
-                await loadUserTags();
-                
-                showMessage('Tag created successfully', 'success');
-            } catch (error) {
-                console.error('Failed to create tag:', error);
-                showMessage('Failed to create tag: ' + (error.message || 'Unknown error'), 'danger');
-            }
-        });
-    } else {
-        console.error('Cannot find add tag form');
+        addTagForm.addEventListener('submit', handleAddTagSubmit);
     }
-    
-    // Delete tag button click event (using event delegation)
-    document.addEventListener('click', async function(e) {
-        if (e.target.closest('.delete-tag-btn')) {
-            e.preventDefault();
-            
-            if (!currentUserId) {
-                showMessage('Please login first', 'danger');
-                return;
-            }
-            
-            const tagId = e.target.closest('.delete-tag-btn').getAttribute('data-id');
-            
-            if (confirm('Are you sure you want to delete this tag?')) {
-                try {
-                    await deleteTag(tagId);
-                    showMessage('Tag deleted successfully', 'success');
-                    
-                    // Refresh tag list
-                    await loadUserTags();
-                } catch (error) {
-                    console.error('Failed to delete tag:', error);
-                    showMessage('Failed to delete tag: ' + (error.message || 'Unknown error'), 'danger');
-                }
-            }
-        }
-    });
+
+    // Edit Tag Name Modal Save Button
+    const saveTagNameBtn = document.getElementById('saveTagNameButton');
+    if (saveTagNameBtn) {
+        saveTagNameBtn.addEventListener('click', handleSaveTagName);
+    }
 }
 
-/**
- * Load user tags
- */
+// --- Tag Loading and Display ---
 async function loadUserTags() {
-    if (!currentUserId) return;
-    
-    const tagList = document.getElementById('tagList');
-    if (!tagList) {
-        console.error('Cannot find tag list container');
-        return;
-    }
-    
-    // Show loading status
-    tagList.innerHTML = '<p class="text-center">Loading tags...</p>';
-    
+    const tagListContainer = document.getElementById('tagListContainer');
+    if (!tagListContainer) return;
+
+    tagListContainer.innerHTML = '<div class="text-center p-3"><span class="text-muted">Loading tags...</span></div>';
+
     try {
-        const response = await api.get('/tag/user', {
-            params: { userId: currentUserId }
-        });
-        
+        const response = await api.get('/tag/user', { params: { userId: currentUserId } });
+        tagListContainer.innerHTML = ''; // Clear loading/previous content
+
         if (response.data.code === '200') {
             const tags = response.data.data || [];
-            renderTagsList(tags);
-            return tags;
+            if (tags.length > 0) {
+                tags.forEach(tag => {
+                    const tagElement = createTagListItem(tag);
+                    tagListContainer.appendChild(tagElement);
+                });
+            } else {
+                tagListContainer.innerHTML = '<div class="list-group-item text-center text-muted">You haven\'t created any tags yet.</div>';
+            }
+            // Re-initialize feather icons if needed after adding new elements
+            if (window.feather) feather.replace();
         } else {
-            throw new Error(response.data.msg || 'Failed to get tag list');
+            console.error('Failed to load tags:', response.data.msg);
+            showAlert('Failed to load tags: ' + response.data.msg, 'danger');
+            tagListContainer.innerHTML = '<div class="list-group-item text-center text-danger">Error loading tags.</div>';
         }
     } catch (error) {
-        console.error('Failed to load user tags:', error);
-        tagList.innerHTML = '<p class="text-center text-danger">Failed to load tags. Please refresh the page and try again.</p>';
-        throw error;
+        console.error('Error fetching tags:', error);
+        showAlert('Error fetching tags. Please check your connection.', 'danger');
+        tagListContainer.innerHTML = '<div class="list-group-item text-center text-danger">Error loading tags.</div>';
     }
 }
 
-/**
- * Create tag
- * @param {string} name - Tag name
- * @param {number} userId - User ID
- */
-async function createTag(name, userId) {
-    try {
-        // Use provided API to add tag
-        const formData = new FormData();
-        formData.append('name', name);
-        formData.append('userId', userId);
-        
-        const response = await api.post('/tag/add', formData);
-        
-        if (response.data.code === '200') {
-            return response.data.data;
-        } else {
-            throw new Error(response.data.msg || 'Failed to create tag');
-        }
-    } catch (error) {
-        console.error('Failed to call create tag API:', error);
-        throw error;
-    }
-}
+function createTagListItem(tag) {
+    const item = document.createElement('div');
+    item.className = 'tag-list-item list-group-item'; // Removed list-group-item-action
+    // item.style.cursor = 'default'; // No longer clickable as a whole
+    item.dataset.tagId = tag.id;
+    item.dataset.tagName = tag.name;
 
-/**
- * Delete tag
- * @param {number} tagId - Tag ID
- */
-async function deleteTag(tagId) {
-    try {
-        const response = await api.get('/tag/delete', {
-            params: { id: tagId }
-        });
-        
-        if (response.data.code === '200') {
-            return true;
-        } else {
-            throw new Error(response.data.msg || 'Failed to delete tag');
-        }
-    } catch (error) {
-        console.error('Failed to call delete tag API:', error);
-        throw error;
-    }
-}
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'tag-name';
+    nameSpan.textContent = escapeHTML(tag.name);
 
-/**
- * Render tags list
- * @param {Array} tags - Tags array
- */
-function renderTagsList(tags) {
-    const tagList = document.getElementById('tagList');
-    if (!tagList) return;
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'tag-actions';
+
+    const manageBtn = document.createElement('button');
+    manageBtn.className = 'btn btn-sm btn-outline-primary manage-songs-btn';
+    manageBtn.innerHTML = '<i data-feather="music" style="width:16px; height:16px; margin-right: 4px;"></i> Manage Songs';
+    manageBtn.title = 'Manage songs with this tag';
+    manageBtn.addEventListener('click', () => {
+        // Navigate to the new tag-songs page with parameters
+        window.location.href = `tag-songs.html?tagId=${tag.id}&tagName=${encodeURIComponent(tag.name)}`;
+    });
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'btn btn-sm btn-outline-secondary edit-tag-btn';
+    editBtn.innerHTML = '<i data-feather="edit-2" style="width:16px; height:16px;"></i>';
+    editBtn.title = 'Edit tag name';
+    editBtn.addEventListener('click', (e) => {
+        // No need for stopPropagation anymore
+        openEditTagNameModal(tag.id, tag.name);
+    });
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn btn-sm btn-outline-danger delete-tag-btn';
+    deleteBtn.innerHTML = '<i data-feather="trash-2" style="width:16px; height:16px;"></i>';
+    deleteBtn.title = 'Delete tag';
+    deleteBtn.addEventListener('click', (e) => {
+        // No need for stopPropagation anymore
+        handleDeleteTag(tag.id, tag.name);
+    });
+
+    actionsDiv.appendChild(manageBtn); // Add manage songs button
+    actionsDiv.appendChild(editBtn);
+    actionsDiv.appendChild(deleteBtn);
+
+    item.appendChild(nameSpan);
+    item.appendChild(actionsDiv);
     
-    if (!tags || tags.length === 0) {
-        tagList.innerHTML = '<p class="text-center">You have not created any tags yet</p>';
+    // REMOVED: item.addEventListener('click', ...) 
+
+    return item;
+}
+
+// --- Add/Edit/Delete Tag Logic (Mostly unchanged) ---
+async function handleAddTagSubmit(event) {
+    event.preventDefault();
+    const tagNameInput = document.getElementById('newTagName');
+    const tagName = tagNameInput.value.trim();
+    const addButton = event.target.querySelector('button[type="submit"]');
+    
+    if (!tagName) {
+        showAlert('Please enter a tag name.', 'warning');
+        return;
+    }
+    if (!currentUserId) {
+         showAlert('Cannot add tag: User ID missing.', 'danger');
+         return;
+    }
+
+    // Disable button
+    addButton.disabled = true;
+    addButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Adding...';
+
+    try {
+        // IMPORTANT: Assumes a POST /tag/add endpoint exists or will be created
+        // It should accept { name: tagName, userId: currentUserId } or similar
+        const response = await api.post('/tag/add', { name: tagName, userId: currentUserId }); 
+
+        if (response.data.code === '200') {
+            showAlert('Tag added successfully!', 'success');
+            tagNameInput.value = ''; // Clear input
+            loadUserTags(); // Refresh the tag list
+        } else {
+            console.error('Failed to add tag:', response.data.msg);
+            showAlert('Failed to add tag: ' + (response.data.msg || 'Unknown error'), 'danger');
+        }
+    } catch (error) {
+        console.error('Error adding tag:', error);
+        let errorMsg = 'Error adding tag. Please try again.';
+        if (error.response && error.response.data && error.response.data.msg) {
+             errorMsg += ` Server said: ${error.response.data.msg}`;
+        }
+        showAlert(errorMsg, 'danger');
+        // Display backend missing error specifically?
+        if (error.response && error.response.status === 404) {
+             showAlert("Error: The backend endpoint to add tags is missing. Please contact support.", 'danger');
+        }
+    } finally {
+        // Re-enable button
+        addButton.disabled = false;
+        addButton.innerHTML = 'Add Tag';
+    }
+}
+
+function openEditTagNameModal(tagId, currentName) {
+    document.getElementById('editTagId').value = tagId;
+    document.getElementById('editTagNameInput').value = currentName;
+    document.getElementById('editTagNameMessage').innerHTML = '';
+    $('#editTagNameModal').modal('show');
+}
+
+async function handleSaveTagName() {
+    const tagId = document.getElementById('editTagId').value;
+    const newName = document.getElementById('editTagNameInput').value.trim();
+    const saveButton = document.getElementById('saveTagNameButton');
+    const messageDiv = document.getElementById('editTagNameMessage');
+    messageDiv.innerHTML = '';
+
+    if (!newName) {
+        messageDiv.innerHTML = '<div class="alert alert-warning">Tag name cannot be empty.</div>';
         return;
     }
     
-    let html = '';
-    
-    tags.forEach(tag => {
-        html += `
-        <div class="list-group-item d-flex justify-content-between align-items-center">
-            <span class="tag-name">${escapeHTML(tag.name)}</span>
-            <button class="btn btn-sm btn-outline-danger delete-tag-btn" data-id="${tag.id}">
-                <i data-feather="trash-2"></i> Delete
-            </button>
-        </div>
-        `;
-    });
-    
-    tagList.innerHTML = html;
-    
-    // Initialize Feather icons
-    if (window.feather) {
-        feather.replace();
+    saveButton.disabled = true;
+    saveButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
+
+    try {
+        const response = await api.post('/tag/update', { id: tagId, name: newName }); // Using POST as per controller
+
+        if (response.data.code === '200') {
+            messageDiv.innerHTML = '<div class="alert alert-success">Tag name updated successfully!</div>';
+            loadUserTags(); // Refresh list
+            setTimeout(() => {
+                 $('#editTagNameModal').modal('hide');
+            }, 1500);
+        } else {
+            messageDiv.innerHTML = `<div class="alert alert-danger">Failed to update tag: ${response.data.msg || 'Unknown error'}</div>`;
+        }
+    } catch (error) {
+        console.error('Error updating tag name:', error);
+        messageDiv.innerHTML = `<div class="alert alert-danger">Error updating tag: ${error.message || 'Please try again'}</div>`;
+    } finally {
+        saveButton.disabled = false;
+        saveButton.innerHTML = 'Save Name';
     }
 }
+
+async function handleDeleteTag(tagId, tagName) {
+    // Use SweetAlert2 for confirmation
+    Swal.fire({
+        title: 'Are you sure?',
+        text: `Do you really want to delete the tag "${escapeHTML(tagName)}"? This cannot be undone.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                // Use GET as per controller, pass ID in URL path or query param
+                // Let's assume query param based on controller code
+                const response = await api.get('/tag/delete', { params: { id: tagId } }); 
+
+                if (response.data.code === '200') {
+                    Swal.fire(
+                        'Deleted!',
+                        'The tag has been deleted.',
+                        'success'
+                    );
+                    loadUserTags(); // Refresh the list
+                } else {
+                    Swal.fire(
+                        'Error!',
+                        `Failed to delete tag: ${response.data.msg || 'Unknown error'}`, 
+                        'error'
+                    );
+                }
+            } catch (error) {
+                console.error('Error deleting tag:', error);
+                Swal.fire(
+                    'Error!',
+                    `An error occurred: ${error.message || 'Please try again'}`, 
+                    'error'
+                );
+            }
+        }
+    });
+}
+
+// --- REMOVED Song Loading and Display for a Tag Functions ---
+// REMOVED: handleTagClick, preloadUserSongs, loadSongsForTag, displayTagSongs, createTagSongCard
+
+// --- REMOVED Edit Song Tags Modal Logic Functions ---
+// REMOVED: setupEditTagsListeners, handleEditTagsClick, populateTagModal, handleSaveTags
+
+// --- REMOVED UI Navigation Functions ---
+// REMOVED: showTagManagementArea, showTagSongsArea
+
+// --- Utility Functions (Unchanged) ---
 
 /**
  * HTML escape function
- * @param {string} str - String to escape
- * @returns {string} Escaped string
  */
 function escapeHTML(str) {
     if (!str) return '';
-    return str.replace(/[&<>'"]/g, 
-        tag => ({
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            "'": '&#39;',
-            '"': '&quot;'
-        }[tag] || tag)
+    return String(str).replace(/[&<>'"/]/g, 
+        tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '/': '&#x2F;' }[tag] || tag)
     );
 }
 
 /**
- * Show message notification
- * @param {string} message - Message content
- * @param {string} type - Message type (success, danger, warning, info)
+ * Show alert messages in specified container
  */
-function showMessage(message, type) {
-    // Check if message container exists
-    let messageContainer = document.querySelector('.message-container');
-    if (!messageContainer) {
-        messageContainer = document.createElement('div');
-        messageContainer.className = 'message-container position-fixed top-0 end-0 p-3';
-        messageContainer.style.zIndex = '9999';
-        messageContainer.style.top = '1rem';
-        messageContainer.style.right = '1rem';
-        document.body.appendChild(messageContainer);
+function showAlert(message, type = 'info', containerId = 'alerts') {
+    const alertContainer = document.getElementById(containerId);
+    if (!alertContainer) {
+        console.error(`Alert container with ID '${containerId}' not found.`);
+        if (containerId !== 'alerts') showAlert(message, type, 'alerts'); // Fallback
+        else console.error(`Alert: [${type}] ${message}`); // Final fallback
+        return;
     }
     
-    // Create message element
-    const messageElement = document.createElement('div');
-    messageElement.className = `alert alert-${type} alert-dismissible fade show`;
-    messageElement.setAttribute('role', 'alert');
-    messageElement.innerHTML = `
-        ${message}
-        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-        </button>
+    const alertId = `alert-${Date.now()}`;
+    const alertHTML = `
+        <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${escapeHTML(message)}
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
     `;
+    alertContainer.insertAdjacentHTML('beforeend', alertHTML); 
     
-    // Add to container
-    messageContainer.appendChild(messageElement);
-    
-    // Auto close
-    setTimeout(() => {
-        $(messageElement).alert('close');
-    }, 5000);
+    // Auto-dismiss after 5 seconds (using Bootstrap 4 method)
+    const alertElement = document.getElementById(alertId);
+    if (alertElement) {
+        setTimeout(() => {
+            $(alertElement).alert('close'); 
+        }, 5000);
+    }
+}
+
+// Helper to get API endpoint URL (ensure consistency)
+function getApiEndpoint() {
+    return typeof API_URL !== 'undefined' ? API_URL : 'http://localhost:8080';
 } 

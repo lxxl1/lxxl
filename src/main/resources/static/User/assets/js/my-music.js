@@ -2,6 +2,9 @@ import { API_URL } from '../../../Common/js/config.js';
 import api from '../../../Common/js/api.js';
 import { playSongAudioPlayer } from './audio-player.js';
 
+// Global variable to store the current user ID
+let currentUserId = null;
+
 document.addEventListener('DOMContentLoaded', function() {
     // 初始化页面
     initPage();
@@ -419,4 +422,347 @@ function showMessage(message, type) {
              }
         });
     }
-} 
+}
+
+// Function to fetch and display user songs
+async function fetchUserSongs() {
+    // Check if currentUserId is already set (it should be after DOMContentLoaded runs)
+    if (!currentUserId) {
+        console.error('User ID not found when trying to fetch songs');
+        // Potentially show error in table
+        const tableBody = document.querySelector('#my-music-table tbody');
+        if(tableBody) tableBody.innerHTML = '<tr><td colspan="9" class="text-center">Error: User not identified.</td></tr>';
+        return;
+    }
+
+    const tableBody = document.querySelector('#my-music-table tbody'); // Assuming table has id="my-music-table"
+    if (!tableBody) {
+        console.error('Table body not found for my music');
+        return;
+    }
+    tableBody.innerHTML = '<tr><td colspan="9" class="text-center">Loading songs...</td></tr>'; // Updated colspan
+
+    try {
+        // Use the /song/selectbyuser endpoint which returns SongDTO
+        const response = await api.get(`/song/selectbyuser?userId=${currentUserId}`);
+        if (response.data && response.data.code === '1') {
+            displaySongs(response.data.data); // Pass the song data array
+        } else {
+            console.error('Failed to fetch songs:', response.data.msg);
+            tableBody.innerHTML = '<tr><td colspan="9" class="text-center">Failed to load songs.</td></tr>'; // Updated colspan
+        }
+    } catch (error) {
+        console.error('Error fetching songs:', error);
+        tableBody.innerHTML = '<tr><td colspan="9" class="text-center">Error loading songs. Please try again later.</td></tr>'; // Updated colspan
+    }
+}
+
+// Function to display songs in the table
+function displaySongs(songs) {
+    const tableBody = document.querySelector('#my-music-table tbody'); // Re-select or pass as argument
+    if (!tableBody) return;
+
+    if (!songs || songs.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="9" class="text-center">No songs found in your library.</td></tr>'; // Updated colspan
+        return;
+    }
+
+    tableBody.innerHTML = ''; // Clear loading/empty message
+
+    songs.forEach(song => {
+        const row = tableBody.insertRow();
+        
+        // Format categories and tags
+        const categoryNames = song.categories ? song.categories.map(c => c.name).join(', ') : 'N/A';
+        const tagNames = song.tags ? song.tags.map(t => t.name).join(', ') : '-';
+        const uploadDate = song.createTime ? new Date(song.createTime).toLocaleDateString() : 'N/A';
+        
+        // Determine status text and badge class
+        let statusText = 'Pending';
+        let statusBadgeClass = 'badge-warning';
+        if (song.status === 1) {
+            statusText = 'Approved';
+            statusBadgeClass = 'badge-success';
+        } else if (song.status === 2) {
+            statusText = 'Rejected';
+            statusBadgeClass = 'badge-danger';
+        } // Assuming 0 or other is Pending
+        
+        row.innerHTML = `
+            <td>
+                <div class="custom-control custom-checkbox">
+                    <input type="checkbox" class="custom-control-input song-checkbox" id="song_${song.id}" data-song-id="${song.id}">
+                    <label class="custom-control-label" for="song_${song.id}"></label>
+                </div>
+            </td>
+            <td>${song.name || 'Untitled'}</td>
+            <td>${categoryNames}</td>
+            <td>${tagNames}</td>
+            <td>${uploadDate}</td>
+            <td><span class="badge ${statusBadgeClass}">${statusText}</span></td>
+            <td>${song.playCount || 0}</td>
+            <td class="text-right">
+                <button class="btn btn-sm btn-outline-primary play-song-btn" data-song-id="${song.id}">
+                    <i data-feather="play" class="width-15 height-15"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger delete-song-btn" data-song-id="${song.id}">
+                    <i data-feather="trash-2" class="width-15 height-15"></i>
+                </button>
+                <!-- Add other action buttons like add to playlist if needed -->
+            </td>
+            <td> <!-- New Cell for Edit Button -->
+                <button class="btn btn-sm btn-info edit-song-btn" data-song-id="${song.id}" data-toggle="modal" data-target="#editSongModal">
+                    <i data-feather="edit-2" class="width-15 height-15"></i> Edit
+                </button>
+            </td>
+        `;
+    });
+
+    // Re-initialize Feather Icons for the new buttons
+    if (typeof feather !== 'undefined') {
+        feather.replace();
+    }
+}
+
+// --- Edit Song Modal Logic ---
+
+// Store selected category and tag IDs for the currently editing song
+let selectedEditCategoryIds = new Set();
+let selectedEditTagIds = new Set();
+
+async function openEditSongModal(songId) {
+    console.log(`Opening edit modal for song ID: ${songId}`);
+    const modal = $('#editSongModal'); // Requires jQuery
+    const messageArea = document.getElementById('editSongMessage');
+    const categoryContainer = document.getElementById('editCategoryPillsContainer');
+    const tagContainer = document.getElementById('editTagPillsContainer');
+    const songNameInput = document.getElementById('editSongName');
+    const singerIdInput = document.getElementById('editSingerId');
+    const introductionTextarea = document.getElementById('editIntroduction');
+    const lyricTextarea = document.getElementById('editLyric');
+
+    messageArea.style.display = 'none';
+    messageArea.textContent = '';
+    categoryContainer.innerHTML = '<span class="text-muted">Loading categories...</span>';
+    tagContainer.innerHTML = '<span class="text-muted">Loading tags...</span>';
+    document.getElementById('editSongForm').reset(); // Reset form fields
+    document.getElementById('editSongId').value = songId;
+
+    // Show the modal (Bootstrap 4 requires jQuery)
+    modal.modal('show');
+
+    // --- Fetch data (Separated requests) ---
+    try {
+        // Fetch song details, current categories, current tags, all categories, and all user tags concurrently
+        const [songDetailResponse, currentCategoriesResponse, currentTagsResponse, allCategoriesResponse, allUserTagsResponse] = await Promise.all([
+            api.get(`/song/detail?songId=${songId}`),       // Get basic song info (using request param)
+            api.get(`/song/categories?songId=${songId}`), // Get current categories for this song
+            api.get(`/tag/song?songId=${songId}`),         // Get current tags for this song
+            api.get('/category/selectAll'),               // Get all available categories
+            api.get(`/tag/user?userId=${currentUserId}`)  // Get all tags available to the user
+        ]);
+
+        // --- Process Song Details --- //
+        if (songDetailResponse.data && songDetailResponse.data.code === '1' && songDetailResponse.data.data) {
+            const songData = songDetailResponse.data.data;
+            songNameInput.value = songData.name || '';
+            // Assuming singerId is directly available or needs to be handled if it's an object
+            singerIdInput.value = songData.singerId || ''; 
+            introductionTextarea.value = songData.introduction || '';
+            lyricTextarea.value = songData.lyric || '';
+        } else {
+            throw new Error(`Failed to load song details: ${songDetailResponse.data.msg || 'Unknown error'}`);
+        }
+
+        // --- Process Current Categories & Tags --- //
+        if (currentCategoriesResponse.data && currentCategoriesResponse.data.code === '1') {
+            const currentCategories = currentCategoriesResponse.data.data || [];
+            selectedEditCategoryIds = new Set(currentCategories.map(cat => cat.id));
+            console.log('Initial Category IDs:', selectedEditCategoryIds);
+        } else {
+             console.warn('Could not load current categories for song:', currentCategoriesResponse.data.msg);
+             selectedEditCategoryIds = new Set(); // Start empty if failed
+        }
+
+        if (currentTagsResponse.data && currentTagsResponse.data.code === '1') {
+            const currentTags = currentTagsResponse.data.data || [];
+            selectedEditTagIds = new Set(currentTags.map(tag => tag.id));
+            console.log('Initial Tag IDs:', selectedEditTagIds);
+        } else {
+            console.warn('Could not load current tags for song:', currentTagsResponse.data.msg);
+            selectedEditTagIds = new Set(); // Start empty if failed
+        }
+
+
+        // --- Populate All Categories --- //
+        categoryContainer.innerHTML = ''; // Clear loading
+        if (allCategoriesResponse.data && allCategoriesResponse.data.code === '1' && allCategoriesResponse.data.data) {
+            const allCategories = allCategoriesResponse.data.data;
+            if (allCategories.length === 0) {
+                 categoryContainer.innerHTML = '<span class="text-muted">No categories available.</span>';
+            } else {
+                allCategories.forEach(category => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'btn btn-sm btn-outline-secondary category-pill';
+                    button.textContent = category.name;
+                    button.dataset.categoryId = category.id;
+
+                    if (selectedEditCategoryIds.has(category.id)) {
+                        button.classList.add('active'); // Mark as selected
+                        button.classList.replace('btn-outline-secondary', 'btn-primary');
+                    }
+
+                    button.addEventListener('click', () => {
+                        const categoryId = parseInt(button.dataset.categoryId);
+                        if (selectedEditCategoryIds.has(categoryId)) {
+                            selectedEditCategoryIds.delete(categoryId);
+                            button.classList.remove('active');
+                            button.classList.replace('btn-primary', 'btn-outline-secondary');
+                        } else {
+                            selectedEditCategoryIds.add(categoryId);
+                            button.classList.add('active');
+                            button.classList.replace('btn-outline-secondary', 'btn-primary');
+                        }
+                        console.log('Selected Category IDs:', selectedEditCategoryIds);
+                    });
+                    categoryContainer.appendChild(button);
+                });
+            }
+        } else {
+            categoryContainer.innerHTML = '<span class="text-danger">Failed to load categories.</span>';
+            console.error('Failed to load all categories:', allCategoriesResponse.data.msg);
+        }
+
+        // --- Populate User Tags --- //
+        tagContainer.innerHTML = ''; // Clear loading
+        if (allUserTagsResponse.data && allUserTagsResponse.data.code === '1' && allUserTagsResponse.data.data) {
+            const userTags = allUserTagsResponse.data.data;
+             if (userTags.length === 0) {
+                 tagContainer.innerHTML = '<span class="text-muted">You have no tags. <a href="tag-management.html">Manage Tags</a></span>';
+            } else {
+                userTags.forEach(tag => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'btn btn-sm btn-outline-secondary tag-pill';
+                    button.textContent = tag.name;
+                    button.dataset.tagId = tag.id;
+
+                    if (selectedEditTagIds.has(tag.id)) {
+                        button.classList.add('active'); // Mark as selected
+                         button.classList.replace('btn-outline-secondary', 'btn-primary');
+                    }
+
+                    button.addEventListener('click', () => {
+                        const tagId = parseInt(button.dataset.tagId);
+                        if (selectedEditTagIds.has(tagId)) {
+                            selectedEditTagIds.delete(tagId);
+                            button.classList.remove('active');
+                            button.classList.replace('btn-primary', 'btn-outline-secondary');
+                        } else {
+                            selectedEditTagIds.add(tagId);
+                            button.classList.add('active');
+                            button.classList.replace('btn-outline-secondary', 'btn-primary');
+                        }
+                         console.log('Selected Tag IDs:', selectedEditTagIds);
+                    });
+                    tagContainer.appendChild(button);
+                });
+            }
+        } else {
+            tagContainer.innerHTML = '<span class="text-danger">Failed to load tags.</span>';
+            console.error('Failed to load user tags:', allUserTagsResponse.data.msg);
+        }
+
+    } catch (error) {
+        console.error('Error opening or populating edit modal:', error);
+        showModalMessage(messageArea, `Error loading details: ${error.message}. Please close and try again.`, true);
+        // Optionally disable save button or provide more guidance
+    }
+}
+
+async function saveSongChanges() {
+    console.log('Save changes button clicked');
+    const songId = document.getElementById('editSongId').value;
+    const messageArea = document.getElementById('editSongMessage');
+    messageArea.style.display = 'none';
+    messageArea.textContent = '';
+
+    // TODO: Get updated data from form (basic info, category IDs, tag IDs)
+    // TODO: Call backend API(s) to save changes (e.g., /song/update, /song/categories/{id}, /song/tags/{id})
+    // TODO: Handle success/error responses, show messages, close modal, refresh list
+    console.log(`Save logic for song ID: ${songId} needs to be implemented here.`);
+    
+    // Example of showing a temporary message
+    // showModalMessage(messageArea, 'Saving... Please wait.'); 
+}
+
+// Function to display messages inside the modal
+function showModalMessage(element, message, isError = false) {
+    element.textContent = message;
+    element.className = isError ? 'alert alert-danger mt-3' : 'alert alert-success mt-3';
+    element.style.display = 'block';
+}
+
+// --- Event Listeners ---
+document.addEventListener('DOMContentLoaded', () => {
+    // Get user info from localStorage
+    const userString = localStorage.getItem('user');
+    const currentUser = userString ? JSON.parse(userString) : null;
+    const token = localStorage.getItem('token');
+    
+    // Set the global currentUserId
+    currentUserId = currentUser ? currentUser.id : null;
+
+    if (!currentUserId || !token) { // Check for both ID and token
+        console.error('User ID or Token not found in localStorage. Redirecting...');
+        alert('Please log in to view your music.');
+        window.location.href = '../login.html';
+        return;
+    }
+
+    console.log('User identified, ID:', currentUserId);
+
+    // Initial fetch of songs
+    fetchUserSongs();
+
+    // Event delegation for dynamically added buttons within the table body
+    const tableBody = document.querySelector('#my-music-table tbody');
+    if (tableBody) {
+        tableBody.addEventListener('click', (event) => {
+            const targetButton = event.target.closest('button'); // Find the closest button ancestor
+            if (!targetButton) return; // Exit if the click wasn't on or inside a button
+
+            const songId = targetButton.dataset.songId;
+            if (!songId) return; // Exit if button doesn't have songId
+
+            if (targetButton.classList.contains('edit-song-btn')) {
+                event.preventDefault(); // Prevent default if it's inside a link/form
+                openEditSongModal(songId);
+            } else if (targetButton.classList.contains('play-song-btn')) {
+                // Handle play button click (existing logic might be elsewhere or needs adding)
+                console.log(`Play button clicked for song ID: ${songId}`);
+                // Example: playSong(songId);
+            } else if (targetButton.classList.contains('delete-song-btn')) {
+                // Handle delete button click (existing logic might be elsewhere or needs adding)
+                console.log(`Delete button clicked for song ID: ${songId}`);
+                // Example: confirmAndDeleteSong(songId);
+            }
+            // Add more conditions for other action buttons if needed
+        });
+    }
+    
+    // Add listener for the modal save button
+    const saveButton = document.getElementById('saveSongChangesButton');
+    if (saveButton) {
+        saveButton.addEventListener('click', saveSongChanges);
+    }
+
+    // Add listener for select all checkbox (if needed)
+    // ...
+
+});
+
+// Assume table in my-music.html has id="my-music-table"
+// Remember to include jQuery if using Bootstrap modal functions like $('#editSongModal').modal('show');
+// Ensure Feather Icons are initialized after dynamic content generation. 

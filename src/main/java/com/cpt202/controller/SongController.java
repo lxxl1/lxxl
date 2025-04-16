@@ -8,6 +8,7 @@ import com.cpt202.service.TagService;
 import com.cpt202.utils.Consts;
 import com.cpt202.utils.OssUtil;
 import com.cpt202.dto.SongDTO;
+import com.cpt202.dto.UpdateSongCategoryRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -531,6 +532,32 @@ public class SongController {
         } catch (Exception e) {
             log.error("Error fetching songs for user ID: {} in category ID: {}", userId, categoryId, e);
             return Result.failure("获取歌曲列表失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 更新歌曲的类别关联 (新版，接收 PUT 和 JSON)
+     * 与前端 category-songs.js 对应
+     */
+    @PutMapping("/updateCategory") // 使用 PUT 方法
+    public Result updateCategory(@RequestBody UpdateSongCategoryRequest request) { // 使用 @RequestBody 和 DTO
+        if (request == null || request.getSongId() == null || request.getCategoryIds() == null) {
+            return Result.failure("请求参数无效");
+        }
+        log.info("Received request to update categories for song ID: {} with categories: {}", request.getSongId(), request.getCategoryIds());
+        try {
+            // 直接调用接收 List<Integer> 的服务层方法
+            boolean success = songCategoryService.addSongCategories(request.getSongId(), request.getCategoryIds());
+            if (success) {
+                log.info("Successfully updated categories for song ID: {}", request.getSongId());
+                return Result.success("歌曲类别更新成功");
+            } else {
+                log.warn("Failed to update categories for song ID: {} via service", request.getSongId());
+                return Result.failure("更新歌曲类别失败");
+            }
+        } catch (Exception e) {
+             log.error("Error updating categories for song ID: {} via PUT /updateCategory", request.getSongId(), e);
+             return Result.failure("更新歌曲类别时服务器内部错误: " + e.getMessage());
         }
     }
 }

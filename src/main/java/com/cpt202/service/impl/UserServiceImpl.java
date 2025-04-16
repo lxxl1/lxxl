@@ -251,6 +251,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public boolean update(User user) {
+        // Revert back to the original call
         return userMapper.updateById(user) > 0;
     }
 

@@ -5,6 +5,7 @@ import java.util.List;
 
 public interface TagService {
     boolean createTag(Tag tag);
+    boolean addTag(String name, Integer userId);
     boolean deleteTag(Integer id);
     boolean updateTag(Tag tag);
     Tag getTagById(Integer id);
