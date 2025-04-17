@@ -76,7 +76,7 @@
         where  id = #{id}
     </delete>
 
-    <update id="update" parameterType="com.cpt202.domain.User">
+    <update id="updateById" parameterType="com.cpt202.domain.User">
         update user
         <set>
             <if test="username != null">username = #{username},</if>

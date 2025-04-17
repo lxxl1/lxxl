@@ -55,7 +55,7 @@ public class UserController {
      */
     @PostMapping("/update")
     public Result updateUser(@RequestBody User user) {
-        if (userService.update(user)) {
+        if (userService.updateById(user)) {
             return Result.success("修改成功");
         }
         return Result.failure("修改失败");

@@ -197,9 +197,9 @@ public class UserServiceImpl implements UserService {
     /**
      * 修改
      */
-    public void updateById(User user) {
-
-        userMapper.updateById(user);
+    @Override
+    public boolean updateById(User user) {
+        return userMapper.updateById(user) > 0;
     }
 
     /**

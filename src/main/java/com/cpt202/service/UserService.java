@@ -18,8 +18,6 @@ public interface UserService {
 
     void deleteBatch(List<Integer> ids);
 
-    void updateById(User user);
-
     User selectById(Integer id);
 
     List<User> selectAll(User user);
@@ -40,4 +38,6 @@ public interface UserService {
     boolean updateStatus(Integer id, Byte status);
 
     User selectByUsername(String username);
+
+    boolean updateById(User user);
 }
