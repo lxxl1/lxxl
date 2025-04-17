@@ -177,17 +177,19 @@ function filterSongs(songs, filters) {
 
     return songs.filter(song => {
         let match = true;
-        if (singerId && song.singerId?.toString() !== singerId) {
+        
+        // Filter by ONE selected singer ID (if singerId filter exists and is used)
+        // Assumes DTO has singerIds list. Modify if filter should check multiple singers.
+        if (singerId && (!song.singerIds || !song.singerIds.includes(parseInt(singerId)))) { 
             match = false;
         }
-        // Ensure song.userId exists and is compared correctly
+        
         if (userId && (!song.userId || song.userId.toString() !== userId)) { 
             match = false;
         }
         if (songName && !song.name?.toLowerCase().includes(songName.toLowerCase())) {
             match = false;
         }
-        // Status filter: Check if status is not empty and doesn't match
         if (status !== '' && song.status?.toString() !== status) { 
             match = false;
         }
@@ -266,7 +268,23 @@ function initializeDataTable() {
         columns: [
             { data: 'id' },
             { data: 'name' },
-            { data: 'singerId' },
+            {
+                title: "Singer(s)",
+                data: "singerNames", // Use singerNames from DTO
+                render: function(data, type, row) {
+                    // Data is now the comma-separated string or null
+                    const names = data || 'Unknown Artist';
+                    // If you want links, you'd need singerIds and make separate calls or adjust DTO further
+                    return `<span title="${names}">${names}</span>`; // Simple display for now
+                }
+             },
+            {
+                title: "Plays", // Changed from "Play Count"
+                data: "nums", // Use nums field
+                render: function(data, type, row) {
+                    return data || 0;
+                }
+            },
             { 
                 data: 'pic',
                 render: function(data) {
@@ -281,7 +299,6 @@ function initializeDataTable() {
                     return data && data.length > 30 ? data.substring(0, 30) + '...' : (data || '-');
                 }
             },
-            { data: 'nums' },
             { 
                 data: 'status', // Add rendering for Status column
                 render: function(data) {
@@ -500,47 +517,25 @@ function setupEventListeners() {
  */
 function handleAddSong() {
     const form = $('#addSongForm')[0];
-    
-    if (!validateSongForm(form)) {
-        return;
-    }
-    
+    if (!validateSongForm(form)) { return; }
     const formData = new FormData(form);
-    
-    // Get current user ID from localStorage (Assuming Admin might upload)
-    const currentUser = JSON.parse(localStorage.getItem('user'));
-    // Decide how to handle admin uploads: use admin ID or maybe a specific singer ID?
-    // For now, let's assume admin uploads on behalf of a selected singer, 
-    // and user ID might not be relevant or could be the admin's own ID.
-    if (currentUser && currentUser.id) {
-        formData.append('userId', currentUser.id); // Or use a default/system ID if needed
-    } else {
-        showToast('Could not identify user/admin. Upload might fail.', 'warning');
-        // Potentially return or use a default ID
-        // formData.append('userId', '0'); // Example default
-    }
-    
-    // Get category ID(s)
-    const categorySelect = document.getElementById('addCategory'); // Use the correct ID from the modal
-    const categoryId = categorySelect.value;
-    if (!categoryId) {
-        showToast('Please select a category.', 'warning');
-        return;
-    }
-    // Remove old categoryId if it was ever part of the form data directly
-    if (formData.has('categoryId')) {
-        formData.delete('categoryId');
-    }
-    formData.append('categoryIds', categoryId); // Add the correct parameter name
 
-    // Ensure required fields like singerId, name are included (should be handled by FormData)
-    if (!formData.has('singerId') || !formData.get('singerId')) {
-        showToast('Please select an artist.', 'warning');
-        return;
+    // Get MULTIPLE singer IDs (Name matches HTML: singerIds)
+    const selectedSingerIds = $('#addSingers').val();
+    // Validation for singers already handled in validateSongForm
+    // FormData(form) already includes 'singerIds' if name attribute is correct.
+    // Ensure it's sent correctly even if no selection (though validation prevents this)
+    if (!formData.has('singerIds')) {
+        formData.append('singerIds', selectedSingerIds ? selectedSingerIds.join(',') : '');
     }
-     if (!formData.has('name') || !formData.get('name')) {
-        showToast('Please enter a song name.', 'warning');
-        return;
+    
+    // Get SINGLE category ID (Name matches HTML: categoryId)
+    const categorySelect = document.getElementById('addCategory');
+    const categoryId = categorySelect.value;
+    // Validation for category already handled in validateSongForm
+    // FormData(form) includes 'categoryId'. Ensure it's correct.
+    if (!formData.has('categoryId')) {
+         formData.append('categoryId', categoryId || '');
     }
 
     // Check music file again
@@ -574,64 +569,73 @@ function handleAddSong() {
         console.log(pair[0] + ': ', pair[1]);
     }
     
-    api.post(`${API_BASE_URL}/add`, formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data' // Ensure correct header
-        },
-        onUploadProgress: function(progressEvent) {
-            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            progressIndicator.width(percentCompleted + '%');
-            progressIndicator.text(percentCompleted + '%');
-        }
-    })
-    .then(response => {
-        console.log('Admin Add song response:', response);
-        if (response.data && (response.data.code === '200' || response.data.code === 200)) {
-            showToast('Song added successfully!', 'success');
-            $('#addSongModal').modal('hide');
-            form.reset();
-            categorySelect.selectedIndex = 0; // Reset category dropdown
-            fetchAndDisplaySongs(true);
-        } else {
-            showToast('Failed to add song: ' + (response.data.msg || 'Unknown error'), 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error adding song (Admin):', error);
-        showToast('Error adding song: ' + (error.response?.data?.msg || error.message || 'Network error'), 'error');
-    })
-    .finally(() => {
-        progressBar.hide();
-        $('#submitAddSong').prop('disabled', false);
-    });
+    showToast('Adding song...', 'info');
+    api.post(`${API_BASE_URL}/add`, formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+        .then(response => {
+            if (response.data && (response.data.code === '200' || response.data.code === 200)) {
+                showToast('Song added successfully!', 'success');
+                $('#addSongModal').modal('hide');
+                fetchAndDisplaySongs(); // Refresh the table
+                fetchAllSongsDataForStats(); // Refresh stats
+            } else {
+                showToast(response.data?.message || 'Failed to add song.', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error adding song:', error);
+            showToast('Error adding song. ' + (error.response?.data?.message || error.message), 'error');
+        })
+        .finally(() => {
+            progressBar.hide();
+            $('#submitAddSong').prop('disabled', false);
+        });
 }
 
 /**
  * Load song data for editing
  */
-function loadSongForEdit(songId) {
-    api.get(`${API_BASE_URL}/detail?songId=${songId}`)
-        .then(response => {
-            if (response.status === 200 && response.data && (response.data.code === '200' || response.data.code === 200)) {
-                const song = response.data.data;
-                $('#editSongId').val(song.id);
-                $('#editSongName').val(song.name);
-                $('#editSingerId').val(song.singerId);
-                $('#editIntroduction').val(song.introduction);
-                $('#editLyric').val(song.lyric);
-                $('#currentSongFile').text(song.url ? 'Current song file exists' : 'No song file');
-                $('#currentMVFile').text(song.mvurl ? 'Current MV file exists' : 'No MV file');
-                
-                currentSongId = song.id;
-                $('#editSongModal').modal('show');
+async function loadSongForEdit(songId) {
+    currentSongId = songId;
+    try {
+        // Fetch SongDetailDTO
+        const response = await api.get(`${API_BASE_URL}/detail`, { params: { songId } });
+        if (response.data && (response.data.code === '200' || response.data.code === 200) && response.data.data) {
+            const song = response.data.data; // This is SongDetailDTO
+            
+            // Populate basic fields
+            $('#editSongId').val(song.id);
+            $('#editName').val(song.name);
+            $('#editIntroduction').val(song.introduction);
+            $('#editLyric').val(song.lyric);
+            
+            // Set MULTIPLE selected singers
+            const editSingersSelect = $('#editSingers');
+            if (song.singerIds && song.singerIds.length > 0) {
+                editSingersSelect.val(song.singerIds);
             } else {
-                showToast('Failed to load song details: ' + (response.data.msg || response.message || 'Unknown error'), 'error');
+                editSingersSelect.val([]);
             }
-        })
-        .catch(error => {
-            console.error('Error loading song details:', error);
-            showToast('Error loading song details: ' + (error.message || 'Unknown error'), 'error');
-        });
+            // Refresh multi-select plugin if used (e.g., Select2)
+            // editSingersSelect.trigger('change'); 
+            
+            // Set MULTIPLE selected categories
+            const editCategorySelect = $('#editCategory');
+             if (song.categoryIds && song.categoryIds.length > 0) {
+                 editCategorySelect.val(song.categoryIds);
+             } else {
+                  editCategorySelect.val([]);
+             }
+             // Refresh multi-select plugin if needed
+             // editCategorySelect.trigger('change');
+
+            $('#editSongModal').modal('show');
+        } else {
+            showToast(response.data?.message || 'Could not load song details for editing.', 'error');
+        }
+    } catch (error) {
+        console.error(`Error loading song ${songId} for edit:`, error);
+        showToast('Error loading song details. ' + (error.response?.data?.message || error.message), 'error');
+    }
 }
 
 /**
@@ -639,34 +643,50 @@ function loadSongForEdit(songId) {
  */
 function handleEditSong() {
     const form = $('#editSongForm')[0];
+    if (!validateSongForm(form)) { return; } 
     
-    if (!validateSongForm(form)) {
+    const songId = $('#editSongId').val();
+    if (!songId) {
+        showToast('Cannot save changes, song ID is missing.', 'error');
         return;
     }
+
+    // Construct data object directly from form values
+    const songData = {
+        id: songId,
+        name: $('#editName').val(),
+        introduction: $('#editIntroduction').val(),
+        lyric: $('#editLyric').val(),
+        singerIds: $('#editSingers').val()?.join(',') || '', // Matches HTML name='singerIds'
+        categoryIds: $('#editCategory').val()?.join(',') || '' // Matches HTML name='categoryIds'
+    };
     
-    const formData = new FormData(form);
-    const serializedData = Object.fromEntries(formData.entries());
+    // Include tag IDs if tag input exists
+    const tagInput = document.getElementById('editTags'); // Assuming ID is editTags
+    if (tagInput && tagInput.value) {
+        songData.tagIds = tagInput.value; // Assuming tag input handles comma-separated IDs
+    }
     
-    // Disable submit button
-    $('#submitEditSong').prop('disabled', true);
-    
-    api.post(`${API_BASE_URL}/update`, serializedData)
-        .then(response => {
-            if (response.status === 200 && response.data && (response.data.code === '200' || response.data.code === 200)) {
-                showToast('Song updated successfully!', 'success');
-                $('#editSongModal').modal('hide');
-                fetchAndDisplaySongs(true);
-            } else {
-                showToast('Failed to update song: ' + (response.data.msg || response.message || 'Unknown error'), 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error updating song:', error);
-            showToast('Error updating song: ' + (error.message || 'Unknown error'), 'error');
-        })
-        .finally(() => {
-            $('#submitEditSong').prop('disabled', false);
-        });
+    console.log("Data being sent for update:", songData);
+
+    showToast('Saving changes...', 'info');
+    // Use the correct update endpoint and method (POST)
+    api.post(`${API_BASE_URL}/update`, new URLSearchParams(songData).toString(), { // Send as form data
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    })
+    .then(response => {
+        if (response.data && (response.data.code === '200' || response.data.code === 200)) {
+            showToast('Song updated successfully!', 'success');
+            $('#editSongModal').modal('hide');
+            fetchAndDisplaySongs(); // Refresh table
+        } else {
+            showToast(response.data?.message || 'Failed to update song.', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error updating song:', error);
+        showToast('Error updating song. ' + (error.response?.data?.message || error.message), 'error');
+    });
 }
 
 /**
@@ -783,13 +803,15 @@ function handleUpdateFile(fileType) {
  * Preview song using data passed from the button
  */
 function previewSong(songData) {
-    // Increment play count (optional, can be kept)
+    // Assume songData is now a SongDTO
+    // Increment play count (optional)
     api.get(`${API_BASE_URL}/addNums?songId=${songData.id}`)
-       .catch(error => console.error("Failed to increment play count:", error)); // Log error but don't block preview
+       .catch(error => console.error("Failed to increment play count:", error));
 
     // Populate the preview modal
     $('#previewTitle').text(songData.name || 'Song Preview');
-    $('#previewSinger').text(`Artist ID: ${songData.singerId || 'N/A'}`); // Display Artist ID
+    // Display singer names
+    $('#previewSinger').text(`Artist(s): ${songData.singerNames || 'N/A'}`); 
     $('#previewIntro').text(songData.introduction || 'No introduction available.');
     
     // Set cover image (use a default if pic is missing)
@@ -964,33 +986,45 @@ function showToast(message, type = 'info') {
 }
 
 /**
- * Form validation (Ensure category is checked)
+ * Form validation (checks multi-selects)
  */
 function validateSongForm(form) {
+    const isAddForm = form.id === 'addSongForm';
     const songName = form.elements.name.value.trim();
-    const singerId = form.elements.singerId.value.trim();
-    // Validate the correct category select element ID ('addCategory' for add form, potentially different for edit)
-    const categorySelectId = form.id === 'addSongForm' ? 'addCategory' : 'editCategory'; // Example assumption for edit form
-    const categoryElement = document.getElementById(categorySelectId);
-    const categoryId = categoryElement ? categoryElement.value : null;
     
     if (!songName) {
         showToast('Please enter a song name', 'warning');
         return false;
     }
     
-    if (!singerId || isNaN(singerId)) {
-        showToast('Please select a valid artist', 'warning');
+    // Validate Singers (multi-select)
+    const singerSelectId = isAddForm ? '#addSingers' : '#editSingers';
+    const selectedSingers = $(singerSelectId).val();
+    if (!selectedSingers || selectedSingers.length === 0) {
+        showToast('Please select at least one artist', 'warning');
         return false;
     }
     
-    if (!categoryId) { // Validate category selection
-        showToast('Please select a category', 'warning');
-        return false;
+    // Validate Category
+    if (isAddForm) {
+        // Add Form: Single Category Select
+        const categorySelect = document.getElementById('addCategory');
+        if (!categorySelect || !categorySelect.value) {
+            showToast('Please select a category', 'warning');
+            return false;
+        }
+    } else {
+        // Edit Form: Multiple Category Select
+        const categorySelect = $('#editCategory');
+        const selectedCategories = categorySelect.val();
+        if (!selectedCategories || selectedCategories.length === 0) {
+            showToast('Please select at least one category', 'warning');
+            return false;
+        }
     }
     
     // Validate file inputs only for the add form
-    if (form.id === 'addSongForm') {
+    if (isAddForm) {
         const songFile = form.elements.file;
         
         if (!songFile || !songFile.files || songFile.files.length === 0) {
@@ -1054,42 +1088,39 @@ function showDeleteModal(songId, songName) {
 function loadSingers() {
     api.get('/singer/allSinger')
         .then(response => {
-            console.log('Singer API response:', response);
-            
-            let singers = [];
-            // Check different possible response formats
-            if (response && response.data) {
-                if (response.data.code === '200' || response.data.code === 200) {
-                    // If data is wrapped in response.data.data as per the API structure
-                    singers = response.data.data || [];
-                } else if (Array.isArray(response.data)) {
-                    // If singers are directly in response.data
-                    singers = response.data;
+            if (response.data && (response.data.code === '200' || response.data.code === 200)) {
+                const singers = response.data.data || [];
+                const addSelect = $('#addSingers'); // ** ID of the ADD form's MULTI-SELECT **
+                const editSelect = $('#editSingers'); // ** ID of the EDIT form's MULTI-SELECT **
+                const filterSelect = $('#singerFilter'); // Filter dropdown (likely single select)
+
+                addSelect.empty(); // Clear existing options
+                editSelect.empty();
+                filterSelect.empty().append('<option value="">All Artists</option>'); // Add default for filter
+
+                if (singers.length > 0) {
+                    singers.forEach(singer => {
+                        const option = `<option value="${singer.id}">${singer.name}</option>`;
+                        addSelect.append(option);
+                        editSelect.append(option);
+                        filterSelect.append(option);
+                    });
+                } else {
+                    // Optionally add a disabled option if no singers
+                    addSelect.append('<option value="" disabled>No artists available</option>');
+                    editSelect.append('<option value="" disabled>No artists available</option>');
                 }
-            }
-            
-            if (!Array.isArray(singers)) {
-                console.error('Singer data is not an array:', singers);
-                showToast('Failed to load artist list: Invalid data format', 'error');
-                return;
-            }
-            
-            let options = '<option value="">Select Artist</option>';
-            
-            singers.forEach(singer => {
-                options += `<option value="${singer.id}">${singer.name}</option>`;
-            });
-            
-            // Add to edit form's artist selection dropdown
-            $('#editSingerId').html(options);
-            // If there's an artist selection dropdown in the add form, also add there
-            if ($('#singerId').length) {
-                $('#singerId').html(options);
+                 // Initialize/refresh multi-select plugin if used (e.g., Select2)
+                 // addSelect.select2(); 
+                 // editSelect.select2();
+            } else {
+                console.error("Failed to load singers or unexpected format:", response.data);
+                showToast("Error loading artists list.", "error");
             }
         })
         .catch(error => {
-            console.error('Failed to load artist list:', error);
-            showToast('Failed to load artist list. Please try again later.', 'error');
+            console.error('Error fetching singers:', error);
+            showToast("Could not fetch artists list.", "error");
         });
 }
 

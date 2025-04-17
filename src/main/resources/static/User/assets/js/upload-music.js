@@ -4,25 +4,64 @@ import api from '../../../Common/js/api.js';
 let currentUserId = null;
 let selectedUploadCategoryIds = new Set(); // To store selected category IDs for upload
 let selectedUploadTagIds = new Set(); // To store selected tag IDs for upload
+let allSingers = []; // Store all singers for filtering
+let allCategories = []; // Store all categories
+let allTags = []; // Store all tags
+let selectedSingers = new Map(); // Store selected singers {id: name}
 
+// These constants are no longer needed here as token is handled by api.js interceptor
+// and userId is handled by getCurrentUserId()
+// const token = getAccessToken(); 
+// const userId = getUserId(); 
+
+let categoryId = '';
+let categories = [];
+let tags = [];
+let selectedTags = [];
+
+// Initialize everything when the document is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    // Get User ID first
-    getCurrentUserId(); 
-    if (!currentUserId) {
-        // Handle user not logged in early
-        showMessage('Please log in to upload music.', 'danger');
-        // Optional: Disable form or redirect
-        const form = document.getElementById('uploadMusicForm');
-        if (form) form.style.display = 'none';
-        return;
-    }
+    console.log("DOMContentLoaded event fired");
     
-    // Initialize functionalities
+    // Get User ID first, as it's needed for loading tags/categories
+    currentUserId = getCurrentUserId();
+    if (!currentUserId) {
+        console.error("User ID not available. Redirecting to login might be needed.");
+        // Optionally show an error message to the user
+        showMessage('Could not identify user. Please log in again.', 'danger');
+        // Potentially redirect here if user ID is absolutely essential for page load
+        // window.location.href = '/login.html'; 
+        // return; // Stop further execution if redirecting
+    }
+    console.log("Current User ID obtained:", currentUserId);
+
+    // Initialize form elements
+    initializeFormElements();
+    
+    // Setup event listeners for modal and singer selection
+    setupEventListeners();
+    
+    // Load existing singers list via API
+    loadSingers(); 
+    
+    // Load categories and tags (now we are sure currentUserId is attempted to be set)
+    if (currentUserId) {
+        loadCategories();
+        loadUserTags();
+    } else {
+        // This case might be redundant if we redirect above, but kept for safety
+        console.error("User ID not available for loading categories/tags after initial check.");
+        // Display placeholders or error messages in the category/tag sections
+        const categoryContainer = document.getElementById('categoryPillsContainer');
+        if(categoryContainer) categoryContainer.innerHTML = '<span class="text-danger">Could not load categories (User ID missing).</span>';
+        const tagContainer = document.getElementById('tagPillsContainer');
+        if(tagContainer) tagContainer.innerHTML = '<span class="text-danger">Could not load tags (User ID missing).</span>';
+    }
+
+    // Initialize file upload drag/drop and form submission
     initUploadFunctionality();
     initDragAndDrop();
     initFormSubmit();
-    loadCategories();
-    loadUserTags(); // Load user tags
 });
 
 /**
@@ -60,10 +99,10 @@ async function loadCategories() {
         categoryPillsContainer.innerHTML = ''; // Clear loading state regardless of success/fail after API call
 
         if (response.data.code === '200') {
-            const categories = response.data.data;
+            allCategories = response.data.data;
 
-            if (categories && categories.length > 0) {
-                categories.forEach(category => {
+            if (allCategories && allCategories.length > 0) {
+                allCategories.forEach(category => {
                     const categoryId = category.id;
                     const pill = document.createElement('button');
                     pill.type = 'button';
@@ -160,6 +199,27 @@ async function loadUserTags() {
         console.error('Error fetching tags:', error);
         tagPillsContainer.innerHTML = '<span class="text-danger">Error loading tags</span>';
         showMessage('Failed to load tags. Please try refreshing.', 'danger');
+    }
+}
+
+/**
+ * Load singers and populate the singer list container
+ */
+async function loadSingers() {
+    try {
+        const response = await api.get('/singer/allSinger');
+        if (response.data && (response.data.code === '200' || response.data.code === 200)) {
+            allSingers = response.data.data || [];
+            // Don't populate modal immediately, wait for button click
+            console.log("Singers loaded:", allSingers.length);
+             $('#singerListContainer').html(''); // Clear loading message once loaded
+        } else {
+            console.error("Failed to load singers or unexpected format:", response.data);
+            $('#singerListContainer').html('<p class="text-center text-danger">Error loading artists.</p>');
+        }
+    } catch (error) {
+        console.error('Error fetching singers:', error);
+        $('#singerListContainer').html('<p class="text-center text-danger">Could not fetch artists list.</p>');
     }
 }
 
@@ -537,3 +597,200 @@ function showMessage(message, type) {
   </symbol>
 </svg>
 */ 
+
+function populateSingerModalList(filteredSingers) {
+    console.log('[populateSingerModalList] Populating singer modal with', filteredSingers?.length || 0, 'singers'); // Log start
+    const container = document.getElementById('singerListContainer');
+    if (!container) {
+        console.error('[populateSingerModalList] Singer list container not found');
+        return;
+    }
+    container.innerHTML = ''; // Clear previous content (like "Loading...")
+
+    if (!filteredSingers || !Array.isArray(filteredSingers) || filteredSingers.length === 0) { // Add check for array type
+        console.warn('[populateSingerModalList] No valid singers array provided or array is empty.');
+        container.innerHTML = '<p class="text-center text-muted">No artists found.</p>';
+        return;
+    }
+
+    const listGroup = document.createElement('ul');
+    listGroup.className = 'list-group';
+
+    filteredSingers.forEach((singer, index) => {
+        // Log each singer object being processed
+        console.log(`[populateSingerModalList] Processing singer ${index}:`, singer);
+        
+        // Validate singer object structure (basic check)
+        if (!singer || typeof singer.id === 'undefined' || typeof singer.name === 'undefined') {
+            console.warn(`[populateSingerModalList] Skipping invalid singer object at index ${index}:`, singer);
+            return; // Skip this iteration
+        }
+
+        const singerIdStr = String(singer.id); // Ensure ID is a string for comparison and map keys
+        const isChecked = selectedSingers.has(singerIdStr); // Check if singer is already selected
+        const listItem = document.createElement('li');
+        listItem.className = 'list-group-item';
+        // Using Bootstrap form-check for better styling and consistency
+        listItem.innerHTML = `
+                <div class="form-check">
+                    <input class="form-check-input singer-checkbox" type="checkbox" value="${singerIdStr}" id="singer-${singerIdStr}" ${isChecked ? 'checked' : ''}>
+                    <label class="form-check-label" for="singer-${singerIdStr}">
+                        ${escapeHTML(singer.name)} 
+                    </label>
+                </div>
+        `;
+        listGroup.appendChild(listItem);
+    });
+    container.appendChild(listGroup);
+    console.log('[populateSingerModalList] Finished populating list.'); // Log end
+}
+
+function updateSelectedSingersDisplay() {
+    console.log('Updating selected singers display');
+    const container = document.getElementById('selectedSingersContainer');
+    if (!container) {
+        console.error('Selected singers container not found');
+        return;
+    }
+    
+    container.innerHTML = '';
+    if (selectedSingers.size === 0) {
+        container.innerHTML = '<span class="text-muted">No artists selected</span>';
+    } else {
+        selectedSingers.forEach((name, id) => {
+            const pill = document.createElement('span');
+            pill.className = 'badge bg-secondary me-1 mb-1';
+            pill.textContent = name;
+            container.appendChild(pill);
+        });
+    }
+    // Update hidden input
+    const ids = Array.from(selectedSingers.keys());
+    const hiddenInput = document.getElementById('selectedSingerIds');
+    if (hiddenInput) {
+        hiddenInput.value = ids.join(',');
+    } else {
+        console.error('Selected singer IDs input not found');
+    }
+}
+
+function setupEventListeners() {
+    console.log("[setupEventListeners] Setting up event listeners");
+    
+    // Setup Select Singers button
+    const selectSingersBtn = document.getElementById('selectSingersBtn');
+    if (selectSingersBtn) {
+        console.log("[setupEventListeners] Found selectSingersBtn:", selectSingersBtn);
+        selectSingersBtn.addEventListener('click', function() {
+            console.log("[setupEventListeners] Select Singers button clicked");
+            // Use Bootstrap 5 modal initialization
+            const singerModalElement = document.getElementById('singerModal');
+            if (singerModalElement) {
+                // Get or create the modal instance
+                const modalInstance = bootstrap.Modal.getOrCreateInstance(singerModalElement);
+                // Log the data right before populating
+                console.log("[setupEventListeners] Attempting to populate modal with allSingers:", JSON.stringify(allSingers)); 
+                populateSingerModalList(allSingers); // Populate the modal with all singers
+                modalInstance.show(); // Show the modal
+            } else {
+                console.error("[setupEventListeners] Singer modal element not found");
+            }
+        });
+    } else {
+        console.error("[setupEventListeners] selectSingersBtn not found");
+    }
+    
+    // Setup Singer Search
+    const singerSearchInput = document.getElementById('singerSearchInput');
+    if (singerSearchInput) {
+        singerSearchInput.addEventListener('input', function() {
+            const searchText = this.value.toLowerCase();
+            console.log("[setupEventListeners] Filtering singers by:", searchText);
+            const filteredSingers = allSingers.filter(singer => 
+                singer && singer.name && singer.name.toLowerCase().includes(searchText)
+            );
+            console.log("[setupEventListeners] Filtered singers count:", filteredSingers.length);
+            populateSingerModalList(filteredSingers);
+        });
+    }
+    
+    // Setup Confirm Selection button
+    const confirmSingerSelectionBtn = document.getElementById('confirmSingerSelection');
+    if (confirmSingerSelectionBtn) {
+        confirmSingerSelectionBtn.addEventListener('click', function() {
+            console.log("[setupEventListeners] Confirm selection button clicked"); 
+            const checkedBoxes = document.querySelectorAll('#singerListContainer input.singer-checkbox:checked');
+            console.log("[setupEventListeners] Checked boxes found:", checkedBoxes.length);
+            selectedSingers.clear(); // Clear previous selections
+            
+            checkedBoxes.forEach(checkbox => {
+                const id = checkbox.value; // ID is already a string from value attribute
+                // Find the corresponding singer object from the original list to get the name accurately
+                const singer = allSingers.find(s => String(s.id) === id); 
+                 const name = singer ? singer.name : `Artist ID ${id}`; // Use the name from the fetched data, provide fallback
+                selectedSingers.set(id, name); // Store string ID and Name
+            });
+            console.log("[setupEventListeners] Selected singers Map:", selectedSingers);
+            
+            updateSelectedSingersDisplay();
+            
+            // Update hidden singerId field (for backward compatibility or single selection)
+            const singleSingerIdInput = document.getElementById('singerId');
+            if (singleSingerIdInput) {
+                if (selectedSingers.size > 0) {
+                    // Set the value to the ID of the first selected singer (if needed)
+                    singleSingerIdInput.value = Array.from(selectedSingers.keys())[0];
+                    console.log("[setupEventListeners] Updated hidden singerId:", singleSingerIdInput.value);
+                } else {
+                     singleSingerIdInput.value = ''; // Clear if no selection
+                     console.log("[setupEventListeners] Cleared hidden singerId as no singers selected.");
+                }
+            } else {
+                 console.warn("[setupEventListeners] Hidden input #singerId not found.");
+            }
+
+             // Update the multi-select hidden input as well
+            const multiSingerIdsInput = document.getElementById('selectedSingerIds');
+            if (multiSingerIdsInput) {
+                multiSingerIdsInput.value = Array.from(selectedSingers.keys()).join(',');
+                console.log("[setupEventListeners] Updated hidden selectedSingerIds:", multiSingerIdsInput.value);
+            } else {
+                 console.warn("[setupEventListeners] Hidden input #selectedSingerIds not found.");
+            }
+            
+            // Close modal
+            const singerModalElement = document.getElementById('singerModal');
+            const modalInstance = bootstrap.Modal.getInstance(singerModalElement);
+            if (modalInstance) {
+                console.log("[setupEventListeners] Hiding modal");
+                modalInstance.hide();
+            }
+        });
+    } else {
+        console.error("[setupEventListeners] confirmSingerSelection button not found");
+    }
+}
+
+function initializeFormElements() {
+    // Initialize form elements
+    const fileInput = document.getElementById('musicFileInput');
+    const browseBtn = document.getElementById('browseFilesBtn');
+    
+    if (browseBtn && fileInput) {
+        browseBtn.addEventListener('click', function() {
+            fileInput.click();
+        });
+        
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const uploadAreaHeading = document.querySelector('.upload-area-inner h5');
+                if (uploadAreaHeading) {
+                    uploadAreaHeading.textContent = file.name;
+                }
+            }
+        });
+    }
+}
+
+// ... existing code ... 

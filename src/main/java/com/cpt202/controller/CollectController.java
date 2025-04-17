@@ -5,6 +5,7 @@ import com.cpt202.common.Result;
 import com.cpt202.domain.Collect;
 import com.cpt202.domain.Recommend;
 import com.cpt202.domain.Song;
+import com.cpt202.dto.SongDetailDTO;
 import com.cpt202.service.CollectService;
 import com.cpt202.service.SongService;
 import com.cpt202.utils.Consts;
@@ -134,15 +135,17 @@ public class CollectController {
             DataModel dataModel = getDadaModel(allRecommend);
             cfItemIds = baseItem(Integer.valueOf(uId), dataModel);
             if (cfItemIds != null) {
-                List<Song> ls = new ArrayList<Song>();
+                List<SongDetailDTO> ls = new ArrayList<>();
                 for (Long l : cfItemIds) {
-                    Song s = songService.selectByPrimaryKey(l.intValue());
-                    ls.add(s);
+                    SongDetailDTO s = songService.selectDetailByPrimaryKey(l.intValue());
+                    if (s != null) {
+                        ls.add(s);
+                    }
                 }
-                return ls;
+                return Result.success(ls);
             }
         }
-        return null;
+        return Result.failure("No recommendations found");
     }
 
     /**

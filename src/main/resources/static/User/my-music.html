@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en">
-<!-- ... 保持head部分与index.html相同 ... -->
+<!-- ... Keep the head part the same as index.html ... -->
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -45,7 +45,7 @@
             z-index: 1000;
         }
         
-        /* 播放器样式 */
+        /* Player styles */
         .player-content {
             display: flex;
             align-items: center;
@@ -171,7 +171,7 @@
         }
     </style>
 
-    <!-- 添加Axios CDN，确保在页面早期加载 -->
+    <!-- Add Axios CDN, ensure early page loading -->
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
 <body>
@@ -196,22 +196,30 @@
                 </a>
             </div>
         </div>
-        <!-- ... 其余header内容 ... -->
+        <!-- ... Remaining header content ... -->
     </div>
     <!-- end::header -->
 
     <!-- begin::main -->
     <div id="main">
-        <!-- begin::navigation -->
+        <!-- BEGIN REPLACEMENT: Navigation -->
         <div class="navigation">
             <div class="navigation-menu-tab">
                 <div class="flex-grow-1">
                     <ul>
+                        <!-- Dashboard Icon Link -->
                         <li><a href="#" data-toggle="tooltip" data-placement="right" title="Dashboard" data-nav-target="#dashboards"><i data-feather="home"></i></a></li>
-                        <li><a class="active" href="#" data-toggle="tooltip" data-placement="right" title="My Music" data-nav-target="#my-music"><i data-feather="music"></i></a></li>
+                        <!-- My Music Icon Link (ACTIVE) -->
+                        <li><a class="active" href="#" data-toggle="tooltip" data-placement="right" title="My Music" data-nav-target="#my-music"><i data-feather="music"></i></a></li> 
+                        <!-- Categories Icon Link -->
                         <li><a href="#" data-toggle="tooltip" data-placement="right" title="Categories" data-nav-target="#categories"><i data-feather="folder"></i></a></li>
+                        <!-- Artists Icon Link -->
+                        <li><a href="#" data-toggle="tooltip" data-placement="right" title="Artists" data-nav-target="#artists"><i data-feather="users"></i></a></li>
+                        <!-- Upload Music Icon Link -->
                         <li><a href="#" data-toggle="tooltip" data-placement="right" title="Upload Music" data-nav-target="#upload"><i data-feather="upload"></i></a></li>
+                        <!-- Tags Icon Link -->
                         <li><a href="#" data-toggle="tooltip" data-placement="right" title="Tags" data-nav-target="#tags"><i data-feather="tag"></i></a></li>
+                        <!-- Settings Icon Link -->
                         <li><a href="#" data-toggle="tooltip" data-placement="right" title="Settings" data-nav-target="#settings"><i data-feather="settings"></i></a></li>
                     </ul>
                 </div>
@@ -221,50 +229,63 @@
             <!-- Standard Secondary Navigation Panel -->
             <div class="navigation-menu-body">
                 <div class="navigation-menu-group">
-                    <div id="dashboards">
+                    <!-- Dashboard Section -->
+                     <div id="dashboards">
                         <ul>
                             <li class="navigation-divider">Dashboard</li>
                             <li><a href="index.html">Overview</a></li>
+                             <li><a href="top-songs.html">Top Songs</a></li>
+                             <li><a href="artists.html">All Artists</a></li>
                         </ul>
                     </div>
+                    <!-- My Music Section (ACTIVE and OPEN) -->
                     <div id="my-music" class="open">
                         <ul>
                             <li class="navigation-divider">My Music</li>
                             <li><a class="active" href="my-music.html">All Songs</a></li>
-                            <li><a href="playlists.html">Playlists</a></li>
-                            <li><a href="favorites.html">Favorites</a></li>
+                             <li><a href="top-songs.html">Top Songs</a></li>
                         </ul>
                     </div>
+                    <!-- Categories Section -->
                     <div id="categories">
                         <ul>
                             <li class="navigation-divider">Categories</li>
                             <li><a href="categories.html">Manage Categories</a></li>
                         </ul>
                     </div>
+                     <!-- Artists Section -->
+                     <div id="artists">
+                        <ul>
+                            <li class="navigation-divider">Artists</li>
+                            <li><a href="artists.html">All Artists</a></li>
+                        </ul>
+                    </div>
+                    <!-- Upload Section -->
                     <div id="upload">
                         <ul>
                             <li class="navigation-divider">Upload</li>
                             <li><a href="upload-music.html">Upload Music</a></li>
                         </ul>
                     </div>
+                    <!-- Tags Section -->
                     <div id="tags">
                         <ul>
                             <li class="navigation-divider">Tags</li>
                             <li><a href="tag-management.html">Manage Tags</a></li>
+                             <li><a href="tag-songs.html">View Songs by Tag</a></li> 
                         </ul>
                     </div>
+                    <!-- Settings Section -->
                     <div id="settings">
                         <ul>
                             <li class="navigation-divider">Settings</li>
                             <li><a href="settings.html">Profile</a></li>
-                            <li><a href="account-settings.html">Account Settings</a></li>
-                            <li><a href="notification-settings.html">Notifications</a></li>
                         </ul>
                     </div>
                 </div>
             </div>
         </div>
-        <!-- end::navigation -->
+        <!-- END REPLACEMENT: Navigation -->
 
         <!-- begin::main-content -->
         <div class="main-content">
@@ -543,13 +564,7 @@
         </div>
     </div>
 
-    <!-- begin::footer -->
-    <footer>
-        <div class="container-fluid">
-            <div>© Music Resource Management - <a href="" target="_blank">MusicWebsite</a></div>
-        </div>
-    </footer>
-    <!-- end::footer -->
+   
 
     <!-- Added Audio Player HTML -->
     <div class="audio-player">

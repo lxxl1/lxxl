@@ -8,6 +8,21 @@ let approvedSongs = []; // Only songs with status=1
 let allCategories = [];
 let allSingers = [];
 
+// Utility function to escape HTML (add this if not already present)
+function escapeHTML(str) {
+    if (!str) return '';
+    return str.replace(/[&<>'"/]/g, 
+        tag => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            "'": '&#39;',
+            '"': '&quot;',
+            '/': '&#x2F;' // Escape forward slash for safety
+        }[tag] || tag)
+    );
+}
+
 // Page initialization
 document.addEventListener('DOMContentLoaded', async () => {
     try {
@@ -21,6 +36,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Update UI components
         updateStatistics();
         renderTopSongs();
+        renderTop3SongsList();
         renderLatestSongs();
         
         // Setup event listeners
@@ -42,6 +58,8 @@ async function loadAllSongs() {
             allSongs = response.data.data;
             // Filter only approved songs (status=1)
             approvedSongs = allSongs.filter(song => song.status === 1);
+            // Update statistics based on DTOs
+            updateStatistics();
             return true;
         }
         return false;
@@ -118,7 +136,7 @@ function renderTopSongs() {
     
     // Sort songs by play count (descending)
     const topSongs = [...approvedSongs]
-        .sort((a, b) => (b.playCount || 0) - (a.playCount || 0))
+        .sort((a, b) => (b.nums || 0) - (a.nums || 0))
         .slice(0, 5); // Get top 5
     
     if (topSongs.length === 0) {
@@ -128,21 +146,26 @@ function renderTopSongs() {
     
     let html = '';
     topSongs.forEach((song, index) => {
-        const singerName = allSingers.find(singer => singer.id === song.singerId)?.name || 'Unknown Artist';
+        const displaySingers = song.singerNames || 'Unknown Artist';
         
         html += `
             <tr>
                 <td>${index + 1}</td>
                 <td>
                     <div class="d-flex align-items-center">
-                        <img src="${song.pic || 'assets/media/image/default-album.png'}" class="mr-3" width="40" height="40" alt="${song.name}">
-                        <span>${song.name}</span>
+                        <img src="${escapeHTML(song.pic || 'assets/media/image/default-album.png')}" class="mr-3 rounded" width="40" height="40" alt="${escapeHTML(song.name)}">
+                         <a href="song-details.html?songId=${song.id}&from=index" class="text-dark">${escapeHTML(song.name)}</a>
                     </div>
                 </td>
-                <td>${singerName}</td>
-                <td>${song.playCount || 0}</td>
+                <td>${escapeHTML(displaySingers)}</td>
+                <td>${song.nums || 0}</td>
                 <td>
-                    <button class="btn btn-sm btn-primary play-song-btn" data-song-id="${song.id}">
+                     <button class="btn btn-sm btn-primary play-song-btn" 
+                             data-song-id="${song.id}" 
+                             data-song-url="${escapeHTML(song.url)}" 
+                             data-song-name="${escapeHTML(song.name)}" 
+                             data-artist-name="${escapeHTML(displaySingers)}" 
+                             data-cover-url="${escapeHTML(song.pic || 'assets/media/image/default-album.png')}">
                         <i data-feather="play"></i> Play
                     </button>
                 </td>
@@ -157,12 +180,72 @@ function renderTopSongs() {
         feather.replace();
     }
     
-    // Add event listeners to play buttons
-    document.querySelectorAll('.play-song-btn').forEach(button => {
-        button.addEventListener('click', (event) => {
-            const songId = event.currentTarget.dataset.songId;
-            playSong(songId);
-        });
+    // Add event listeners to play buttons within the table
+    tableBody.querySelectorAll('.play-song-btn').forEach(button => {
+        button.addEventListener('click', handlePlayButtonClick);
+    });
+}
+
+/**
+ * NEW FUNCTION: Render top 3 songs list
+ */
+function renderTop3SongsList() {
+    const listContainer = document.getElementById('top-3-songs-list');
+    if (!listContainer) {
+        console.error('Element with ID top-3-songs-list not found.');
+        return;
+    }
+
+    // Sort approved songs by play count (descending) and take top 3
+    const top3Songs = [...approvedSongs]
+        .sort((a, b) => (b.nums || 0) - (a.nums || 0))
+        .slice(0, 3);
+
+    if (top3Songs.length === 0) {
+        listContainer.innerHTML = '<div class="list-group-item text-center text-muted">No top songs available yet.</div>';
+        return;
+    }
+
+    let html = '';
+    top3Songs.forEach(song => {
+        const displaySingers = song.singerNames || 'Unknown Artist';
+        const coverUrl = song.pic || 'assets/media/image/default-cover.jpg';
+        html += `
+            <div class="list-group-item d-flex align-items-center">
+                <div class="mr-3">
+                    <img src="${escapeHTML(coverUrl)}" alt="${escapeHTML(song.name)}" class="rounded" width="50" height="50" style="object-fit: cover;">
+                </div>
+                <div class="flex-grow-1">
+                    <h6 class="mb-1 text-truncate">
+                        <a href="song-details.html?songId=${song.id}&from=index" class="text-dark">${escapeHTML(song.name)}</a>
+                    </h6>
+                    <small class="text-muted">${escapeHTML(displaySingers)}</small>
+                </div>
+                <div class="ml-3 text-right" style="min-width: 80px;">
+                     <span class="badge badge-light mb-1">${song.nums || 0} plays</span>
+                     <button class="btn btn-sm btn-outline-primary play-song-btn" 
+                             data-song-id="${song.id}" 
+                             data-song-url="${escapeHTML(song.url)}" 
+                             data-song-name="${escapeHTML(song.name)}" 
+                             data-artist-name="${escapeHTML(displaySingers)}" 
+                             data-cover-url="${escapeHTML(coverUrl)}">
+                        <i data-feather="play" class="width-15 height-15"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+
+    listContainer.innerHTML = html;
+
+    // Re-initialize feather icons for the new buttons
+    if (typeof feather !== 'undefined') {
+        feather.replace();
+    }
+
+    // Add event listeners for the play buttons in the list
+    listContainer.querySelectorAll('.play-song-btn').forEach(button => {
+        button.addEventListener('click', handlePlayButtonClick);
     });
 }
 
@@ -185,7 +268,7 @@ function renderLatestSongs() {
     
     let html = '';
     latestSongs.forEach(song => {
-        const singerName = allSingers.find(singer => singer.id === song.singerId)?.name || 'Unknown Artist';
+        const displaySingers = song.singerNames || 'Unknown Artist';
         
         html += `
             <div class="col-md-3 col-sm-6 mb-4">
@@ -193,7 +276,7 @@ function renderLatestSongs() {
                     <img src="${song.pic || 'assets/media/image/default-album.png'}" class="card-img-top" alt="${song.name}">
                     <div class="card-body">
                         <h6 class="card-title mb-1">${song.name}</h6>
-                        <p class="small text-muted mb-2">${singerName}</p>
+                        <p class="small text-muted mb-2">${displaySingers}</p>
                         <button class="btn btn-primary btn-sm btn-block play-song-btn" data-song-id="${song.id}">
                             <i data-feather="play"></i> Play
                         </button>
@@ -249,34 +332,49 @@ function setupEventListeners() {
 }
 
 /**
- * Finds song details and plays it using the shared audio player.
- * @param {string} songId - ID of the song to play.
+ * Shared event handler for play buttons
  */
-function playSong(songId) {
-    const song = approvedSongs.find(s => s.id == songId);
-    if (!song) {
-        console.error(`Song with ID ${songId} not found.`);
-        showMessage('Could not find the song to play.', 'error');
+function handlePlayButtonClick(event) {
+    const button = event.currentTarget;
+    const songUrl = button.dataset.songUrl;
+    const songName = button.dataset.songName;
+    const artistName = button.dataset.artistName;
+    const coverUrl = button.dataset.coverUrl;
+    const songId = button.dataset.songId; // Get song ID for incrementing count
+
+    if (!songUrl || !songName || !artistName || !coverUrl || !songId) {
+        console.error('Missing data attributes on play button:', button.dataset);
+        showMessage('Could not play song, data missing.', 'error');
         return;
     }
-    
-    const singerName = allSingers.find(singer => singer.id === song.singerId)?.name || 'Unknown Artist';
-    
-    // Use the shared audio player
-    playSongAudioPlayer(song.url, song.name, singerName, song.pic);
-    
-    // Increment play count
+
+    // Call the global player function
+    playSongAudioPlayer(songUrl, songName, artistName, coverUrl);
+
+    // Increment play count (fire and forget)
     incrementPlayCount(songId);
 }
 
 /**
- * Increment the play count for a song
+ * Increment the play count for a song and refresh relevant UI parts
  * @param {string} songId - ID of the song
  */
 async function incrementPlayCount(songId) {
     try {
         await api.get(`/song/addNums?songId=${songId}`);
         console.log('Play count incremented for song ID:', songId);
+
+        // Reload song data (ensure this loads DTOs with singerNames)
+        const songsLoaded = await loadAllSongs(); 
+        if (songsLoaded) {
+            // Re-render the top songs table with updated data
+            renderTopSongs(); 
+            // Optionally re-render latest songs too if needed
+            // renderLatestSongs(); 
+        } else {
+             console.warn('Could not reload songs after incrementing count.');
+        }
+
     } catch (error) {
         console.error('Error incrementing play count:', error);
     }

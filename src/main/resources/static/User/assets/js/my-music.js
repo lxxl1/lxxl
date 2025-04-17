@@ -126,8 +126,10 @@ function renderSongsList(songs) {
                     <img src="${song.pic || 'assets/media/image/music-thumbnail.jpg'}" alt="" class="mr-3" 
                         style="width: 40px; height: 40px; object-fit: cover;">
                     <div>
-                        <h6 class="mb-0">${escapeHTML(song.name)}</h6>
-                        <small class="text-muted">${song.singerId ? 'Singer ID: ' + song.singerId : ''}</small>
+                        <h6 class="mb-0">
+                            <a href="song-details.html?songId=${song.id}&from=my-music" class="text-dark">${escapeHTML(song.name)}</a>
+                        </h6>
+                        <small class="text-muted">${song.singerNames || ''}</small>
                     </div>
                 </div>
             </td>
@@ -148,7 +150,7 @@ function renderSongsList(songs) {
                         <a class="dropdown-item" href="edit-song.html?songId=${song.id}">
                             <i class="mr-2" data-feather="edit-2"></i>Edit Details
                         </a>
-                        <a class="dropdown-item" href="song-details.html?songId=${song.id}">
+                        <a class="dropdown-item" href="song-details.html?songId=${song.id}&from=my-music">
                             <i class="mr-2" data-feather="info"></i>Details
                         </a>
                         <div class="dropdown-divider"></div>

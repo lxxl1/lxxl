@@ -4,6 +4,7 @@ import com.cpt202.common.Result;
 import com.cpt202.domain.Category;
 import com.cpt202.service.CategoryService;
 import com.github.pagehelper.PageInfo;
+import com.cpt202.dto.TopCategoryDto;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -91,5 +92,19 @@ public class CategoryController {
     public Result selectCategoriesByUserId(@PathVariable Integer userId) {
         List<Category> categories = categoryService.selectCategoriesByUserId(userId);
         return Result.success(categories);
+    }
+
+    /**
+     * Get the category with the most songs.
+     */
+    @GetMapping("/top")
+    public Result getTopCategory() {
+        TopCategoryDto topCategory = categoryService.getTopCategory();
+        if (topCategory != null) {
+            return Result.success(topCategory);
+        } else {
+            // Return success but with a message indicating no data, or a specific error code
+            return Result.success("No category data found."); // Or Result.error("404", "No data")
+        }
     }
 }

@@ -369,19 +369,16 @@
                 </div>
                 <div class="modal-body">
                     <form id="addSongForm" enctype="multipart/form-data">
-                        <!-- Hidden User ID field -->
                         <input type="hidden" id="userId" name="userId">
-                        
-                        <div class="row mb-3">
-                            <div class="col-md-6">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
                                 <label for="name" class="form-label">Song Name <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="name" name="name" required>
                             </div>
-                            <div class="col-md-6">
-                                <label for="singerId" class="form-label">Artist <span class="text-danger">*</span></label>
-                                <select class="form-select" id="singerId" name="singerId" required>
-                                    <option value="">Select Artist</option>
-                                    <!-- Artist options loaded dynamically via JS -->
+                            <div class="col-md-6 mb-3">
+                                <label for="addSingers" class="form-label">Artist(s) <span class="text-danger">*</span></label>
+                                <select class="form-control" id="addSingers" name="singerIds" multiple required>
+                                    <option value="" disabled>Loading artists...</option>
                                 </select>
                             </div>
                         </div>
@@ -390,8 +387,7 @@
                             <div class="col-md-6">
                                 <label for="addCategory" class="form-label">Category <span class="text-danger">*</span></label>
                                 <select class="form-select" id="addCategory" name="categoryId" required>
-                                    <option value="">Loading categories...</option>
-                                    <!-- Categories loaded dynamically -->
+                                    <option value="" disabled selected>Select a category</option>
                                 </select>
                             </div>
                             <div class="col-md-6">
@@ -442,30 +438,37 @@
     </div>
 
     <!-- Edit Song Modal -->
-    <div class="modal fade" id="editSongModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="editSongModal" tabindex="-1" aria-labelledby="editSongModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Edit Song</h5>
+                    <h5 class="modal-title" id="editSongModalLabel">Edit Song Details</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form id="editSongForm">
                         <input type="hidden" id="editSongId" name="id">
-                        <div class="mb-3">
-                            <label for="editSongName" class="form-label">Song Name <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="editSongName" name="name" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="editSingerId" class="form-label">Artist <span class="text-danger">*</span></label>
-                            <select class="form-select" id="editSingerId" name="singerId" required>
-                                <option value="">Select Artist</option>
-                                <!-- Artist options loaded dynamically via JS -->
-                            </select>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="editName" class="form-label">Song Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="editName" name="name" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editSingers" class="form-label">Artist(s) <span class="text-danger">*</span></label>
+                                <select class="form-control" id="editSingers" name="singerIds" multiple required>
+                                    <option value="" disabled>Loading artists...</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label for="editIntroduction" class="form-label">Introduction</label>
                             <textarea class="form-control" id="editIntroduction" name="introduction" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editCategory" class="form-label">Category(s) <span class="text-danger">*</span></label>
+                            <select class="form-control" id="editCategory" name="categoryIds" multiple required>
+                                <option value="" disabled selected>Select category/categories</option>
+                            </select>
                         </div>
                         <div class="mb-3">
                             <label for="editLyric" class="form-label">Lyrics</label>

@@ -41,7 +41,7 @@
             z-index: 1000;
         }
         
-        /* 播放器样式 */
+        /* Player styles */
         .player-content {
             display: flex;
             align-items: center;
@@ -272,67 +272,89 @@
 <!-- begin::main -->
 <div id="main">
 
-    <!-- begin::navigation -->
+    <!-- BEGIN REPLACEMENT: Navigation -->
     <div class="navigation">
         <div class="navigation-menu-tab">
             <div class="flex-grow-1">
                 <ul>
+                    <!-- Dashboard Icon Link -->
                     <li><a href="#" data-toggle="tooltip" data-placement="right" title="Dashboard" data-nav-target="#dashboards"><i data-feather="home"></i></a></li>
-                    <li><a class="active" href="#" data-toggle="tooltip" data-placement="right" title="My Music" data-nav-target="#my-music"><i data-feather="music"></i></a></li>
+                    <!-- My Music Icon Link (SECTION OPEN) -->
+                    <li><a class="active" href="#" data-toggle="tooltip" data-placement="right" title="My Music" data-nav-target="#my-music"><i data-feather="music"></i></a></li> 
+                    <!-- Categories Icon Link -->
                     <li><a href="#" data-toggle="tooltip" data-placement="right" title="Categories" data-nav-target="#categories"><i data-feather="folder"></i></a></li>
+                    <!-- Artists Icon Link -->
+                    <li><a href="#" data-toggle="tooltip" data-placement="right" title="Artists" data-nav-target="#artists"><i data-feather="users"></i></a></li>
+                    <!-- Upload Music Icon Link -->
                     <li><a href="#" data-toggle="tooltip" data-placement="right" title="Upload Music" data-nav-target="#upload"><i data-feather="upload"></i></a></li>
+                    <!-- Tags Icon Link -->
                     <li><a href="#" data-toggle="tooltip" data-placement="right" title="Tags" data-nav-target="#tags"><i data-feather="tag"></i></a></li>
+                    <!-- Settings Icon Link -->
                     <li><a href="#" data-toggle="tooltip" data-placement="right" title="Settings" data-nav-target="#settings"><i data-feather="settings"></i></a></li>
                 </ul>
             </div>
             <div><ul><li><a href="../login.html" data-toggle="tooltip" data-placement="right" title="Logout"><i data-feather="log-out"></i></a></li></ul></div>
         </div>
+
+        <!-- Standard Secondary Navigation Panel -->
         <div class="navigation-menu-body">
             <div class="navigation-menu-group">
-                <div id="dashboards">
+                <!-- Dashboard Section -->
+                 <div id="dashboards">
                     <ul>
                         <li class="navigation-divider">Dashboard</li>
                         <li><a href="index.html">Overview</a></li>
+                         <li><a href="top-songs.html">Top Songs</a></li>
+                         <li><a href="artists.html">All Artists</a></li>
                     </ul>
                 </div>
+                <!-- My Music Section (OPEN) -->
                 <div id="my-music" class="open">
                     <ul>
                         <li class="navigation-divider">My Music</li>
                         <li><a href="my-music.html">All Songs</a></li>
-                        <li><a href="playlists.html">Playlists</a></li>
-                        <li><a href="favorites.html">Favorites</a></li>
+                         <li><a href="top-songs.html">Top Songs</a></li>
                     </ul>
                 </div>
+                <!-- Categories Section -->
                 <div id="categories">
                     <ul>
                         <li class="navigation-divider">Categories</li>
                         <li><a href="categories.html">Manage Categories</a></li>
                     </ul>
                 </div>
+                 <!-- Artists Section -->
+                 <div id="artists">
+                    <ul>
+                        <li class="navigation-divider">Artists</li>
+                        <li><a href="artists.html">All Artists</a></li>
+                    </ul>
+                </div>
+                <!-- Upload Section -->
                 <div id="upload">
                     <ul>
                         <li class="navigation-divider">Upload</li>
                         <li><a href="upload-music.html">Upload Music</a></li>
                     </ul>
                 </div>
+                <!-- Tags Section -->
                 <div id="tags">
                     <ul>
                         <li class="navigation-divider">Tags</li>
                         <li><a href="tag-management.html">Manage Tags</a></li>
                     </ul>
                 </div>
+                <!-- Settings Section -->
                 <div id="settings">
                     <ul>
                         <li class="navigation-divider">Settings</li>
                         <li><a href="settings.html">Profile</a></li>
-                        <li><a href="account-settings.html">Account Settings</a></li>
-                        <li><a href="notification-settings.html">Notifications</a></li>
                     </ul>
                 </div>
             </div>
         </div>
     </div>
-    <!-- end::navigation -->
+    <!-- END REPLACEMENT: Navigation -->
 
     <!-- begin::main-content -->
     <div class="main-content">
@@ -348,6 +370,13 @@
                 <li class="breadcrumb-item active" id="song-title-breadcrumb">Song Details</li>
             </ol>
         </nav>
+
+        <!-- Add Back Button -->
+        <div class="mb-3">
+            <a href="index.html" id="back-button" class="btn btn-sm btn-outline-secondary">
+                <i data-feather="arrow-left" class="mr-1"></i> Back
+            </a>
+        </div>
 
         <!-- Loading spinner -->
         <div id="loading-spinner" class="text-center py-5">
@@ -437,97 +466,69 @@
         </div>
 
         <!-- Song Player Modal -->
+        <!-- REMOVE THIS ENTIRE BLOCK
         <div class="modal fade" id="songPlayerModal" tabindex="-1" role="dialog" aria-labelledby="songPlayerModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-lg" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="songPlayerModalLabel">Now Playing</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <i data-feather="x"></i>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="row">
-                            <div class="col-md-4">
-                                <img id="playing-song-cover" src="assets/media/image/default-cover.jpg" class="img-fluid rounded" alt="Album Cover">
-                                <div class="mt-3">
-                                    <h5 id="playing-song-name">Song Name</h5>
-                                    <p id="playing-song-artist">Artist Name</p>
-                                </div>
-                            </div>
-                            <div class="col-md-8">
-                                <div class="audio-player">
-                                    <div class="player-content">
-                                        <div class="song-info">
-                                            <div class="cover">
-                                                <img id="currentSongCover" src="assets/media/image/default-cover.jpg" alt="Cover">
-                                            </div>
-                                            <div class="details">
-                                                <h5 id="currentSongTitle">No song playing</h5>
-                                                <p id="currentSongArtist">-</p>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="controls">
-                                            <div class="player-controls">
-                                                <button id="prevButton" class="control-button">
-                                                    <i class="fas fa-step-backward"></i>
-                                                </button>
-                                                <button id="playPauseButton" class="control-button">
-                                                    <i class="fas fa-play"></i>
-                                                </button>
-                                                <button id="nextButton" class="control-button">
-                                                    <i class="fas fa-step-forward"></i>
-                                                </button>
-                                            </div>
-                                            
-                                            <div class="progress-container">
-                                                <span id="currentTime">0:00</span>
-                                                <div class="progress">
-                                                    <div class="progress-bar" role="progressbar" style="width: 0%"></div>
-                                                </div>
-                                                <span id="duration">0:00</span>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="volume">
-                                            <button id="muteButton" class="control-button">
-                                                <i class="fas fa-volume-up"></i>
-                                            </button>
-                                            <div class="volume-slider">
-                                                <input type="range" class="form-range" id="volumeSlider" min="0" max="100" value="100">
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <audio id="audioPlayer"></audio>
-                                </div>
-                                <div class="mt-3">
-                                    <h6>Lyrics</h6>
-                                    <div id="playing-song-lyrics" class="p-3 bg-light rounded" style="max-height: 200px; overflow-y: auto;">
-                                        No lyrics available
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            ... modal content ...
         </div>
+        -->
 
-        <!-- begin::footer -->
-        <footer>
-            <div class="container-fluid">
-                <div>© Music Resource Management - <a href="" target="_blank">MusicWebsite</a></div>
-            </div>
-        </footer>
-        <!-- end::footer -->
+       
 
     </div>
     <!-- end::main-content -->
 
 </div>
 <!-- end::main -->
+
+<!-- Added Audio Player HTML -->
+<div class="audio-player">
+    <div class="player-content">
+        <div class="song-info">
+            <div class="cover">
+                <img id="currentSongCover" src="assets/media/image/default-cover.jpg" alt="Cover">
+            </div>
+            <div class="details">
+                <h5 id="currentSongTitle">No song playing</h5>
+                <p id="currentSongArtist">-</p>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <div class="player-controls">
+                <button id="prevButton" class="control-button">
+                    <i class="fas fa-step-backward"></i>
+                </button>
+                <button id="playPauseButton" class="control-button">
+                    <i class="fas fa-play"></i>
+                </button>
+                <button id="nextButton" class="control-button">
+                    <i class="fas fa-step-forward"></i>
+                </button>
+            </div>
+            
+            <div class="progress-container">
+                <span id="currentTime">0:00</span>
+                <div class="progress">
+                    <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                </div>
+                <span id="duration">0:00</span>
+            </div>
+        </div>
+        
+        <div class="volume">
+            <button id="muteButton" class="control-button">
+                <i class="fas fa-volume-up"></i>
+            </button>
+            <div class="volume-slider">
+                <input type="range" class="form-range" id="volumeSlider" min="0" max="100" value="100">
+            </div>
+        </div>
+    </div>
+    
+    <audio id="audioPlayer"></audio>
+</div>
+<!-- End Added Audio Player HTML -->
+
 
 <!-- Plugin scripts -->
 <script src="vendors/bundle.js"></script>
@@ -542,9 +543,12 @@
 <script src="assets/js/app.js"></script>
 
 <!-- Custom scripts for song management -->
-<script src="assets/js/music-player.js"></script>
-<script src="assets/js/song-details.js"></script>
-<script type="module" src="assets/js/audio-player.js"></script>
+<!-- Ensure these are modules if they use import/export -->
+<script type="module" src="../Common/js/config.js"></script> 
+<script type="module" src="../Common/js/api.js"></script> 
+<script type="module" src="assets/js/auth-check.js"></script>
+<script type="module" src="assets/js/audio-player.js"></script> 
+<script type="module" src="assets/js/song-details.js"></script> 
 
 </body>
 </html> 

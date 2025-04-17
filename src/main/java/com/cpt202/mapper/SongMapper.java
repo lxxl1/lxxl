@@ -53,14 +53,15 @@ public interface SongMapper {
     public List<Song> likeSongOfName(String name);
 
     /**
-     * 根据歌手id查询
+     * 根据歌手id查询 (方法已在XML中移除，此处也应移除或修改)
      */
-    public List<Song> songOfSingerId(Integer singerId);
+    // public List<Song> songOfSingerId(Integer singerId);
 
     /**
      * 增加歌曲播放次数
+     * @return 影响的行数
      */
-	public boolean addNums(Integer id);
+	public int addNums(Integer id);
 
 	/**
      * 查询播放次数排前列的歌曲

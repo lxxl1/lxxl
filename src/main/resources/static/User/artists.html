@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>TuneIn - Artists</title>
+    
+    <!-- Favicon -->
+    <link rel="shortcut icon" href="assets/media/image/favicon.png"/>
+
+    <!-- Plugin styles (Assuming paths relative to User folder) -->
+    <link rel="stylesheet" href="vendors/bundle.css" type="text/css">
+    
+    <!-- App styles -->
+    <link rel="stylesheet" href="assets/css/app.css" type="text/css">
+
+    <!-- Font Awesome (for player controls if needed, though player is global) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+    <!-- Player Styles (copied from index.html) -->
+     <style>
+        .audio-player { position: fixed; bottom: 0; left: 0; right: 0; padding: 1rem; background: #fff; box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.05); z-index: 1000; }
+        .player-content { display: flex; align-items: center; justify-content: space-between; max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
+        .song-info { display: flex; align-items: center; width: 30%; }
+        .cover { width: 50px; height: 50px; margin-right: 1rem; overflow: hidden; border-radius: 4px; }
+        .cover img { width: 100%; height: 100%; object-fit: cover; }
+        .details h5 { margin: 0; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+        .details p { margin: 0; font-size: 0.8rem; color: #6c757d; }
+        .controls { width: 40%; }
+        .player-controls { display: flex; justify-content: center; gap: 1rem; margin-bottom: 0.5rem; }
+        .control-button { background: none; border: none; color: #495057; cursor: pointer; padding: 0.25rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .control-button:hover { background-color: #f8f9fa; color: #007bff; }
+        .progress-container { display: flex; align-items: center; gap: 0.5rem; }
+        .progress { flex-grow: 1; height: 4px; background-color: #e9ecef; }
+        .progress-bar { background-color: #007bff; }
+        #currentTime, #duration { font-size: 0.7rem; color: #6c757d; width: 35px; text-align: center; }
+        .volume { display: flex; align-items: center; width: 20%; justify-content: flex-end; gap: 0.5rem; }
+        .volume-slider { width: 80px; }
+        input[type="range"] { -webkit-appearance: none; height: 4px; background: #e9ecef; border-radius: 2px; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; background: #007bff; border-radius: 50%; cursor: pointer; }
+    </style>
+    
+    <!-- Include Axios early (optional, but safe) -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+</head>
+
+<body>
+
+    <!-- Preloader -->
+    <div class="preloader">
+        <div class="preloader-icon"></div>
+    </div>
+    
+    <!-- Header (Assuming similar structure) -->
+    <div class="header">
+        <div class="header-left">
+            <div class="navigation-toggler"><a href="#" data-action="navigation-toggler"><i data-feather="menu"></i></a></div>
+            <div class="header-logo"><a href="index.html"><img class="logo" src="assets/media/image/music-logo.png" alt="Logo"><img class="logo-light" src="assets/media/image/music-logo-light.png" alt="Logo Light"></a></div>
+        </div>
+        <div class="header-body">
+            <div class="header-body-left"><div class="page-title"><h4>Artists</h4></div></div>
+             <div class="header-body-right">
+                 <!-- Header icons like search, fullscreen, user menu -->
+                 <ul class="navbar-nav">
+                    <!-- Search -->
+                    <li class="nav-item"><a href="#" class="nav-link" title="Search" data-toggle="dropdown"><i data-feather="search"></i></a><div class="dropdown-menu p-2 dropdown-menu-right"><form id="song-search-form-artists"><div class="input-group"><input type="text" id="song-search-input-artists" class="form-control" placeholder="Search songs..."><div class="input-group-append"><button class="btn btn-outline-primary" type="submit"><i data-feather="search"></i></button></div></div></form></div></li>
+                    <!-- Fullscreen -->
+                    <li class="nav-item dropdown"><a href="#" class="nav-link" title="Fullscreen" data-toggle="fullscreen"><i class="maximize" data-feather="maximize"></i><i class="minimize" data-feather="minimize"></i></a></li>
+                    <!-- User Menu -->
+                     <li class="nav-item dropdown"><a href="#" class="nav-link" title="User menu" data-toggle="dropdown"><span class="mr-2 d-sm-inline d-none">User Name</span> <figure class="avatar avatar-sm"><img src="assets/media/image/user/women_avatar1.jpg" class="rounded-circle" alt="avatar"></figure></a><div class="dropdown-menu dropdown-menu-right"><a class="dropdown-item" href="profile.html"><i class="mr-2" data-feather="user"></i> Personal Info</a><a class="dropdown-item" href="change-password.html"><i class="mr-2" data-feather="lock"></i> Change Password</a><div class="dropdown-divider"></div><a class="dropdown-item" href="../login.html"><i class="mr-2" data-feather="log-out"></i> Logout</a></div></li>
+                </ul>
+                <!-- Mobile toggler -->
+                <ul class="navbar-nav d-flex align-items-center"><li class="nav-item header-toggler"><a href="#" class="nav-link"><i data-feather="arrow-down"></i></a></li></ul>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Wrapper -->
+    <div id="main">
+
+        <!-- BEGIN REPLACEMENT: Navigation -->
+        <div class="navigation">
+            <div class="navigation-menu-tab">
+                <div class="flex-grow-1">
+                    <ul>
+                        <!-- Dashboard Icon Link -->
+                        <li><a href="#" data-toggle="tooltip" data-placement="right" title="Dashboard" data-nav-target="#dashboards"><i data-feather="home"></i></a></li>
+                        <!-- My Music Icon Link -->
+                        <li><a href="#" data-toggle="tooltip" data-placement="right" title="My Music" data-nav-target="#my-music"><i data-feather="music"></i></a></li>
+                        <!-- Categories Icon Link -->
+                        <li><a href="#" data-toggle="tooltip" data-placement="right" title="Categories" data-nav-target="#categories"><i data-feather="folder"></i></a></li>
+                        <!-- Artists Icon Link (ACTIVE) -->
+                        <li><a class="active" href="#" data-toggle="tooltip" data-placement="right" title="Artists" data-nav-target="#artists"><i data-feather="users"></i></a></li>
+                        <!-- Upload Music Icon Link -->
+                        <li><a href="#" data-toggle="tooltip" data-placement="right" title="Upload Music" data-nav-target="#upload"><i data-feather="upload"></i></a></li>
+                        <!-- Tags Icon Link -->
+                        <li><a href="#" data-toggle="tooltip" data-placement="right" title="Tags" data-nav-target="#tags"><i data-feather="tag"></i></a></li>
+                        <!-- Settings Icon Link -->
+                        <li><a href="#" data-toggle="tooltip" data-placement="right" title="Settings" data-nav-target="#settings"><i data-feather="settings"></i></a></li>
+                    </ul>
+                </div>
+                <div><ul><li><a href="../login.html" data-toggle="tooltip" data-placement="right" title="Logout"><i data-feather="log-out"></i></a></li></ul></div>
+            </div>
+
+            <!-- Standard Secondary Navigation Panel -->
+            <div class="navigation-menu-body">
+                <div class="navigation-menu-group">
+                    <!-- Dashboard Section -->
+                    <div id="dashboards">
+                        <ul>
+                            <li class="navigation-divider">Dashboard</li>
+                            <li><a href="index.html">Overview</a></li>
+                             <li><a href="top-songs.html">Top Songs</a></li>
+                             <li><a href="artists.html">All Artists</a></li>
+                        </ul>
+                    </div>
+                    <!-- My Music Section -->
+                    <div id="my-music">
+                        <ul>
+                            <li class="navigation-divider">My Music</li>
+                            <li><a href="my-music.html">All Songs</a></li>
+                           
+                        </ul>
+                    </div>
+                    <!-- Categories Section -->
+                    <div id="categories">
+                        <ul>
+                            <li class="navigation-divider">Categories</li>
+                            <li><a href="categories.html">Manage Categories</a></li>
+                        </ul>
+                    </div>
+                     <!-- Artists Section (ACTIVE and OPEN) -->
+                     <div id="artists" class="open">
+                        <ul>
+                            <li class="navigation-divider">Artists</li>
+                            <li><a class="active" href="artists.html">All Artists</a></li>
+                        </ul>
+                    </div>
+                    <!-- Upload Section -->
+                    <div id="upload">
+                        <ul>
+                            <li class="navigation-divider">Upload</li>
+                            <li><a href="upload-music.html">Upload Music</a></li>
+                        </ul>
+                    </div>
+                    <!-- Tags Section -->
+                    <div id="tags">
+                        <ul>
+                            <li class="navigation-divider">Tags</li>
+                            <li><a href="tag-management.html">Manage Tags</a></li>
+                        </ul>
+                    </div>
+                    <!-- Settings Section -->
+                    <div id="settings">
+                        <ul>
+                            <li class="navigation-divider">Settings</li>
+                            <li><a href="settings.html">Profile</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- END REPLACEMENT: Navigation -->
+       
+        <!-- Content body -->
+        <div class="main-content">
+             <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Artists</li>
+                </ol>
+            </nav>
+            
+            <div class="page-header mb-4">
+                <h1 class="page-title">All Artists</h1>
+                <!-- Add search/filter later if needed -->
+            </div>
+
+             <div class="card">
+                <div class="card-body">
+                    <div id="artists-by-letter-container">
+                         <!-- Loading indicator -->
+                        <div class="text-center my-5" id="artists-loading">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="sr-only">Loading artists...</span>
+                            </div>
+                            <p class="mt-2">Loading artists...</p>
+                        </div>
+                         <!-- Artists list will be populated here by JS -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <footer class="content-footer">
+                <div>© Music Resource Management</div>
+                <div><a href="" target="_blank">MusicWebsite</a></div>
+            </footer>
+        </div>
+        <!-- Content body end -->
+
+    </div>
+    <!-- Main wrapper end -->
+
+    <!-- Added Audio Player HTML (Copied from index.html) -->
+    <div class="audio-player">
+        <div class="player-content">
+            <div class="song-info"><div class="cover"><img id="currentSongCover" src="assets/media/image/default-cover.jpg" alt="Cover"></div><div class="details"><h5 id="currentSongTitle">No song playing</h5><p id="currentSongArtist">-</p></div></div>
+            <div class="controls"><div class="player-controls"><button id="prevButton" class="control-button"><i class="fas fa-step-backward"></i></button><button id="playPauseButton" class="control-button"><i class="fas fa-play"></i></button><button id="nextButton" class="control-button"><i class="fas fa-step-forward"></i></button></div><div class="progress-container"><span id="currentTime">0:00</span><div class="progress"><div class="progress-bar" role="progressbar" style="width: 0%"></div></div><span id="duration">0:00</span></div></div>
+            <div class="volume"><button id="muteButton" class="control-button"><i class="fas fa-volume-up"></i></button><div class="volume-slider"><input type="range" class="form-range" id="volumeSlider" min="0" max="100" value="100"></div></div>
+        </div>
+        <audio id="audioPlayer"></audio>
+    </div>
+    <!-- End Added Audio Player HTML -->
+
+    <!-- Scripts -->
+    <!-- Bundle scripts -->
+    <script src="vendors/bundle.js"></script> 
+
+    <!-- Axios library (already included in head, but include again for safety/clarity if needed) -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script> -->
+
+    <!-- App scripts -->
+    <script src="assets/js/app.js"></script>
+
+    <!-- Common scripts (Modules) -->
+    <script src="../Common/js/config.js" type="module"></script>
+    <script src="../Common/js/api.js" type="module"></script>
+
+    <!-- Auth check (Module) -->
+    <script src="assets/js/auth-check.js" type="module"></script>
+    
+    <!-- Audio Player (Module) -->
+    <script src="assets/js/audio-player.js" type="module"></script>
+    
+    <!-- Page Specific JS (Module) -->
+    <script src="assets/js/artists.js" type="module"></script>
+
+</body>
+
+</html> 

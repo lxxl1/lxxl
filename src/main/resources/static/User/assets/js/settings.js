@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!currentUserId || !token) { // Check for both ID and token
         console.error('User ID or Token not found in localStorage. Redirecting to login.');
-        alert('Please log in to view settings.');
+        alert('Please log in to view settings.'); // Changed alert to English
         window.location.href = '../login.html'; // Redirect to login
         return;
     }
@@ -91,11 +91,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             } else {
                 console.error('Failed to load profile:', response.data ? response.data.msg : 'Unknown error');
-                showMessage(profileUpdateMessage, `加载用户信息失败: ${response.data ? response.data.msg : '无法获取数据.'}`, true);
+                 // Changed message to English
+                showMessage(profileUpdateMessage, `Failed to load user information: ${response.data ? response.data.msg : 'Could not retrieve data.'}`, true);
             }
         } catch (error) {
             console.error('Error fetching profile:', error);
-            showMessage(profileUpdateMessage, '获取用户信息时发生错误，请稍后再试。', true);
+            // Changed message to English
+            showMessage(profileUpdateMessage, 'An error occurred while fetching user information. Please try again later.', true);
         }
     }
 
@@ -107,7 +109,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!nameInput) {
              console.error("Name input field not found.");
-             showMessage(profileUpdateMessage, '发生内部错误（姓名输入框丢失）。', true);
+             // Changed message to English
+             showMessage(profileUpdateMessage, 'Internal error (Name input field missing).', true);
              return;
         }
 
@@ -119,17 +122,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Check if name is empty
         if (!updatedProfile.name) {
-            showMessage(profileUpdateMessage, '姓名不能为空。', true);
+             // Changed message to English
+            showMessage(profileUpdateMessage, 'Name cannot be empty.', true);
             return;
         }
 
         console.log('Submitting profile update:', updatedProfile);
 
         try {
-            // Verify success code ('1' or '200'?)
             const response = await api.post('/user/update', updatedProfile);
-            if (response.data && response.data.code === '1') { // VERIFY this success code
-                showMessage(profileUpdateMessage, '用户信息更新成功!', false);
+            if (response.data && response.data.code === '200') { 
+                // Changed message to English
+                showMessage(profileUpdateMessage, 'User information updated successfully!', false);
                  const currentUserData = JSON.parse(localStorage.getItem('user'));
                  if(currentUserData){
                     currentUserData.name = updatedProfile.name;
@@ -139,11 +143,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     loadedUserProfile.name = updatedProfile.name;
                  }
             } else {
-                showMessage(profileUpdateMessage, `用户信息更新失败: ${response.data.msg || '未知错误.'}`, true);
+                // Changed message to English
+                showMessage(profileUpdateMessage, `Failed to update user information: ${response.data.msg || 'Unknown error.'}`, true);
             }
         } catch (error) {
             console.error('Error updating profile:', error);
-             showMessage(profileUpdateMessage, '更新用户信息时发生错误，请稍后再试。', true);
+            // Check if the error is due to token validation failure (status 401)
+            if (error.response && error.response.status === 401) { 
+                 console.log('Token expired or invalid during profile update. Redirecting to login.');
+                 // Changed alert to English
+                 alert('Your session has expired, please log in again.'); 
+                 localStorage.removeItem('user');
+                 localStorage.removeItem('token');
+                 localStorage.removeItem('role');
+                 window.location.href = '../login.html'; // Redirect to login page
+            } else {
+                 // Show generic error for other issues
+                 // Changed message to English
+                 showMessage(profileUpdateMessage, `An error occurred while updating user information: ${error.response?.data?.msg || error.message || 'Please try again later.'}`, true);
+            }
         }
     }
 
@@ -158,17 +176,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const confirmNewPassword = document.getElementById('confirm-new-password').value;
 
         if (!currentPassword || !newPassword || !confirmNewPassword) {
-             showMessage(passwordChangeMessage, '所有密码字段均为必填项。', true);
+             // Changed message to English
+             showMessage(passwordChangeMessage, 'All password fields are required.', true);
             return;
         }
 
         if (newPassword !== confirmNewPassword) {
-            showMessage(passwordChangeMessage, '新密码两次输入不一致。', true);
+             // Changed message to English
+            showMessage(passwordChangeMessage, 'New passwords do not match.', true);
             return;
         }
 
         if (newPassword.length < 6) {
-            showMessage(passwordChangeMessage, '新密码必须至少包含 6 个字符。', true);
+             // Changed message to English
+            showMessage(passwordChangeMessage, 'New password must be at least 6 characters long.', true);
             return;
         }
 
@@ -177,11 +198,13 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                  await loadUserProfile();
                  if (!loadedUserProfile || !loadedUserProfile.username) {
-                     showMessage(passwordChangeMessage, '无法获取用户详细信息以更改密码。请刷新页面。', true);
+                     // Changed message to English
+                     showMessage(passwordChangeMessage, 'Could not retrieve user details to change password. Please refresh the page.', true);
                      return;
                  }
             } catch(e){
-                 showMessage(passwordChangeMessage, '无法获取用户详细信息以更改密码。请刷新页面。', true);
+                 // Changed message to English
+                 showMessage(passwordChangeMessage, 'Could not retrieve user details to change password. Please refresh the page.', true);
                  return;
             }
         }
@@ -198,19 +221,35 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Submitting password change for username (login ID):', userLoginIdentifier);
 
         try {
-             // Verify success code ('1' or '200'?)
+            // Verify success code ('1' or '200'?)
+            // NOTE: Backend currently uses code '1' for successful password change based on analysis
             const response = await api.put('/updatePassword', passwordData);
-            if (response.data && response.data.code === '1') { // VERIFY this success code
-                showMessage(passwordChangeMessage, '密码更新成功!', false);
+            if (response.data && response.data.code === '1') { // Keep checking '1' based on analysis, adjust if backend changes
+                // Changed message to English
+                showMessage(passwordChangeMessage, 'Password updated successfully!', false);
                 document.getElementById('current-password').value = '';
                 document.getElementById('new-password').value = '';
                 document.getElementById('confirm-new-password').value = '';
             } else {
-                showMessage(passwordChangeMessage, `密码更新失败: ${response.data.msg || '请检查当前密码.'}`, true);
+                // Changed message to English
+                showMessage(passwordChangeMessage, `Password update failed: ${response.data.msg || 'Please check your current password.'}`, true);
             }
         } catch (error) {
             console.error('Error updating password:', error);
-             showMessage(passwordChangeMessage, '更新密码时发生错误，请稍后再试。', true);
+            // Check if the error is due to token validation failure (status 401)
+            if (error.response && error.response.status === 401) { 
+                 console.log('Token expired or invalid during password change. Redirecting to login.');
+                 // Changed alert to English
+                 alert('Your session has expired, please log in again.'); 
+                 localStorage.removeItem('user');
+                 localStorage.removeItem('token');
+                 localStorage.removeItem('role');
+                 window.location.href = '../login.html'; // Redirect to login page
+            } else {
+                 // Show generic error for other issues
+                 // Changed message to English
+                 showMessage(passwordChangeMessage, `An error occurred while updating password: ${error.response?.data?.msg || error.message || 'Please try again later.'}`, true);
+            }
         }
     }
 

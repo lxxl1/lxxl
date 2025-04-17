@@ -2,6 +2,7 @@ package com.cpt202.mapper;
 
 import com.cpt202.domain.Singer;
 import org.springframework.stereotype.Repository;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -44,6 +45,20 @@ public interface SingerMapper {
      * 根据性别查询
      */
     public List<Singer> singerOfSex(Integer sex);
+
+    /**
+     * 根据ID列表查询歌手姓名列表
+     * @param ids 歌手ID列表
+     * @return 歌手姓名列表
+     */
+    List<String> selectNamesByIds(@Param("ids") List<Integer> ids);
+
+    /**
+     * 根据ID列表查询歌手完整对象列表
+     * @param ids 歌手ID列表
+     * @return Singer对象列表
+     */
+    List<Singer> selectByIds(@Param("ids") List<Integer> ids);
 }
 
 

@@ -16,9 +16,13 @@ public class SongDTO extends Song implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    private Integer id;
+    // Remove redundant fields inherited from Song (Lombok should handle this)
+    // private Integer id;
+    // private Integer singerId; // REMOVE THIS
+    // private String name;
+    // ... other redundant fields ...
+
     private Integer singerId; // Or maybe singerName if needed?
-    private String name;
     private String introduction;
     private Date createTime;
     private Date updateTime;
@@ -32,14 +36,19 @@ public class SongDTO extends Song implements Serializable {
     private Integer userId;
     
     // Additional field for category names
-    private String categoryNames; 
+    private String categoryNames;
     private List<Integer> categoryIds; // List of associated category IDs
 
     // Additional fields for tags
     private String tagNames; // Comma-separated tag names
     private List<Integer> tagIds; // List of associated tag IDs
 
-    // Explicitly define getter/setter for isVip to match parent type (assuming Boolean)
+    // Additional fields for singers
+    private String singerNames; // Comma-separated singer names
+    private List<Integer> singerIds; // List of associated singer IDs
+
+    // Explicitly define getter/setter for isVip if needed (Lombok might handle it)
+    /*
     @Override
     public Boolean getIsVip() {
         return super.getIsVip();
@@ -49,4 +58,5 @@ public class SongDTO extends Song implements Serializable {
     public void setIsVip(Boolean isVip) {
         super.setIsVip(isVip);
     }
+    */
 } 

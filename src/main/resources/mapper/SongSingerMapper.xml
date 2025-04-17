@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC
+        "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cpt202.mapper.SongSingerMapper">
+
+    <insert id="insert">
+        INSERT INTO song_singer (song_id, singer_id)
+        VALUES (#{songId}, #{singerId})
+    </insert>
+
+    <insert id="insertBatch">
+        INSERT INTO song_singer (song_id, singer_id)
+        VALUES
+        <foreach collection="singerIds" item="singerId" separator=",">
+            (#{songId}, #{singerId})
+        </foreach>
+    </insert>
+
+    <delete id="deleteBySongId">
+        DELETE FROM song_singer WHERE song_id = #{songId}
+    </delete>
+
+    <delete id="deleteBySingerId">
+        DELETE FROM song_singer WHERE singer_id = #{singerId}
+    </delete>
+
+    <select id="selectSingerIdsBySongId" resultType="java.lang.Integer">
+        SELECT singer_id FROM song_singer WHERE song_id = #{songId}
+    </select>
+
+    <select id="selectSongIdsBySingerId" resultType="java.lang.Integer">
+        SELECT song_id FROM song_singer WHERE singer_id = #{singerId}
+    </select>
+
+</mapper> 

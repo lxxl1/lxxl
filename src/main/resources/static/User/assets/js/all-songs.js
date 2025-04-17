@@ -69,7 +69,6 @@ async function loadAllSongs() {
         const response = await api.get('/song/allSong');
         if (response.data && response.data.code === '200' && response.data.data) {
             allSongs = response.data.data;
-            // Filter only approved songs (status=1)
             approvedSongs = allSongs.filter(song => song.status === 1);
             return true;
         }
@@ -149,7 +148,7 @@ function renderSongs() {
     
     let html = '';
     paginatedSongs.forEach(song => {
-        const singerName = allSingers.find(singer => singer.id === song.singerId)?.name || 'Unknown Artist';
+        const displaySingers = song.singerNames || 'Unknown Artist';
         
         html += `
             <div class="col-md-3 col-sm-6 mb-4">
@@ -157,10 +156,10 @@ function renderSongs() {
                     <img src="${song.pic || 'assets/media/image/default-album.png'}" class="card-img-top" alt="${song.name}">
                     <div class="card-body">
                         <h6 class="card-title mb-1">${song.name}</h6>
-                        <p class="small text-muted mb-2">${singerName}</p>
+                        <p class="small text-muted mb-2">${displaySingers}</p>
                         <div class="d-flex justify-content-between">
                             <small class="text-muted">
-                                <i data-feather="play"></i> ${song.playCount || 0}
+                                <i data-feather="play"></i> ${song.nums || 0}
                             </small>
                             <small class="text-muted">
                                 <i data-feather="heart"></i> ${song.likeCount || 0}
@@ -291,10 +290,9 @@ async function filterSongs() {
     if (searchTerm) {
         searchResults = searchResults.filter(song => {
             const songName = song.name ? song.name.toLowerCase() : '';
-            const singerName = song.singerId ? 
-                (allSingers.find(singer => singer.id === song.singerId)?.name || '').toLowerCase() : '';
+            const singerNames = song.singerNames ? song.singerNames.map(name => name.toLowerCase()) : [];
             
-            return songName.includes(searchTerm) || singerName.includes(searchTerm);
+            return songName.includes(searchTerm) || singerNames.some(name => name.includes(searchTerm));
         });
     }
     
@@ -328,28 +326,43 @@ async function filterSongs() {
  */
 function playSong(songId) {
     const song = approvedSongs.find(s => s.id == songId);
-    if (!song) return;
-    
-    const singerName = allSingers.find(singer => singer.id === song.singerId)?.name || 'Unknown Artist';
-    
-    // Update the modal content
-    document.getElementById('playing-song-name').textContent = song.name;
-    document.getElementById('playing-song-artist').textContent = singerName;
-    document.getElementById('playing-song-cover').src = song.pic || 'assets/media/image/default-cover.jpg';
-    document.getElementById('playing-song-lyrics').innerHTML = song.lyric || 'No lyrics available';
-    
-    // Set the audio source
-    const audioSource = document.getElementById('audio-source');
-    const audioPlayer = document.getElementById('audio-player');
-    
-    if (audioSource && audioPlayer) {
-        audioSource.src = song.url;
-        audioPlayer.load();
-        audioPlayer.play();
+    if (!song) {
+        console.error(`Song with ID ${songId} not found in approved list.`);
+        showMessage('Could not find the song to play.', 'error');
+        return;
     }
     
-    // Show the modal
-    $('#songPlayerModal').modal('show');
+    const displaySingers = song.singerNames || 'Unknown Artist';
+    
+    // Update the modal content
+    const modalPlayerName = document.getElementById('playing-song-name');
+    const modalPlayerArtist = document.getElementById('playing-song-artist');
+    const modalPlayerCover = document.getElementById('playing-song-cover');
+    const modalPlayerLyrics = document.getElementById('playing-song-lyrics');
+    const modalAudioSource = document.getElementById('audio-source');
+    const modalAudioPlayer = document.getElementById('audio-player');
+
+    if (modalPlayerName) modalPlayerName.textContent = song.name;
+    if (modalPlayerArtist) modalPlayerArtist.textContent = displaySingers;
+    if (modalPlayerCover) modalPlayerCover.src = song.pic || 'assets/media/image/default-cover.jpg';
+    if (modalPlayerLyrics) modalPlayerLyrics.innerHTML = song.lyric || 'No lyrics available';
+    
+    // Set the audio source and play
+    if (modalAudioSource && modalAudioPlayer) {
+        modalAudioSource.src = song.url;
+        modalAudioPlayer.load();
+        modalAudioPlayer.play();
+        // Show the modal if it exists
+        if (typeof $ !== 'undefined' && $('#songPlayerModal').length) {
+            $('#songPlayerModal').modal('show');
+        }
+    } else {
+        // Fallback or alternative player logic if modal elements aren't found
+        console.warn('Modal player elements not found. Playing might rely on a different player.');
+        // If using the shared audio-player.js:
+        // import { playSongAudioPlayer } from './audio-player.js'; // Make sure imported
+        // playSongAudioPlayer(song.url, song.name, displaySingers, song.pic);
+    }
     
     // Increment play count
     incrementPlayCount(songId);
@@ -363,6 +376,11 @@ async function incrementPlayCount(songId) {
     try {
         await api.get(`/song/addNums?songId=${songId}`);
         console.log('Play count incremented for song ID:', songId);
+        // Reload data and re-render after incrementing
+        await loadAllSongs(); // Ensure this fetches DTOs
+        filteredSongs = [...approvedSongs]; // Update filtered list based on reloaded data
+        renderSongs(); // Re-render current page
+        setupPagination(); // Re-setup pagination based on potentially changed filtered list
     } catch (error) {
         console.error('Error incrementing play count:', error);
     }

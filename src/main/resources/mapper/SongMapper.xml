@@ -5,7 +5,6 @@
 <mapper namespace="com.cpt202.mapper.SongMapper">
     <resultMap id="BaseResultMap" type="com.cpt202.domain.Song">
         <id column="id" jdbcType="INTEGER" property="id"/>
-        <result column="singer_id" jdbcType="INTEGER" property="singerId"/>
         <result column="name" jdbcType="VARCHAR" property="name"/>
         <result column="introduction" jdbcType="VARCHAR"
                 property="introduction"/>
@@ -29,12 +28,12 @@
 
     <sql id="Base_Column_List">
         id
-        ,singer_id,name,introduction,create_time,update_time,pic,url,mvurl,nums,is_vip,status,user_id
+        ,name,introduction,create_time,update_time,pic,url,mvurl,nums,is_vip,status,user_id
     </sql>
 
     <sql id="Blob_Column_List">
         id
-        ,singer_id,name,introduction,create_time,update_time,pic,lyric,url,mvurl,nums,is_vip,status,user_id
+        ,name,introduction,create_time,update_time,pic,lyric,url,mvurl,nums,is_vip,status,user_id
     </sql>
 
     <insert id="insert" parameterType="com.cpt202.domain.Song" useGeneratedKeys="true" keyProperty="id">
@@ -45,9 +44,6 @@
             </if>
             <if test="userId != null">
                 user_id,
-            </if>
-            <if test="singerId != null">
-                singer_id,
             </if>
             <if test="name != null">
                 name,
@@ -77,9 +73,6 @@
             <if test="userId != null">
                 #{userId},
             </if>
-            <if test="singerId != null">
-                #{singerId},
-            </if>
             <if test="name != null">
                 #{name},
             </if>
@@ -106,9 +99,6 @@
     <update id="update" parameterType="com.cpt202.domain.Song">
         update song
         <set>
-            <if test="singerId != null">
-                singer_id = #{singerId},
-            </if>
             <if test="name != null">
                 name = #{name},
             </if>
@@ -141,6 +131,10 @@
         where id = #{id}
     </update>
 
+    <update id="updateStatus">
+        update song set status = #{status}, update_time = now() where id = #{songId}
+    </update>
+
     <delete id="delete" parameterType="java.lang.Integer">
         delete
         from song
@@ -159,6 +153,20 @@
         select
         <include refid="Blob_Column_List"/>
         from song
+    </select>
+
+    <select id="getPendingSongs" resultMap="ResultMapWithBLOBs">
+        select
+        <include refid="Blob_Column_List"/>
+        from song
+        where status = 0
+    </select>
+    
+    <select id="getAuditedSongs" resultMap="ResultMapWithBLOBs" parameterType="java.lang.Integer">
+        select 
+        <include refid="Blob_Column_List"/>
+        from song
+        where status = #{status}
     </select>
 
     <select id="topSong" resultMap="ResultMapWithBLOBs">
@@ -181,14 +189,6 @@
         <include refid="Blob_Column_List"/>
         from song
         where name like #{name}
-    </select>
-
-    <select id="songOfSingerId" resultMap="ResultMapWithBLOBs"
-            parameterType="java.lang.Integer">
-        select
-        <include refid="Blob_Column_List"/>
-        from song
-        where singer_id = #{singerId}
     </select>
 
     <select id="songOfUserId" resultMap="ResultMapWithBLOBs"

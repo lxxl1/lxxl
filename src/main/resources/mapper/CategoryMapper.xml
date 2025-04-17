@@ -68,4 +68,20 @@
             s.user_id = #{userId}
     </select>
 
+    <!-- Finds the category with the most songs -->
+    <select id="findTopCategoryBySongCount" resultType="com.cpt202.dto.TopCategoryDto">
+        SELECT
+            c.name AS categoryName,
+            COUNT(sc.song_id) AS songCount
+        FROM
+            category c  -- Assuming category table name is 'category'
+        JOIN
+            song_category sc ON c.id = sc.category_id -- Assuming linking table is 'song_category' and columns are 'id', 'category_id', 'song_id'
+        GROUP BY
+            c.id, c.name
+        ORDER BY
+            songCount DESC
+        LIMIT 1;
+    </select>
+
 </mapper>

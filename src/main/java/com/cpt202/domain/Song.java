@@ -15,8 +15,6 @@ import java.util.Date;
 public class Song implements Serializable {
     /*主键*/
     private Integer id;
-    //歌手id
-    private Integer singerId;
     /*歌名*/
     private String name;
     /*简介*/
@@ -39,5 +37,5 @@ public class Song implements Serializable {
     private Boolean isVip;
     /*审核状态：0-待审核，1-审核通过，2-审核不通过*/
     private Integer status;
-    private  Integer userId;
+    private Integer userId;
 }

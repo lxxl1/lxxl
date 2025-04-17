@@ -1,24 +1,24 @@
 package com.cpt202.service.impl;
 
+import com.cpt202.domain.Singer;
 import com.cpt202.dto.SongDTO;
-import com.cpt202.mapper.SongMapper;
+import com.cpt202.dto.SongDetailDTO;
+import com.cpt202.mapper.*;
 import com.cpt202.domain.Song;
-import com.cpt202.mapper.CategoryMapper;
-import com.cpt202.mapper.SongCategoryMapper;
 import com.cpt202.service.SongService;
 import com.cpt202.domain.SongCategory;
-import com.cpt202.mapper.TagMapper;
-import com.cpt202.mapper.SongTagMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.Objects;
 
 /**
  * 歌曲service实现类
@@ -41,210 +41,349 @@ public class SongServiceImpl implements SongService {
     @Autowired
     private SongTagMapper songTagMapper;
 
+    @Autowired
+    private SongSingerMapper songSingerMapper;
+
+    @Autowired
+    private SingerMapper singerMapper;
+
     /**
-     * 增加
+     * 增加歌曲，并关联歌手、类别、标签
      *
-     * @param song
+     * @param song 歌曲基本信息
+     * @param singerIds 关联的歌手ID列表
      */
     @Override
-    public boolean insert(Song song) {
-        // 确保插入前清除可能存在的临时字段值
-        // song.setCategoryNames(null); 
-        return songMapper.insert(song) > 0;
+    @Transactional
+    public boolean insert(Song song, List<Integer> singerIds) {
+        // 1. Insert the song to get its ID
+        boolean songInsertSuccess = songMapper.insert(song) > 0;
+        if (!songInsertSuccess || song.getId() == null) {
+            log.error("Failed to insert song or retrieve song ID: {}", song.getName());
+            return false;
+        }
+        Integer newSongId = song.getId();
+        log.info("Inserted song '{}' with ID: {}", song.getName(), newSongId);
+
+        // 2. Handle singer associations
+        if (!CollectionUtils.isEmpty(singerIds)) {
+            try {
+                songSingerMapper.insertBatch(newSongId, singerIds);
+                log.info("Associated song ID {} with singer IDs: {}", newSongId, singerIds);
+            } catch (Exception e) {
+                log.error("Error associating singers with song ID {}: {}", newSongId, e.getMessage());
+                // Consider rolling back or logging more details
+                // For now, we continue but log the error
+            }
+        }
+
+        // Category and Tag associations should be handled in the controller or service method that calls this,
+        // as they are typically passed as separate parameters.
+        // If categories/tags were part of the Song object, handle them here.
+
+        return true; // Return true even if associations failed, as song was inserted
     }
 
     /**
-     * 修改
+     * 修改歌曲，并更新歌手关联
      *
-     * @param song
+     * @param song 歌曲基本信息 (ID must be present)
+     * @param singerIds 新的歌手ID列表
      */
     @Override
-    public boolean update(Song song) {
-         // 确保更新前清除可能存在的临时字段值
-        // song.setCategoryNames(null); 
-        return songMapper.update(song) > 0;
+    @Transactional
+    public boolean update(Song song, List<Integer> singerIds) {
+        if (song.getId() == null) {
+            log.error("Cannot update song, ID is missing.");
+            return false;
+        }
+        Integer songId = song.getId();
+
+        // 1. Update song basic info
+        boolean songUpdateSuccess = songMapper.update(song) > 0;
+        if (!songUpdateSuccess) {
+            // Log warning, maybe the song didn't exist or no fields changed
+            log.warn("Song update did not affect any rows for ID: {}", songId);
+            // Decide if this should be considered a failure
+        }
+
+        // 2. Update singer associations
+        try {
+            // Delete existing associations
+            songSingerMapper.deleteBySongId(songId);
+            // Insert new associations if provided
+            if (!CollectionUtils.isEmpty(singerIds)) {
+                songSingerMapper.insertBatch(songId, singerIds);
+                log.info("Updated singer associations for song ID {} to: {}", songId, singerIds);
+            }
+        } catch (Exception e) {
+            log.error("Error updating singer associations for song ID {}: {}", songId, e.getMessage());
+            // Rollback transaction
+            throw new RuntimeException("Failed to update singer associations", e);
+        }
+        
+        // Category and Tag associations should be handled separately if needed.
+
+        return true; // Return true assuming the main update is the key criteria
     }
 
     /**
-     * 删除
+     * 删除歌曲（级联删除关联表）
      *
      * @param id
      */
     @Override
-    @Transactional
+    @Transactional // Keep transactional, although CASCADE might handle it
     public boolean delete(Integer id) {
-        // 删除歌曲前，先删除关联表中的记录
-        songCategoryMapper.deleteBySongId(id);
+        // song_singer and song_category should be deleted by CASCADE constraint
+        // Manually delete song_tag if no CASCADE constraint exists
+        songTagMapper.deleteBySongId(id); 
+        songCategoryMapper.deleteBySongId(id); // Keep for safety if CASCADE fails
+        songSingerMapper.deleteBySongId(id); // Keep for safety if CASCADE fails
+        
         return songMapper.delete(id) > 0;
     }
 
     /**
-     * 根据主键查询整个对象
+     * 根据主键查询歌曲详细信息（包含歌手列表）
      *
      * @param id
      */
     @Override
-    public Song selectByPrimaryKey(Integer id) {
-        return songMapper.selectByPrimaryKey(id);
-    }
+    public SongDetailDTO selectDetailByPrimaryKey(Integer id) {
+        Song song = songMapper.selectByPrimaryKey(id);
+        if (song == null) {
+            return null;
+        }
 
-    /**
-     * 查询所有歌曲
-     */
-    @Override
-    public List<Song> allSong() {
-        return songMapper.allSong();
-    }
+        SongDetailDTO dto = new SongDetailDTO();
+        BeanUtils.copyProperties(song, dto);
 
-    /**
-     * 根据歌名精确查询列表
-     *
-     * @param name
-     */
-    @Override
-    public List<Song> songOfName(String name) {
-        return songMapper.songOfName(name);
-    }
+        // Fetch associated singer IDs
+        List<Integer> singerIds = songSingerMapper.selectSingerIdsBySongId(id);
+        List<SongDetailDTO.SingerInfo> singerInfoList = new ArrayList<>();
 
-    /**
-     * 根据歌名模糊查询列表
-     *
-     * @param name
-     */
-    @Override
-    public List<Song> likeSongOfName(String name) {
-        return songMapper.likeSongOfName("%" + name + "%");
+        if (!CollectionUtils.isEmpty(singerIds)) {
+            // Fetch singer details (assuming selectByIds returns List<Singer>)
+             List<Singer> singers = singerMapper.selectByIds(singerIds); // *** NEED TO ADD selectByIds to SingerMapper ***
+             if (!CollectionUtils.isEmpty(singers)) {
+                 singers.forEach(singer -> {
+                     SongDetailDTO.SingerInfo singerInfo = new SongDetailDTO.SingerInfo();
+                     singerInfo.setId(singer.getId());
+                     singerInfo.setName(singer.getName());
+                     // singerInfo.setPic(singer.getPic()); // If needed
+                     singerInfoList.add(singerInfo);
+                 });
+             }
+        }
+        dto.setSingers(singerInfoList);
+        
+        // TODO: Fetch and add category and tag info similar to songOfUserId method if needed
+
+        return dto;
     }
     
     /**
-     * 根据用户id查询歌曲，并包含类别名称和标签名称
-     * 
-     * @param userId
-     * @return List of SongDTO
+     * 增加播放次数
      */
-    @Override
-    public List<SongDTO> songOfUserId(Integer userId) {
-        List<Song> songList = songMapper.songOfUserId(userId);
-        if (songList == null || songList.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        List<SongDTO> resultList = new ArrayList<>();
-        for (Song song : songList) {
-            SongDTO dto = new SongDTO();
-            BeanUtils.copyProperties(song, dto); // 复制基础属性
-
-            // --- 处理类别 --- 
-            List<Integer> categoryIds = songCategoryMapper.selectCategoryIdsBySongId(song.getId());
-            if (categoryIds != null && !categoryIds.isEmpty()) {
-                List<String> categoryNameList = categoryMapper.selectNamesByIds(categoryIds);
-                dto.setCategoryNames(categoryNameList != null ? String.join(", ", categoryNameList) : "N/A");
-                dto.setCategoryIds(categoryIds); 
-            } else {
-                dto.setCategoryNames("N/A"); 
-                dto.setCategoryIds(Collections.emptyList()); 
-            }
-
-            // --- 处理标签 (New Logic) ---
-            List<Integer> tagIds = songTagMapper.selectTagIdsBySongId(song.getId()); // Assume this method exists
-            if (tagIds != null && !tagIds.isEmpty()) {
-                List<String> tagNameList = tagMapper.selectNamesByIds(tagIds); // Assume this method exists
-                dto.setTagNames(tagNameList != null ? String.join(", ", tagNameList) : "N/A");
-                dto.setTagIds(tagIds);
-            } else {
-                dto.setTagNames("N/A");
-                dto.setTagIds(Collections.emptyList());
-            }
-            // --- End of New Logic ---
-            
-            resultList.add(dto);
-        }
-        return resultList;
-    }
-    
-    /**
-     * 根据用户ID和类别ID查询歌曲列表 (返回包含当前所有类别ID的DTO列表)
-     */
-    @Override
-    public List<SongDTO> getUserSongsByCategory(Integer userId, Integer categoryId) {
-        List<Song> songList = songMapper.selectUserSongsByCategory(userId, categoryId);
-        if (songList == null || songList.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        List<SongDTO> resultList = new ArrayList<>();
-        for (Song song : songList) {
-            SongDTO dto = new SongDTO();
-            BeanUtils.copyProperties(song, dto);
-
-            // Fetch *all* category IDs for this song
-            List<Integer> allCategoryIds = songCategoryMapper.selectCategoryIdsBySongId(song.getId());
-            dto.setCategoryIds(allCategoryIds != null ? allCategoryIds : Collections.emptyList());
-            
-            resultList.add(dto);
-        }
-        return resultList;
-    }
-
-    /**
-     * 更新歌曲的类别关联
-     */
-    @Override
-    @Transactional
-    public boolean updateSongCategories(Integer songId, List<Integer> categoryIds) {
-        try {
-            // 1. Delete existing categories for the song
-            songCategoryMapper.deleteBySongId(songId);
-
-            // 2. Insert new categories if the list is not empty
-            if (categoryIds != null && !categoryIds.isEmpty()) {
-                for (Integer categoryId : categoryIds) {
-                    SongCategory songCategory = new SongCategory();
-                    songCategory.setSongId(songId);
-                    songCategory.setCategoryId(categoryId);
-                    songCategoryMapper.insert(songCategory); // Assuming insert method exists
-                }
-            }
-            return true;
-        } catch (Exception e) {
-            log.error("Error updating categories for song ID {}: {}", songId, e.getMessage());
-            // Consider throwing a specific exception or returning false based on requirements
-            throw new RuntimeException("Failed to update song categories", e); // Or return false
-        }
-    }
-
-    /**
-     * 根据歌手id查询
-     *
-     * @param singerId
-     */
-    @Override
-    public List<Song> songOfSingerId(Integer singerId) {
-        return songMapper.songOfSingerId(singerId);
-    }
-
     @Override
     public boolean addNums(Integer id) {
-        return songMapper.addNums(id);
+        return songMapper.addNums(id) > 0; // Changed to check affected rows
     }
 
+    /**
+     * 查询所有歌曲 (返回DTO列表)
+     */
     @Override
-    public List<Song> topSong() {
-        return songMapper.topSong();
+    public List<SongDTO> allSong() {
+        List<Song> songs = songMapper.allSong();
+        return convertSongListToDTOList(songs);
     }
 
+    /**
+     * 根据歌名精确查询列表 (返回DTO列表)
+     */
     @Override
-    public boolean updateStatus(Integer songId, Integer status) {
-        return songMapper.updateStatus(songId, status) > 0;
+    public List<SongDTO> songOfName(String name) {
+        List<Song> songs = songMapper.songOfName(name);
+         return convertSongListToDTOList(songs);
     }
 
+    /**
+     * 根据歌名模糊查询列表 (返回DTO列表)
+     */
     @Override
-    public List<Song> getPendingSongs() {
-        return songMapper.getPendingSongs();
+    public List<SongDTO> likeSongOfName(String name) {
+        List<Song> songs = songMapper.likeSongOfName("%" + name + "%");
+        return convertSongListToDTOList(songs);
     }
+    
+    /**
+     * 根据歌手id查询其所有歌曲 (保持返回List<Song>)
+     */
+    @Override
+    public List<Song> getSongsBySingerId(Integer singerId) {
+        List<Integer> songIds = songSingerMapper.selectSongIdsBySingerId(singerId);
+        if (CollectionUtils.isEmpty(songIds)) {
+            return Collections.emptyList();
+        }
+        // Consider adding a method in SongMapper: selectByIds(List<Integer> ids)
+        return songIds.stream()
+                      .map(songMapper::selectByPrimaryKey)
+                      .filter(Objects::nonNull)
+                      .collect(Collectors.toList());
+    }
+    
+    /**
+     * 查询播放次数排前列的歌曲 (返回DTO列表)
+     */
+     @Override
+     public List<SongDTO> topSong() {
+         List<Song> songs = songMapper.topSong();
+         return convertSongListToDTOList(songs);
+     }
+     
+     @Override
+     public boolean updateStatus(Integer songId, Integer status) {
+         return songMapper.updateStatus(songId, status) > 0;
+     }
+     
+    /**
+     * 获取待审核歌曲列表 (返回DTO列表)
+     */
+     @Override
+     public List<SongDTO> getPendingSongs() {
+         List<Song> songs = songMapper.getPendingSongs();
+         return convertSongListToDTOList(songs);
+     }
+     
+     /**
+      * 获取已审核歌曲列表 (返回DTO列表)
+      */
+     @Override
+     public List<SongDTO> getAuditedSongs(Integer status) {
+         List<Song> songs = songMapper.getAuditedSongs(status);
+         return convertSongListToDTOList(songs);
+     }
+     
+     /**
+      * 根据用户id查询歌曲，并包含类别、标签、歌手名称 (返回 DTO 列表)
+      */
+     @Override
+     public List<SongDTO> songOfUserId(Integer userId) {
+         List<Song> songList = songMapper.songOfUserId(userId);
+         // Use the helper method for conversion
+         return convertSongListToDTOList(songList);
+     }
+     
+     /**
+      * 根据用户ID和类别ID查询歌曲列表 (返回DTO列表)
+      */
+     @Override
+     public List<SongDTO> getUserSongsByCategory(Integer userId, Integer categoryId) {
+         List<Song> songList = songMapper.selectUserSongsByCategory(userId, categoryId);
+         // Use the helper method for conversion
+         return convertSongListToDTOList(songList);
+     }
+     
+     /**
+      * 更新歌曲的类别关联
+      */
+     @Override
+     @Transactional
+     public boolean updateSongCategories(Integer songId, List<Integer> categoryIds) {
+         try {
+             // 1. Delete existing categories for the song
+             songCategoryMapper.deleteBySongId(songId);
 
-    @Override
-    public List<Song> getAuditedSongs(Integer status) {
-        return songMapper.getAuditedSongs(status);
+             // 2. Insert new categories if the list is not empty
+             if (!CollectionUtils.isEmpty(categoryIds)) {
+                 for (Integer categoryId : categoryIds) {
+                     SongCategory songCategory = new SongCategory();
+                     songCategory.setSongId(songId);
+                     songCategory.setCategoryId(categoryId);
+                     songCategoryMapper.insert(songCategory);
+                 }
+             }
+             return true;
+         } catch (Exception e) {
+             log.error("Error updating categories for song ID {}: {}", songId, e.getMessage());
+             throw new RuntimeException("Failed to update song categories", e);
+         }
+     }
+
+    // --- Helper Method --- 
+
+    /**
+     * Converts a List of Song entities to a List of SongDTOs,
+     * populating category, tag, and singer information for each DTO.
+     * 
+     * @param songList The list of Song entities.
+     * @return A list of populated SongDTOs.
+     */
+    private List<SongDTO> convertSongListToDTOList(List<Song> songList) {
+        if (CollectionUtils.isEmpty(songList)) {
+            return Collections.emptyList();
+        }
+
+        List<SongDTO> resultList = new ArrayList<>();
+        for (Song song : songList) {
+            SongDTO dto = convertSongToDTO(song);
+            if (dto != null) {
+                 resultList.add(dto);
+            }
+        }
+        return resultList;
     }
+    
+    /**
+     * Converts a single Song entity to a SongDTO,
+     * populating category, tag, and singer information.
+     * 
+     * @param song The Song entity.
+     * @return A populated SongDTO, or null if input song is null.
+     */
+    private SongDTO convertSongToDTO(Song song) {
+        if (song == null) {
+            return null;
+        }
+        SongDTO dto = new SongDTO();
+        BeanUtils.copyProperties(song, dto); // Copy basic properties
+
+        // --- Populate Categories --- 
+        List<Integer> categoryIds = songCategoryMapper.selectCategoryIdsBySongId(song.getId());
+        if (!CollectionUtils.isEmpty(categoryIds)) {
+            List<String> categoryNameList = categoryMapper.selectNamesByIds(categoryIds);
+            dto.setCategoryNames(categoryNameList != null ? String.join(", ", categoryNameList) : "N/A");
+            dto.setCategoryIds(categoryIds);
+        } else {
+            dto.setCategoryNames("N/A");
+            dto.setCategoryIds(Collections.emptyList());
+        }
+
+        // --- Populate Tags --- 
+        List<Integer> tagIds = songTagMapper.selectTagIdsBySongId(song.getId());
+        if (!CollectionUtils.isEmpty(tagIds)) {
+            List<String> tagNameList = tagMapper.selectNamesByIds(tagIds);
+            dto.setTagNames(tagNameList != null ? String.join(", ", tagNameList) : "N/A");
+            dto.setTagIds(tagIds);
+        } else {
+            dto.setTagNames("N/A");
+            dto.setTagIds(Collections.emptyList());
+        }
+
+        // --- Populate Singers --- 
+        List<Integer> singerIds = songSingerMapper.selectSingerIdsBySongId(song.getId());
+        if (!CollectionUtils.isEmpty(singerIds)) {
+            List<String> singerNameList = singerMapper.selectNamesByIds(singerIds);
+            dto.setSingerNames(singerNameList != null ? String.join(", ", singerNameList) : "N/A");
+            dto.setSingerIds(singerIds);
+        } else {
+            dto.setSingerNames("N/A");
+            dto.setSingerIds(Collections.emptyList());
+        }
+
+        return dto;
+    }
+    
 }

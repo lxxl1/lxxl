@@ -41,7 +41,7 @@
             z-index: 1000;
         }
         
-        /* 播放器样式 */
+        /* Player styles */
         .player-content {
             display: flex;
             align-items: center;
@@ -280,6 +280,7 @@
                     <li><a class="active" href="#" data-toggle="tooltip" data-placement="right" title="Dashboard" data-nav-target="#dashboards"><i data-feather="home"></i></a></li>
                     <li><a href="#" data-toggle="tooltip" data-placement="right" title="My Music" data-nav-target="#my-music"><i data-feather="music"></i></a></li>
                     <li><a href="#" data-toggle="tooltip" data-placement="right" title="Categories" data-nav-target="#categories"><i data-feather="folder"></i></a></li>
+                    <li><a href="#" data-toggle="tooltip" data-placement="right" title="Artists" data-nav-target="#artists"><i data-feather="users"></i></a></li>
                     <li><a href="#" data-toggle="tooltip" data-placement="right" title="Upload Music" data-nav-target="#upload"><i data-feather="upload"></i></a></li>
                     <li><a href="#" data-toggle="tooltip" data-placement="right" title="Tags" data-nav-target="#tags"><i data-feather="tag"></i></a></li>
                     <li><a href="#" data-toggle="tooltip" data-placement="right" title="Settings" data-nav-target="#settings"><i data-feather="settings"></i></a></li>
@@ -295,14 +296,16 @@
                     <ul>
                         <li class="navigation-divider">Dashboard</li>
                         <li><a class="active" href="index.html">Overview</a></li>
+                        <li><a href="top-songs.html">Top Songs</a></li>
+                        <li><a href="artists.html">All Artists</a></li>
                     </ul>
                 </div>
                 <div id="my-music">
                     <ul>
                         <li class="navigation-divider">My Music</li>
-                        <li><a href="my-music.html">All Songs</a></li>
-                        <li><a href="playlists.html">Playlists</a></li>
-                        <li><a href="favorites.html">Favorites</a></li>
+                        <li><a href="my-music.html">My Music Dashboard</a></li>
+                        <li><a href="all-songs.html">All Songs</a></li>
+                        <li><a href="top-songs.html">Top Songs</a></li>
                     </ul>
                 </div>
                 <div id="categories">
@@ -327,8 +330,7 @@
                     <ul>
                         <li class="navigation-divider">Settings</li>
                         <li><a href="settings.html">Profile</a></li>
-                        <li><a href="account-settings.html">Account Settings</a></li>
-                        <li><a href="notification-settings.html">Notifications</a></li>
+                        
                     </ul>
                 </div>
             </div>
@@ -420,46 +422,31 @@
         </div>
 
         <!-- Top Songs Section -->
-        <div class="card">
+        <div class="card mb-4">
             <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <h6 class="card-title">Top Songs</h6>
-                    <a href="top-songs.html" class="btn btn-sm btn-primary">View All</a>
+                <div class="d-flex justify-content-between mb-3">
+                    <h6 class="card-title">Top 3 Songs</h6>
+                    <a href="top-songs.html" class="btn btn-sm btn-outline-primary">View All</a>
                 </div>
-                <div class="table-responsive">
-                    <table class="table" id="top-songs-table">
-                        <thead>
-                            <tr>
-                                <th style="width: 50px">#</th>
-                                <th>Song Name</th>
-                                <th>Artist</th>
-                                <th>Plays</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Will be populated by AJAX -->
-                            <tr>
-                                <td colspan="5" class="text-center">Loading songs...</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div id="top-3-songs-list" class="list-group list-group-flush">
+                    <!-- Placeholder for top 3 songs, will be populated by JS -->
+                    <div class="list-group-item d-flex justify-content-center align-items-center">
+                        <span class="text-muted">Loading top songs...</span>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Latest Songs Section -->
-        <div class="card">
+        <!-- Top Artists Section -->
+        <div class="card mb-4">
             <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <h6 class="card-title">Latest Songs</h6>
-                    <a href="all-songs.html" class="btn btn-sm btn-primary">View All</a>
+                <div class="d-flex justify-content-between mb-3">
+                    <h6 class="card-title">Top Artists</h6>
+                    <a href="artists.html" class="btn btn-sm btn-outline-primary">View All</a>
                 </div>
-                <div class="row" id="latest-songs-container">
-                    <!-- Will be populated by AJAX -->
-                    <div class="col-12 text-center">
-                        <p>Loading latest songs...</p>
-                    </div>
+                <div id="top-artists-container">
+                    <!-- Placeholder for top artists slider/list, will be populated by JS -->
+                     <p class="text-center text-muted">Loading artists...</p>
                 </div>
             </div>
         </div>
@@ -513,13 +500,7 @@
         </div>
         <!-- End Added Audio Player HTML -->
 
-        <!-- begin::footer -->
-        <footer>
-            <div class="container-fluid">
-                <div>© Music Resource Management - <a href="" target="_blank">MusicWebsite</a></div>
-            </div>
-        </footer>
-        <!-- end::footer -->
+       
 
     </div>
     <!-- end::main-content -->
@@ -553,7 +534,7 @@
 <script src="assets/js/app.js"></script>
 
 <!-- Custom scripts for song management -->
-<script src="assets/js/music-player.js"></script>
+<script src="assets/js/music-player.js" type="module"></script>
 
 <!-- Import config and API utils -->
 <script src="../Common/js/config.js" type="module"></script>

@@ -5,6 +5,7 @@ import com.cpt202.mapper.CategoryMapper;
 import com.cpt202.service.CategoryService;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
+import com.cpt202.dto.TopCategoryDto;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -56,5 +57,16 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public List<Category> selectCategoriesByUserId(Integer userId) {
         return categoryMapper.selectCategoriesByUserId(userId);
+    }
+
+    /**
+     * Get the category with the most songs.
+     *
+     * @return TopCategoryDto containing the name and count, or null if none found.
+     */
+    @Override
+    public TopCategoryDto getTopCategory() {
+        // Call the mapper method to get the top category data
+        return categoryMapper.findTopCategoryBySongCount();
     }
 }

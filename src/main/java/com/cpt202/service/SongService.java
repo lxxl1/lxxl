@@ -2,6 +2,7 @@ package com.cpt202.service;
 
 import com.cpt202.domain.Song;
 import com.cpt202.dto.SongDTO;
+import com.cpt202.dto.SongDetailDTO;
 
 import java.util.List;
 import java.util.Map;
@@ -11,77 +12,89 @@ import java.util.Map;
  */
 public interface SongService {
     /**
-     *增加
+     * 增加歌曲，并关联歌手
+     * @param song 歌曲基本信息
+     * @param singerIds 关联的歌手ID列表
+     * @return 是否成功
      */
-    public boolean insert(Song song);
+    boolean insert(Song song, List<Integer> singerIds);
 
     /**
-     *修改
+     * 修改歌曲，并更新歌手关联
+     * @param song 歌曲基本信息
+     * @param singerIds 新的歌手ID列表
+     * @return 是否成功
      */
-    public boolean update(Song song);
+    boolean update(Song song, List<Integer> singerIds);
 
     /**
-     * 删除
+     * 删除歌曲（会自动删除歌曲-歌手关联）
      */
-    public boolean delete(Integer id);
+    boolean delete(Integer id);
 
     /**
-     * 根据主键查询整个对象
+     * 根据主键查询歌曲详细信息（包含歌手列表）
+     * @param id 歌曲ID
+     * @return SongDetailDTO 或 null (如果未找到)
      */
-    public Song selectByPrimaryKey(Integer id);
-    
-    /**
-     *增加播放次数
-     */
-    public boolean addNums(Integer id);
+    SongDetailDTO selectDetailByPrimaryKey(Integer id);
 
     /**
-     * 查询所有歌曲
+     * 增加播放次数
      */
-    public List<Song> allSong();
+    boolean addNums(Integer id);
 
     /**
-     * 根据歌名精确查询列表
+     * 查询所有歌曲 (返回包含歌手、类别、标签等信息的DTO列表)
      */
-    public List<Song> songOfName(String name);
+    List<SongDTO> allSong();
 
     /**
-     * 根据歌名模糊查询列表
+     * 根据歌名精确查询列表 (返回DTO列表)
      */
-    public List<Song> likeSongOfName(String name);
+    List<SongDTO> songOfName(String name);
 
     /**
-     * 根据歌手id查询
+     * 根据歌名模糊查询列表 (返回DTO列表)
      */
-    public List<Song> songOfSingerId(Integer singerId);
+    List<SongDTO> likeSongOfName(String name);
 
     /**
-     * 查询播放次数排前列的歌曲
+     * 根据歌手id查询其所有歌曲 (返回基本Song对象列表 - 保持不变，因为重点是歌曲本身)
+     * @param singerId 歌手ID
+     * @return 歌曲列表
      */
-	public List<Song> topSong();
+    List<Song> getSongsBySingerId(Integer singerId);
+
+    /**
+     * 查询播放次数排前列的歌曲 (返回DTO列表)
+     */
+    List<SongDTO> topSong();
 
     /**
      * 更新歌曲审核状态
      */
-    public boolean updateStatus(Integer songId, Integer status);
+    boolean updateStatus(Integer songId, Integer status);
 
     /**
-     * 获取待审核歌曲列表
+     * 获取待审核歌曲列表 (返回DTO列表)
      */
-    public List<Song> getPendingSongs();
+    List<SongDTO> getPendingSongs();
 
     /**
-     * 获取已审核歌曲列表
+     * 获取已审核歌曲列表 (返回DTO列表)
      */
-    public List<Song> getAuditedSongs(Integer status);
+    List<SongDTO> getAuditedSongs(Integer status);
 
     /**
-     * 根据用户id查询歌曲 (返回包含类别名称的DTO列表)
+     * 根据用户id查询歌曲 (返回包含类别、标签、歌手信息的DTO列表)
+     * // TODO: Update the return type and implementation if needed
      */
     List<SongDTO> songOfUserId(Integer userId);
 
     /**
      * 根据用户ID和类别ID查询歌曲列表 (返回包含当前所有类别ID的DTO列表)
+     * // TODO: Update the return type and implementation if needed
      */
     List<SongDTO> getUserSongsByCategory(Integer userId, Integer categoryId);
 

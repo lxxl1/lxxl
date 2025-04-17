@@ -29,6 +29,7 @@ async function initPage() {
         
         // Update statistics data
         await updateCategoryStatistics(currentUserId);
+        await loadTopCategoryStat(); // Call the new function to load top category stat
         
         // Set up event listeners
         setupEventListeners();
@@ -116,6 +117,59 @@ async function updateCategoryStatistics(userId) {
          document.querySelector('.col-md-4:nth-child(1) h2').textContent = '?';
          document.querySelector('.col-md-4:nth-child(2) h2').textContent = '?';
          document.querySelector('.col-md-4:nth-child(3) h2').textContent = '?';
+    }
+}
+
+/**
+ * Load and update the Top Category statistic card.
+ */
+async function loadTopCategoryStat() {
+    const countElement = document.getElementById('topCategoryCount');
+    const nameElement = document.getElementById('topCategoryName');
+
+    if (!countElement || !nameElement) {
+        console.error('Top category stat elements not found in HTML.');
+        return;
+    }
+
+    try {
+        console.log('Fetching top category data...');
+        const response = await api.get('/category/top');
+        console.log('Top category response:', response.data);
+
+        if (response.data.code === '200' && response.data.data) {
+            const topCategory = response.data.data;
+            if (topCategory.categoryName && typeof topCategory.songCount !== 'undefined') {
+                 // Check if the data is the "not found" message from the controller
+                 if (typeof topCategory === 'string' && topCategory === "No category data found.") {
+                    console.log('No top category data returned from API.');
+                    countElement.textContent = 'N/A';
+                    nameElement.textContent = 'No data';
+                 } else {
+                    countElement.textContent = topCategory.songCount;
+                    nameElement.textContent = `Top: ${escapeHTML(topCategory.categoryName)}`;
+                 }
+            } else {
+                 // Handle cases where data object is present but lacks expected fields
+                console.warn('Top category data received but incomplete:', topCategory);
+                countElement.textContent = 'N/A';
+                nameElement.textContent = 'No data';
+            }
+        } else if (response.data.code === '200' && response.data.msg === "No category data found.") {
+             // Handle specific success message indicating no data
+             console.log('No top category data found (via message).');
+             countElement.textContent = 'N/A';
+             nameElement.textContent = 'No data';
+        } else {
+            // Handle other non-200 codes or errors messages
+            console.error('Failed to fetch top category:', response.data.msg || 'Unknown error');
+            countElement.textContent = 'Error';
+            nameElement.textContent = 'Load Failed';
+        }
+    } catch (error) {
+        console.error('Error fetching top category statistics:', error);
+        countElement.textContent = 'Error';
+        nameElement.textContent = 'Load Failed';
     }
 }
 
