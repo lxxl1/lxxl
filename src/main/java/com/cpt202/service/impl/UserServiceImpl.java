@@ -24,6 +24,9 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import static com.cpt202.common.enums.RoleEnum.USER;
 import java.util.ArrayList;
 import java.util.List;
+import com.cpt202.utils.OssUtil;
+import org.springframework.web.multipart.MultipartFile;
+import java.io.IOException;
 /**
  * 用户业务处理
  **/
@@ -36,6 +39,9 @@ public class UserServiceImpl implements UserService {
 
     @Resource
     private UserMapper userMapper;
+
+    @Resource
+    private OssUtil ossUtil;
 
     /**
      * 注册
@@ -271,5 +277,19 @@ public class UserServiceImpl implements UserService {
     @Override
     public User selectByUsername(String username) {
         return userMapper.selectByUsername(username);
+    }
+
+    @Override
+    public String updateAvatar(MultipartFile file, Integer userId) throws IOException {
+        // 上传文件到OSS，文件存储在avatar目录下
+        String fileUrl = ossUtil.uploadFile(file, "avatar/");
+        
+        // 更新用户头像URL
+        User user = new User();
+        user.setId(userId);
+        user.setAvatar(fileUrl);
+        userMapper.updateById(user);
+        
+        return fileUrl;
     }
 }

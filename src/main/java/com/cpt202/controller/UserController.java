@@ -4,9 +4,11 @@ import com.cpt202.common.Result;
 import com.cpt202.service.UserService;
 import com.github.pagehelper.PageInfo;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import com.cpt202.domain.User;
 
 import javax.annotation.Resource;
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -107,5 +109,30 @@ public class UserController {
             return Result.success(status == 1 ? "禁用成功" : "解禁成功");
         }
         return Result.failure("操作失败");
+    }
+
+    /**
+     * 上传用户头像
+     */
+    @PostMapping("/avatar/upload")
+    public Result uploadAvatar(@RequestParam("file") MultipartFile file, 
+                               @RequestParam("userId") Integer userId) {
+        try {
+            if (file.isEmpty()) {
+                return Result.failure("上传文件不能为空");
+            }
+            
+            // 验证文件类型
+            String contentType = file.getContentType();
+            if (contentType == null || !(contentType.startsWith("image/"))) {
+                return Result.failure("只能上传图片文件");
+            }
+            
+            // 上传头像
+            String avatarUrl = userService.updateAvatar(file, userId);
+            return Result.success(avatarUrl);
+        } catch (IOException e) {
+            return Result.failure("头像上传失败: " + e.getMessage());
+        }
     }
 }
