@@ -3,6 +3,9 @@ package com.cpt202.service;
 import com.cpt202.domain.Account;
 import com.cpt202.domain.User;
 import com.github.pagehelper.PageInfo;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
 import java.util.List;
 
 public interface UserService {
@@ -40,4 +43,7 @@ public interface UserService {
     User selectByUsername(String username);
 
     boolean updateById(User user);
+    
+    // 上传并更新用户头像
+    String updateAvatar(MultipartFile file, Integer userId) throws IOException;
 }
