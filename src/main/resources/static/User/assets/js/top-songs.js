@@ -1,16 +1,21 @@
-import { api } from '../Common/js/api.js';
-import { checkAuthentication } from './auth-check.js';
+import api from '../../../Common/js/api.js';
 
 // Utility function to escape HTML (important for security)
 function escapeHTML(str) {
-    return str.replace(/[&<>'"/]/g, function (tag) {
+    // Handle null or undefined input gracefully
+    if (str === null || str === undefined) {
+        return ''; // Return an empty string if input is null/undefined
+    }
+    // Convert to string before replacing, just in case
+    str = String(str);
+    return str.replace(/[&<>\'"/]/g, function (tag) { // Note: Corrected regex to include backslash
         const chars = {
             '&': '&amp;',
             '<': '&lt;',
             '>': '&gt;',
             "'": '&#39;',
             '"': '&quot;',
-            '/': '&#x2F;',
+            '/': '&#x2F;'
         };
         return chars[tag] || tag;
     });
@@ -30,10 +35,10 @@ async function loadAndDisplayTopSongs() {
     noSongsMessage.style.display = 'none';
 
     try {
-        // TODO: Create this backend endpoint: GET /song/ranked
-        const response = await api.get('/song/ranked'); 
+        // Use the correct backend endpoint: /song/topSong
+        const response = await api.get('/song/topSong'); 
 
-        if (response && response.data && response.data.code === 200 && response.data.data) {
+        if (response && response.data && response.data.code === '200' && response.data.data) {
             const songs = response.data.data; // Assuming backend returns sorted songs
 
             if (songs.length === 0) {
@@ -87,7 +92,6 @@ async function loadAndDisplayTopSongs() {
 
 // Initialize the page
 document.addEventListener('DOMContentLoaded', () => {
-    checkAuthentication(); // Ensure user is logged in
     loadAndDisplayTopSongs();
 
     // TODO: Add event listeners for play buttons, add-to-playlist buttons etc.

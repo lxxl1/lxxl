@@ -1,10 +1,10 @@
 import api from '../../../Common/js/api.js';
 import { API_URL } from '../../../Common/js/config.js'; // If needed for image URLs etc.
-import { checkAuthentication } from './auth-check.js'; // Assuming auth check logic is needed
 
 document.addEventListener('DOMContentLoaded', function() {
-    checkUserLogin(); // Ensure user is logged in
+    // Ensure user is logged in - This is handled by auth-check.js automatically
     loadAndDisplayArtists();
+    setupEventListeners(); // Keep search event listener setup
 });
 
 // Function to safely escape HTML
@@ -21,95 +21,91 @@ function escapeHTML(str) {
     );
 }
 
-async function loadAndDisplayArtists() {
-    const container = document.getElementById('artists-by-letter-container');
-    const loadingIndicator = document.getElementById('artists-loading');
+// Function to format sex
+function formatSex(sexValue) {
+    if (sexValue === 1) return 'Male';
+    if (sexValue === 0) return 'Female';
+    if (sexValue === 2) return 'Group'; // Assuming 2 might mean Group/Band
+    return 'Unknown'; // Default/fallback
+}
 
-    if (!container || !loadingIndicator) {
+async function loadAndDisplayArtists() {
+    const artistsContainer = document.getElementById('artists-container');
+    const artistsGrid = document.getElementById('artists-grid');
+    const loadingIndicator = document.getElementById('artists-loading');
+    const noArtistsMessage = document.getElementById('no-artists-message');
+
+    if (!artistsContainer || !artistsGrid || !loadingIndicator || !noArtistsMessage) {
         console.error('Required elements not found for artists display.');
         return;
     }
 
-    loadingIndicator.style.display = 'block'; // Show loading indicator
-    container.innerHTML = ''; // Clear previous content (except loading)
-    container.appendChild(loadingIndicator); // Keep loading indicator visible
+    loadingIndicator.style.display = 'block'; // Show loading
+    artistsGrid.style.display = 'none'; // Hide grid initially
+    noArtistsMessage.style.display = 'none'; // Hide no results message initially
+    artistsGrid.innerHTML = ''; // Clear previous content
 
     try {
         const response = await api.get('/singer/allSinger');
-        
-        if (response.data && response.data.code === 200 && Array.isArray(response.data.data)) {
+
+        if (response.data && response.data.code === '200' && Array.isArray(response.data.data)) {
             const artists = response.data.data;
-            
+
             if (artists.length === 0) {
-                 container.innerHTML = '<p class="text-center text-muted">No artists found.</p>';
-                 return;
-            }
+                noArtistsMessage.style.display = 'block';
+            } else {
+                // Sort artists alphabetically by name (optional)
+                artists.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
-            // Sort artists alphabetically by name
-            artists.sort((a, b) => a.name.localeCompare(b.name));
-
-            // Group artists by the first letter
-            const groupedArtists = artists.reduce((groups, artist) => {
-                const letter = artist.name.charAt(0).toUpperCase();
-                 // Ensure the letter is A-Z, otherwise group under '#'
-                const groupKey = (letter >= 'A' && letter <= 'Z') ? letter : '#'; 
-                if (!groups[groupKey]) {
-                    groups[groupKey] = [];
-                }
-                groups[groupKey].push(artist);
-                return groups;
-            }, {});
-
-            // Display grouped artists
-            container.innerHTML = ''; // Clear loading indicator and previous content
-            
-             // Get sorted letters including '#' if present
-            const sortedLetters = Object.keys(groupedArtists).sort((a, b) => {
-                if (a === '#') return 1; // Place '#' at the end
-                if (b === '#') return -1;
-                return a.localeCompare(b);
-            });
-
-            sortedLetters.forEach(letter => {
-                const sectionDiv = document.createElement('div');
-                sectionDiv.classList.add('letter-section', 'mb-4'); // Add margin bottom
-
-                const header = document.createElement('h5');
-                header.classList.add('letter-header', 'border-bottom', 'pb-2', 'mb-3'); // Style the header
-                header.textContent = letter;
-                sectionDiv.appendChild(header);
-
-                const list = document.createElement('ul');
-                list.classList.add('list-unstyled', 'row'); // Use Bootstrap row for grid layout
-
-                groupedArtists[letter].forEach(artist => {
-                    const listItem = document.createElement('li');
-                    listItem.classList.add('col-md-4', 'col-sm-6', 'mb-2'); // Grid columns
-                    // Create a link for each artist if needed later, for now just display name
-                    // const link = document.createElement('a');
-                    // link.href = `#`; // Placeholder link
-                    // link.textContent = artist.name;
-                    // listItem.appendChild(link);
-                    listItem.textContent = artist.name;
-                    list.appendChild(listItem);
+                artists.forEach(artist => {
+                    // Create a card column
+                    const cardCol = document.createElement('div');
+                    cardCol.className = 'col-xl-3 col-lg-4 col-md-6 col-sm-12 mb-4';
+                    
+                    // Default image if none exists
+                    const artistImage = artist.pic || 'assets/media/image/default-artist.jpg';
+                    
+                    // Create card HTML
+                    cardCol.innerHTML = `
+                        <div class="card">
+                            <a href="artist-detail.html?singerId=${artist.id}" class="card-link">
+                                <img src="${escapeHTML(artistImage)}" class="card-img-top" alt="${escapeHTML(artist.name || 'Artist')}" 
+                                     style="height: 200px; object-fit: cover;">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">${escapeHTML(artist.name || 'Unknown Artist')}</h5>
+                                    <p class="card-text text-muted small">
+                                        ${artist.location ? escapeHTML(artist.location) : ''}
+                                    </p>
+                                </div>
+                            </a>
+                        </div>
+                    `;
+                    
+                    artistsGrid.appendChild(cardCol);
                 });
 
-                sectionDiv.appendChild(list);
-                container.appendChild(sectionDiv);
-            });
-
+                artistsGrid.style.display = 'flex'; // Show the grid with flex for proper row wrapping
+            }
         } else {
-            console.error('Failed to load artists:', response.data ? response.data.message : 'Unknown error');
-            container.innerHTML = '<p class="text-center text-danger">Could not load artists. Please try again later.</p>';
+            // Log the actual response data for debugging
+            console.error('Failed to load artists. Unexpected response format. Received data:', response.data);
+            // Determine the specific reason
+            let reason = 'Unknown error';
+            if (!response.data) {
+                reason = 'Response data is missing.';
+            } else if (response.data.code !== '200') {
+                reason = `Expected code '200' but got ${response.data.code}. Message: ${response.data.message || response.data.msg || 'N/A'}`;
+            } else if (!Array.isArray(response.data.data)) {
+                reason = 'Expected data to be an array, but it was not.';
+            }
+            console.error('Specific reason for failure:', reason); // Log the specific reason
+            artistsContainer.innerHTML = `<p class="text-center text-danger">Could not load artists. Please check console for details.</p>`;
         }
     } catch (error) {
         console.error('Error fetching artists:', error);
-         container.innerHTML = '<p class="text-center text-danger">An error occurred while loading artists.</p>';
+        artistsContainer.innerHTML = `<p class="text-center text-danger">An error occurred while loading artists.</p>`;
     } finally {
-        // Ensure loading indicator is hidden if it wasn't replaced by content or error message
-        if (loadingIndicator && loadingIndicator.parentNode === container) { 
-             loadingIndicator.style.display = 'none';
-        }
+        loadingIndicator.style.display = 'none'; // Hide loading indicator
     }
 }
 
