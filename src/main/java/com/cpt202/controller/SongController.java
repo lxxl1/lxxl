@@ -121,7 +121,6 @@ public class SongController {
             song.setPic(pic);
             song.setLyric(lyric);
             song.setUrl(musicUrl);
-            if (mvUrl != null) song.setMvurl(mvUrl);
             // 设置初始状态为待审核
             song.setStatus(0);
 
@@ -364,36 +363,36 @@ public class SongController {
         return Result.failure("上传失败");
     }
 
-    /**
-     * 更新歌曲MV文件 (Pass null for singerIds in update)
-     */
-    @RequestMapping(value = "/updateMVUrl",method = RequestMethod.POST)
-    public Result updateMVUrl(@RequestParam("file") MultipartFile avatorFile, @RequestParam("id")int id){
-         if(avatorFile.isEmpty()){
-            return Result.failure("文件上传失败");
-        }
-        String storeAvatorPath = "";
-        try {
-            // Use OSS Util
-            storeAvatorPath = ossUtil.uploadFile(avatorFile, "mv/");
-              if(!StringUtils.hasText(storeAvatorPath)){
-                 return Result.failure("MV文件上传失败");
-            }
-        } catch (IOException e) {
-             log.error("IO Exception during MV file upload for id {}: {}", id, e.getMessage());
-             return Result.failure("MV文件上传IO异常");
-        }
-        Song song = new Song();
-        song.setId(id);
-        song.setMvurl(storeAvatorPath);
-          // Pass null or empty list for singerIds
-         boolean flag = songService.update(song, Collections.emptyList());
-        if(flag){
-             // Return only success message for consistency
-            return Result.success("上传成功");
-        }
-        return Result.failure("上传失败");
-    }
+//    /**
+//     * 更新歌曲MV文件 (Pass null for singerIds in update)
+//     */
+//    @RequestMapping(value = "/updateMVUrl",method = RequestMethod.POST)
+//    public Result updateMVUrl(@RequestParam("file") MultipartFile avatorFile, @RequestParam("id")int id){
+//         if(avatorFile.isEmpty()){
+//            return Result.failure("文件上传失败");
+//        }
+//        String storeAvatorPath = "";
+//        try {
+//            // Use OSS Util
+//            storeAvatorPath = ossUtil.uploadFile(avatorFile, "mv/");
+//              if(!StringUtils.hasText(storeAvatorPath)){
+//                 return Result.failure("MV文件上传失败");
+//            }
+//        } catch (IOException e) {
+//             log.error("IO Exception during MV file upload for id {}: {}", id, e.getMessage());
+//             return Result.failure("MV文件上传IO异常");
+//        }
+//        Song song = new Song();
+//        song.setId(id);
+//        song.setMvurl(storeAvatorPath);
+//          // Pass null or empty list for singerIds
+//         boolean flag = songService.update(song, Collections.emptyList());
+//        if(flag){
+//             // Return only success message for consistency
+//            return Result.success("上传成功");
+//        }
+//        return Result.failure("上传失败");
+//    }
 
     /**
      * 返回指定歌曲ID的详细信息 (包含歌手列表)

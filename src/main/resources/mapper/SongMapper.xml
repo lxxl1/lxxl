@@ -14,7 +14,6 @@
                 property="updateTime"/>
         <result column="pic" jdbcType="VARCHAR" property="pic"/>
         <result column="url" jdbcType="VARCHAR" property="url"/>
-        <result column="mvurl" jdbcType="VARCHAR" property="mvurl"/>
         <result column="nums" jdbcType="INTEGER" property="nums"/>
         <result column="is_vip" jdbcType="TINYINT" property="isVip"/>
         <result column="status" jdbcType="INTEGER" property="status"/>
@@ -28,12 +27,12 @@
 
     <sql id="Base_Column_List">
         id
-        ,name,introduction,create_time,update_time,pic,url,mvurl,nums,is_vip,status,user_id
+        ,name,introduction,create_time,update_time,pic,lyric,url,status,user_id
     </sql>
 
     <sql id="Blob_Column_List">
         id
-        ,name,introduction,create_time,update_time,pic,lyric,url,mvurl,nums,is_vip,status,user_id
+        ,name,introduction,create_time,update_time,pic,lyric,url,status,user_id
     </sql>
 
     <insert id="insert" parameterType="com.cpt202.domain.Song" useGeneratedKeys="true" keyProperty="id">
@@ -61,10 +60,6 @@
             <if test="url != null">
                 url,
             </if>
-            <if test="mvurl != null">
-                mvurl,
-            </if>
-            nums
         </trim>
         <trim prefix=" values (" suffix=")" suffixOverrides=",">
             <if test="id != null">
@@ -89,9 +84,7 @@
             <if test="url != null">
                 #{url},
             </if>
-            <if test="mvurl != null">
-                #{mvurl},
-            </if>
+
             nums=0
         </trim>
     </insert>
@@ -114,9 +107,6 @@
             </if>
             <if test="url != null">
                 url = #{url},
-            </if>
-            <if test="mvurl != null">
-                mvurl = #{mvurl},
             </if>
             <if test="nums != null">
                 nums = #{nums},
