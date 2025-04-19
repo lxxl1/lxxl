@@ -112,6 +112,7 @@
             background: #fff;
             box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.05);
             z-index: 1000;
+            display: none; /* 初始隐藏播放器 */
         }
         
         /* 播放器样式 */
@@ -238,6 +239,24 @@
             border-radius: 50%;
             cursor: pointer;
         }
+
+        /* Styles for adjusting content when player is visible */
+        .main-content {
+            padding-bottom: 0; /* Default, no padding */
+            transition: padding-bottom 0.3s ease;
+        }
+        body.player-visible .main-content {
+            padding-bottom: 80px; /* Add padding when player is visible */
+        }
+        
+        /* Ensure pagination is not hidden (if applicable) */
+        .pagination {
+            margin-bottom: 0;
+            transition: margin-bottom 0.3s ease;
+        }
+        body.player-visible .pagination {
+            margin-bottom: 80px;
+        }
     </style>
 </head>
 
@@ -274,25 +293,21 @@
                         <ul>
                             <li class="navigation-divider">Dashboard</li>
                             <li><a href="index.html">Overview</a></li>
-                            <li><a href="top-songs.html">Top Songs</a></li>
-                            <li><a href="artists.html">All Artists</a></li>
                         </ul>
                     </div>
                     <div id="my-music">
                         <ul>
                             <li class="navigation-divider">My Music</li>
                             <li><a href="my-music.html">My Music Dashboard</a></li>
-                            <li><a href="all-songs.html">All Songs</a></li>
-                            <li><a href="top-songs.html">Top Songs</a></li>
                         </ul>
                     </div>
                     <div id="categories" class="open">
                         <ul>
                             <li class="navigation-divider">Categories</li>
-                            <li><a href="manage-categories.html" class="active">Manage Categories</a></li>
+                            <li><a href="categories.html">Manage Categories</a></li>
                         </ul>
                     </div>
-                    <div id="artists">
+                     <div id="artists">
                         <ul>
                             <li class="navigation-divider">Artists</li>
                             <li><a href="artists.html">All Artists</a></li>
@@ -362,7 +377,7 @@
                     </div>
                 </div>
                  <div class="col-md-4">
-                    <div class="card bg-secondary-gradient border-0">
+                    <!-- <div class="card bg-secondary-gradient border-0">
                         <div class="card-body text-center">
                              <figure class="avatar mb-3 border-0">
                                 <span class="avatar-title bg-white text-secondary rounded-circle">
@@ -372,7 +387,7 @@
                             <h2 class="font-weight-bold mb-3" id="tagCountStat">-</h2>
                             <h5 class="mb-0">Total Tags</h5>
                         </div>
-                    </div>
+                    </div> -->
                 </div>
             </div>
             

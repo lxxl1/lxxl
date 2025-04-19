@@ -29,6 +29,12 @@ public class Song implements Serializable {
     private String lyric;
     /*歌曲地址*/
     private String url;
+    /*歌曲MV地址 - REMOVED*/
+    // private String mvurl;
+    /*歌曲播放次数 - REMOVED*/
+    // private Integer nums;
+    /*是否是vip才能听的歌曲 - REMOVED*/
+    // private Boolean isVip;
     /*审核状态：0-待审核，1-审核通过，2-审核不通过*/
     private Integer status;
     private Integer userId;

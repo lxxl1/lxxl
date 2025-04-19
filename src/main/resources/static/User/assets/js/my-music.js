@@ -2,19 +2,22 @@ import { API_URL } from '../../../Common/js/config.js';
 import api from '../../../Common/js/api.js';
 import { playSongAudioPlayer } from './audio-player.js';
 
-// Global variable to store the current user ID
+// Global variables
 let currentUserId = null;
+let currentPage = 1;
+const pageSize = 10; // Or any other desired page size
+let currentCategoryId = 'all'; // Store current filter value
+let currentStatus = 'all';     // Store current filter value
+let currentSearchTerm = '';   // Store current search term
 
 document.addEventListener('DOMContentLoaded', function() {
-    // 初始化页面
     initPage();
 });
 
 /**
- * 初始化页面
+ * Initialize the page
  */
 async function initPage() {
-    // 获取当前登录用户信息
     const currentUser = JSON.parse(localStorage.getItem('user'));
     if (!currentUser || !currentUser.id) {
         showMessage('Please log in first', 'danger');
@@ -23,16 +26,13 @@ async function initPage() {
         }, 2000);
         return;
     }
+    currentUserId = currentUser.id; // Set global userId
 
     try {
-        // 加载用户歌曲数据
-        await loadUserSongs(currentUser.id);
-        
-        // 设置事件监听
+        await populateCategoryFilter(); // Populate category filter first
+        await loadUserSongs(); // Load initial data (page 1, default filters)
         setupEventListeners();
-        
-        // 初始化统计数据
-        updateStatistics();
+        updateStatistics(); // Call function to load and display stats
     } catch (error) {
         console.error('Failed to initialize page:', error);
         showMessage('Failed to load data, please try again later', 'danger');
@@ -40,80 +40,112 @@ async function initPage() {
 }
 
 /**
- * 加载用户上传的歌曲列表
+ * Populate the category filter dropdown
  */
-async function loadUserSongs(userId) {
+async function populateCategoryFilter() {
+    const categorySelect = document.getElementById('categoryFilter');
+    if (!categorySelect) return;
+
     try {
-        // 显示加载中提示
-        const tableBody = document.querySelector('table tbody');
-        tableBody.innerHTML = '<tr><td colspan="8" class="text-center">Loading...</td></tr>';
-        
-        // 调用API获取用户上传的歌曲 - Using the correct endpoint returning SongDTO
-        const response = await api.get('/song/selectbyuser', {
-            params: {
-                userId: userId
-            }
-        });
-        
-        // 检查响应状态
-        if (response.data.code === '200') {
-            const songs = response.data.data || [];
-            renderSongsList(songs);
-            return songs;
+        const response = await api.get('/category/selectAll');
+        if (response.data && response.data.code === '200' && response.data.data) {
+            const categories = response.data.data;
+            // Clear existing options except the first one ("All Categories")
+            categorySelect.innerHTML = '<option value="all" selected>All Categories</option>'; 
+            categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category.id;
+                option.textContent = category.name;
+                categorySelect.appendChild(option);
+            });
         } else {
-            throw new Error(response.data.msg || 'Failed to fetch song list');
+            console.warn('Failed to load categories for filter:', response.data.msg);
+            // Keep the default "All Categories" option
         }
     } catch (error) {
-        console.error('Failed to load user songs:', error);
-        
-        // 显示错误信息
-        const tableBody = document.querySelector('table tbody');
-        tableBody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Failed to load, please refresh the page and try again</td></tr>';
-        
-        throw error;
+        console.error('Error fetching categories:', error);
+        showMessage('Could not load categories for filtering', 'warning');
     }
 }
 
 /**
- * 渲染歌曲列表到表格
+ * Load user songs with pagination, filtering, and searching
+ */
+async function loadUserSongs() {
+    try {
+        const tableBody = document.querySelector('#my-music-table tbody');
+        tableBody.innerHTML = '<tr><td colspan="8" class="text-center">Loading songs...</td></tr>'; // Colspan is 8
+        renderPaginationControls(null);
+
+        // Prepare parameters, only include filters/search if they are not default values
+        const params = {
+            userId: currentUserId,
+            pageNum: currentPage,
+            pageSize: pageSize
+        };
+        if (currentCategoryId && currentCategoryId !== 'all') {
+            params.categoryId = currentCategoryId;
+        }
+        if (currentStatus && currentStatus !== 'all') {
+            params.status = currentStatus;
+        }
+        if (currentSearchTerm && currentSearchTerm.trim() !== '') {
+            params.searchTerm = currentSearchTerm.trim(); // Use 'searchTerm' or adjust based on backend
+        }
+
+        console.log('Loading songs with params:', params);
+
+        // !! IMPORTANT: Backend /song/selectbyuser needs to support categoryId, status, searchTerm !!
+        // Update the API endpoint to the new search endpoint
+        const response = await api.get('/song/user/search', { params });
+        
+        if (response.data.code === '200') {
+            const pageInfo = response.data.data;
+            if (pageInfo && pageInfo.list) {
+                renderSongsList(pageInfo.list);
+                renderPaginationControls(pageInfo);
+                // currentPage = pageInfo.pageNum; // Update is handled by pagination controls now
+            } else {
+                 tableBody.innerHTML = '<tr><td colspan="8" class="text-center">No songs found matching your criteria.</td></tr>'; // Colspan is 8
+                 renderPaginationControls(null);
+            }
+        } else {
+            throw new Error(response.data.msg || 'Failed to fetch song list');
+        }
+    } catch (error) {
+        console.error(`Failed to load user songs for page ${currentPage} with filters:`, error);
+        const tableBody = document.querySelector('#my-music-table tbody');
+        tableBody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Failed to load songs, please refresh and try again</td></tr>'; // Colspan is 8
+        renderPaginationControls(null);
+        // throw error; // Don't halt execution completely on load error
+    }
+}
+
+/**
+ * Render songs list to the table (Removed Plays, Added Singers)
  */
 function renderSongsList(songs) {
-    const tableBody = document.querySelector('table tbody');
+    const tableBody = document.querySelector('#my-music-table tbody');
     
-    // 如果没有歌曲，显示提示信息
     if (!songs || songs.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="8" class="text-center">You haven\'t uploaded any songs yet</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="8" class="text-center">No songs found matching your criteria.</td></tr>'; // Colspan 8
         return;
     }
     
-    // 清空表格内容
     tableBody.innerHTML = '';
     
-    // 遍历歌曲数据，创建表格行
     songs.forEach((song, index) => {
-        // 创建新行
         const row = document.createElement('tr');
-        
-        // 设置状态文本和样式
         let statusText = 'Unknown';
         let statusClass = 'secondary';
         
         switch(song.status) {
-            case 0:
-                statusText = 'Pending';
-                statusClass = 'warning';
-                break;
-            case 1:
-                statusText = 'Approved';
-                statusClass = 'success';
-                break;
-            case 2:
-                statusText = 'Rejected';
-                statusClass = 'danger';
-                break;
+            case 0: statusText = 'Pending'; statusClass = 'warning'; break;
+            case 1: statusText = 'Approved'; statusClass = 'success'; break;
+            case 2: statusText = 'Rejected'; statusClass = 'danger'; break;
         }
         
-        // 生成行HTML
+        // Colspan is 8 (Removed Plays, Added Singers)
         row.innerHTML = `
             <td>
                 <div class="custom-control custom-checkbox">
@@ -129,7 +161,8 @@ function renderSongsList(songs) {
                         <h6 class="mb-0">
                             <a href="song-details.html?songId=${song.id}&from=my-music" class="text-dark">${escapeHTML(song.name)}</a>
                         </h6>
-                        <small class="text-muted">${song.singerNames || ''}</small>
+                        <!-- Display singer names in main info block if available -->
+                        <!-- <small class="text-muted">${song.singerNames || ''}</small> --> 
                     </div>
                 </div>
             </td>
@@ -137,7 +170,8 @@ function renderSongsList(songs) {
             <td>${escapeHTML(song.tagNames || 'N/A')}</td>
             <td>${formatDate(song.createTime)}</td>
             <td><span class="badge badge-${statusClass}">${statusText}</span></td>
-            <td>${song.nums || 0}</td>
+            <!-- Display Singer(s) instead of Plays -->
+            <td>${escapeHTML(song.singerNames || 'N/A')}</td> 
             <td class="text-right">
                 <div class="dropdown">
                     <button class="btn btn-light btn-sm" type="button" data-toggle="dropdown">
@@ -146,9 +180,6 @@ function renderSongsList(songs) {
                     <div class="dropdown-menu dropdown-menu-right">
                         <a class="dropdown-item play-song" href="#" data-id="${song.id}" data-url="${song.url}">
                             <i class="mr-2" data-feather="play"></i>Play
-                        </a>
-                        <a class="dropdown-item" href="edit-song.html?songId=${song.id}">
-                            <i class="mr-2" data-feather="edit-2"></i>Edit Details
                         </a>
                         <a class="dropdown-item" href="song-details.html?songId=${song.id}&from=my-music">
                             <i class="mr-2" data-feather="info"></i>Details
@@ -161,145 +192,281 @@ function renderSongsList(songs) {
                 </div>
             </td>
         `;
-        
-        // 添加到表格
         tableBody.appendChild(row);
     });
     
-    // 重新初始化Feather图标
     if (window.feather) {
         feather.replace();
     }
 }
 
 /**
- * 更新统计数据
+ * Render pagination controls
+ */
+function renderPaginationControls(pageInfo) {
+    const paginationContainer = document.querySelector('#pagination-controls ul.pagination');
+    if (!paginationContainer) return;
+
+    paginationContainer.innerHTML = ''; 
+
+    if (!pageInfo || pageInfo.pages <= 0) {
+        paginationContainer.innerHTML = '<li class="page-item disabled"><span class="page-link">No songs</span></li>';
+        return;
+    }
+
+    const currentP = pageInfo.pageNum;
+    const totalPages = pageInfo.pages;
+
+    // Previous Button
+    const prevLi = document.createElement('li');
+    prevLi.className = `page-item ${!pageInfo.hasPreviousPage ? 'disabled' : ''}`;
+    const prevLink = document.createElement('a');
+    prevLink.className = 'page-link';
+    prevLink.href = '#';
+    prevLink.textContent = 'Previous';
+    prevLink.dataset.page = currentP - 1;
+    prevLi.appendChild(prevLink);
+    paginationContainer.appendChild(prevLi);
+
+    // Page Number Buttons Logic (simplified)
+    const pagesToShow = new Set();
+    pagesToShow.add(1);
+    if (totalPages > 1) pagesToShow.add(totalPages);
+    if (currentP > 1) pagesToShow.add(currentP - 1);
+    pagesToShow.add(currentP);
+    if (currentP < totalPages) pagesToShow.add(currentP + 1);
+    
+    const sortedPages = Array.from(pagesToShow).filter(p => p >= 1 && p <= totalPages).sort((a, b) => a - b);
+
+    let lastPageAdded = 0;
+    sortedPages.forEach(pageNum => {
+        if (pageNum > lastPageAdded + 1) {
+             const ellipsisLi = document.createElement('li');
+             ellipsisLi.className = 'page-item disabled';
+             ellipsisLi.innerHTML = '<span class="page-link">...</span>';
+             paginationContainer.appendChild(ellipsisLi);
+        }
+        const pageLi = document.createElement('li');
+        pageLi.className = `page-item ${pageNum === currentP ? 'active' : ''}`;
+        const pageLink = document.createElement('a');
+        pageLink.className = 'page-link';
+        pageLink.href = '#';
+        pageLink.textContent = pageNum;
+        pageLink.dataset.page = pageNum;
+        pageLi.appendChild(pageLink);
+        paginationContainer.appendChild(pageLi);
+        lastPageAdded = pageNum;
+    });
+    
+     if (lastPageAdded < totalPages -1 && !sortedPages.includes(totalPages)) {
+         const ellipsisLi = document.createElement('li');
+         ellipsisLi.className = 'page-item disabled';
+         ellipsisLi.innerHTML = '<span class="page-link">...</span>';
+         paginationContainer.appendChild(ellipsisLi);
+         const lastPageLi = document.createElement('li');
+         lastPageLi.className = 'page-item';
+         const lastPageLink = document.createElement('a');
+         lastPageLink.className = 'page-link';
+         lastPageLink.href = '#';
+         lastPageLink.textContent = totalPages;
+         lastPageLink.dataset.page = totalPages;
+         lastPageLi.appendChild(lastPageLink);
+         paginationContainer.appendChild(lastPageLi);
+     } else if (lastPageAdded === totalPages -1 && totalPages > 1 && !sortedPages.includes(totalPages)) {
+          const lastPageLi = document.createElement('li');
+          lastPageLi.className = 'page-item';
+          const lastPageLink = document.createElement('a');
+          lastPageLink.className = 'page-link';
+          lastPageLink.href = '#';
+          lastPageLink.textContent = totalPages;
+          lastPageLink.dataset.page = totalPages;
+          lastPageLi.appendChild(lastPageLink);
+          paginationContainer.appendChild(lastPageLi);
+     }
+
+    // Next Button
+    const nextLi = document.createElement('li');
+    nextLi.className = `page-item ${!pageInfo.hasNextPage ? 'disabled' : ''}`;
+    const nextLink = document.createElement('a');
+    nextLink.className = 'page-link';
+    nextLink.href = '#';
+    nextLink.textContent = 'Next';
+    nextLink.dataset.page = currentP + 1;
+    nextLi.appendChild(nextLink);
+    paginationContainer.appendChild(nextLi);
+    
+    // Event listeners for pagination links
+    paginationContainer.querySelectorAll('.page-link').forEach(link => {
+        if (!link.closest('.page-item').classList.contains('disabled')) {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetPage = parseInt(e.target.dataset.page);
+                if (targetPage && targetPage !== currentPage) {
+                    currentPage = targetPage; // Update global current page
+                    loadUserSongs(); // Reload songs for the new page
+                }
+            });
+        }
+    });
+}
+
+/**
+ * Update statistics cards (Removed Total Plays)
  */
 async function updateStatistics() {
-    const currentUser = JSON.parse(localStorage.getItem('user'));
-    if (!currentUser || !currentUser.id) return;
-    
+    console.log("Updating statistics...");
+    if (!currentUserId) {
+        console.warn("Cannot update stats, currentUserId is not set.");
+        return;
+    }
+
     try {
-        // 获取用户歌曲列表 - Also use the correct endpoint here
-        const response = await api.get(`/song/selectbyuser`, {
-            params: {
-                userId: currentUser.id
-            }
-        });
-        
-        if (response.data.code === '200') {
-            const songs = response.data.data || [];
+        // Call the dedicated statistics endpoint
+        const response = await api.get(`/user/${currentUserId}/stats`); 
+
+        if (response.data && response.data.code === '200' && response.data.data) {
+            const stats = response.data.data;
+
+            // Update UI elements for the remaining 3 cards
+            const totalSongsEl = document.querySelector('.col-lg-4:nth-child(1) h2'); // Adjusted selector
+            const approvedSongsEl = document.querySelector('.col-lg-4:nth-child(2) h2'); // Adjusted selector
+            const pendingSongsEl = document.querySelector('.col-lg-4:nth-child(3) h2'); // Adjusted selector
+            // const totalPlaysEl = document.querySelector('.col-lg-3:nth-child(4) h2'); // REMOVED
+
+            if (totalSongsEl) totalSongsEl.textContent = stats.totalSongs ?? 0;
+            if (approvedSongsEl) approvedSongsEl.textContent = stats.approvedSongs ?? 0;
+            if (pendingSongsEl) pendingSongsEl.textContent = stats.pendingSongs ?? 0;
+            // if (totalPlaysEl) totalPlaysEl.textContent = formatNumber(stats.totalPlays ?? 0); // REMOVED
             
-            // 计算统计数据
-            const totalSongs = songs.length;
-            const approvedSongs = songs.filter(song => song.status === 1).length;
-            const pendingSongs = songs.filter(song => song.status === 0).length;
-            const totalPlays = songs.reduce((sum, song) => sum + (song.nums || 0), 0);
-            
-            // 更新UI
-            document.querySelector('.col-lg-3:nth-child(1) h2').textContent = totalSongs;
-            document.querySelector('.col-lg-3:nth-child(2) h2').textContent = approvedSongs;
-            document.querySelector('.col-lg-3:nth-child(3) h2').textContent = pendingSongs;
-            document.querySelector('.col-lg-3:nth-child(4) h2').textContent = formatNumber(totalPlays);
+            console.log("Statistics updated (excluding plays):", stats);
+
+        } else {
+             console.warn('Could not fetch or parse statistics data:', response.data.msg || 'No data received');
         }
     } catch (error) {
-        console.error('Failed to update statistics:', error);
+        console.error('Failed to update statistics via dedicated endpoint:', error);
+        showMessage('Failed to load statistics', 'danger');
     }
 }
 
 /**
- * 设置事件监听
+ * Setup event listeners
  */
 function setupEventListeners() {
-    // 上传按钮跳转
-    document.querySelector('button[data-toggle="modal"]').addEventListener('click', function(e) {
-        e.preventDefault();
-        window.location.href = 'upload-music.html';
-    });
-    
-    // 删除歌曲
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('.delete-song')) {
-            e.preventDefault();
-            const songId = e.target.closest('.delete-song').getAttribute('data-id');
-            confirmDeleteSong(songId);
-        }
-    });
-    
-    // 播放歌曲
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('.play-song')) {
-            e.preventDefault();
-            // Extract necessary info directly from attributes
-            const button = e.target.closest('.play-song');
-            const songId = button.getAttribute('data-id');
-            const songUrl = button.getAttribute('data-url');
-            
-            // Try to get name/pic from the table row for the player UI
-            const row = button.closest('tr');
-            const name = row?.querySelector('h6')?.textContent || 'Unknown Song';
-            const pic = row?.querySelector('img')?.src || 'assets/media/image/music-thumbnail.jpg';
-            const singer = row?.querySelector('small')?.textContent || '';
-
-            // Call the correctly named function with appropriate arguments
-            playSongAudioPlayer(songUrl, name, singer, pic);
-        }
-    });
-    
-    // 全选/取消全选
+    const tableBody = document.querySelector('#my-music-table tbody');
+    const categoryFilter = document.getElementById('categoryFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    const searchInput = document.getElementById('searchInput');
+    const searchButton = document.getElementById('searchButton');
+    const uploadButton = document.querySelector('button[data-target="#uploadMusicModal"]');
     const selectAllCheckbox = document.getElementById('selectAll');
-    if (selectAllCheckbox) {
+    const clearFiltersButton = document.getElementById('clearFiltersButton'); // Get the new button
+
+    // Table actions (Play, Delete) using event delegation
+    if (tableBody) {
+        tableBody.addEventListener('click', function(e) {
+            const deleteLink = e.target.closest('.delete-song');
+            const playLink = e.target.closest('.play-song');
+            // No Edit listener needed anymore
+            
+            if (deleteLink) {
+                e.preventDefault();
+                const songId = deleteLink.getAttribute('data-id');
+                confirmDeleteSong(songId);
+            }
+            
+            if (playLink) {
+                e.preventDefault();
+                // ... (play logic remains the same) ...
+                 const songId = playLink.getAttribute('data-id');
+                 const songUrl = playLink.getAttribute('data-url');
+                 const row = playLink.closest('tr');
+                 const name = row?.querySelector('h6 a')?.textContent || 'Unknown Song';
+                 const pic = row?.querySelector('img')?.src || 'assets/media/image/music-thumbnail.jpg';
+                 const singer = row?.querySelector('small')?.textContent || '';
+                 playSongAudioPlayer(songUrl, name, singer, pic);
+            }
+        });
+    }
+    
+    // Filter listeners
+    if (categoryFilter) {
+        categoryFilter.addEventListener('change', function() {
+            currentCategoryId = this.value;
+            currentPage = 1; // Reset to first page when filter changes
+            loadUserSongs();
+        });
+    }
+    if (statusFilter) {
+        statusFilter.addEventListener('change', function() {
+            currentStatus = this.value;
+            currentPage = 1; // Reset to first page
+            loadUserSongs();
+        });
+    }
+
+    // Search listeners
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function(e) {
+            if (e.key === 'Enter') {
+                currentSearchTerm = this.value;
+                currentPage = 1; // Reset to first page
+                loadUserSongs();
+            }
+        });
+    }
+    if (searchButton) {
+        searchButton.addEventListener('click', function() {
+            currentSearchTerm = searchInput.value;
+            currentPage = 1; // Reset to first page
+            loadUserSongs();
+        });
+    }
+
+    // Clear Filters Button Listener
+    if (clearFiltersButton) {
+        clearFiltersButton.addEventListener('click', function() {
+            // Reset dropdowns
+            if (categoryFilter) categoryFilter.value = 'all';
+            if (statusFilter) statusFilter.value = 'all';
+            // Reset search input
+            if (searchInput) searchInput.value = '';
+            
+            // Reset JS variables
+            currentCategoryId = 'all';
+            currentStatus = 'all';
+            currentSearchTerm = '';
+            currentPage = 1;
+            
+            // Reload songs
+            loadUserSongs();
+            
+            // Optionally re-focus the first filter or search input
+            // if (categoryFilter) categoryFilter.focus(); 
+        });
+    }
+
+    // Upload button redirect
+     if (uploadButton) {
+         uploadButton.addEventListener('click', function(e) {
+             e.preventDefault();
+             window.location.href = 'upload-music.html';
+         });
+     }
+    
+    // Select All Checkbox
+    if (selectAllCheckbox && tableBody) {
         selectAllCheckbox.addEventListener('change', function() {
-            const checkboxes = document.querySelectorAll('tbody .custom-control-input');
+            const checkboxes = tableBody.querySelectorAll('.custom-control-input');
             checkboxes.forEach(checkbox => {
                 checkbox.checked = this.checked;
             });
         });
     }
-    
-    // 搜索功能
-    const searchInput = document.querySelector('input[placeholder="Search music..."]');
-    if (searchInput) {
-        searchInput.addEventListener('keyup', function(e) {
-            if (e.key === 'Enter') {
-                const searchTerm = this.value.trim().toLowerCase();
-                filterSongs(searchTerm);
-            }
-        });
-        
-        // 搜索按钮
-        const searchButton = document.querySelector('.input-group-append button');
-        if (searchButton) {
-            searchButton.addEventListener('click', function() {
-                const searchTerm = searchInput.value.trim().toLowerCase();
-                filterSongs(searchTerm);
-            });
-        }
-    }
 }
 
 /**
- * 根据关键词过滤歌曲
- */
-function filterSongs(searchTerm) {
-    const rows = document.querySelectorAll('tbody tr');
-    
-    rows.forEach(row => {
-        // Search in song name, category, and tags
-        const songName = row.querySelector('td:nth-child(2) h6')?.textContent.toLowerCase() || '';
-        const categoryNames = row.querySelector('td:nth-child(3)')?.textContent.toLowerCase() || '';
-        const tagNames = row.querySelector('td:nth-child(4)')?.textContent.toLowerCase() || '';
-        
-        if (songName.includes(searchTerm) || categoryNames.includes(searchTerm) || tagNames.includes(searchTerm)) {
-            row.style.display = '';
-        } else {
-            row.style.display = 'none';
-        }
-    });
-}
-
-/**
- * 确认删除歌曲
+ * Confirm deletion
  */
 function confirmDeleteSong(songId) {
     if (confirm('Are you sure you want to delete this song? This action cannot be undone.')) {
@@ -308,21 +475,22 @@ function confirmDeleteSong(songId) {
 }
 
 /**
- * 删除歌曲
+ * Delete song via API
  */
 async function deleteSong(songId) {
     try {
         const response = await api.get(`/song/delete?id=${songId}`);
-        
         if (response.data.code === '200') {
             showMessage('Song deleted successfully', 'success');
-            
-            // 刷新歌曲列表
-            const currentUser = JSON.parse(localStorage.getItem('user'));
-            await loadUserSongs(currentUser.id);
-            
-            // 更新统计数据
-            updateStatistics();
+            // Reload the current page after deletion
+            // Check if the current page becomes empty after deletion
+            const tableBody = document.querySelector('#my-music-table tbody');
+            if (tableBody && tableBody.rows.length === 1 && currentPage > 1) { 
+                // If it was the last item on a page > 1, go to previous page
+                currentPage--;
+            }
+            loadUserSongs(); // Reload potentially adjusted current page
+            // updateStatistics(); // Consider if/how stats should be updated
         } else {
             throw new Error(response.data.msg || 'Deletion failed');
         }
@@ -332,23 +500,20 @@ async function deleteSong(songId) {
     }
 }
 
-/**
- * 格式化日期
- */
+// --- Utility Functions --- (formatDate, formatNumber, escapeHTML, showMessage) remain the same ---
 function formatDate(dateString) {
     if (!dateString) return 'N/A';
-    
     try {
         const date = new Date(dateString);
-        return date.toISOString().split('T')[0];
+        const year = date.getFullYear();
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
+        return `${year}-${month}-${day}`;
     } catch (e) {
         return dateString;
     }
 }
 
-/**
- * 格式化数字
- */
 function formatNumber(num) {
     if (!num) return 0;
     if (num >= 1000) {
@@ -357,414 +522,44 @@ function formatNumber(num) {
     return num;
 }
 
-/**
- * HTML转义函数
- */
 function escapeHTML(str) {
     if (!str) return '';
-    return str.replace(/[&<>"']/g, 
-        tag => ({
+    return str.replace(/[&<>'"/]/g, function (tag) {
+        const chars = {
             '&': '&amp;',
             '<': '&lt;',
             '>': '&gt;',
+            "'": '&#39;',
             '"': '&quot;',
-            "'": '&#39;'
-        }[tag] || tag)
-    );
+            '/': '&#x2F;'
+        };
+        return chars[tag] || tag;
+    });
 }
 
-/**
- * 显示消息提示
- */
-function showMessage(message, type) {
-    // 检查是否已存在消息容器
+function showMessage(message, type = 'info') {
     let messageContainer = document.querySelector('.message-container');
     if (!messageContainer) {
         messageContainer = document.createElement('div');
         messageContainer.className = 'message-container position-fixed top-0 end-0 p-3';
-        messageContainer.style.zIndex = '9999';
-        messageContainer.style.top = '10px';
+        messageContainer.style.zIndex = '1050'; 
+        messageContainer.style.top = '60px'; 
         messageContainer.style.right = '10px';
         document.body.appendChild(messageContainer);
     }
-    
-    // 创建消息元素
     const messageElement = document.createElement('div');
     messageElement.className = `alert alert-${type} alert-dismissible fade show`;
+    messageElement.setAttribute('role', 'alert');
     messageElement.innerHTML = `
-        ${message}
+        ${escapeHTML(message)}
         <button type="button" class="close" data-dismiss="alert" aria-label="Close">
             <span aria-hidden="true">&times;</span>
         </button>
     `;
-    
-    // 添加到容器
     messageContainer.appendChild(messageElement);
-    
-    // 自动关闭
     setTimeout(() => {
-        // Use Bootstrap's alert method if available, otherwise remove directly
-        if (typeof $(messageElement).alert === 'function') {
-             $(messageElement).alert('close');
-        } else {
-             messageElement.classList.remove('show');
-             setTimeout(() => messageElement.remove(), 150); // Delay removal for fade effect
+        if (messageElement.parentElement) { 
+            $(messageElement).alert('close'); 
         }
     }, 5000);
-    
-    // 关闭按钮功能 (ensure compatibility even if jQuery isn't fully loaded)
-    const closeButton = messageElement.querySelector('.close');
-    if (closeButton) {
-        closeButton.addEventListener('click', function() {
-             if (typeof $(messageElement).alert === 'function') {
-                 $(messageElement).alert('close');
-             } else {
-                 messageElement.classList.remove('show');
-                 setTimeout(() => messageElement.remove(), 150);
-             }
-        });
-    }
-}
-
-// Function to fetch and display user songs
-async function fetchUserSongs() {
-    // Check if currentUserId is already set (it should be after DOMContentLoaded runs)
-    if (!currentUserId) {
-        console.error('User ID not found when trying to fetch songs');
-        // Potentially show error in table
-        const tableBody = document.querySelector('#my-music-table tbody');
-        if(tableBody) tableBody.innerHTML = '<tr><td colspan="9" class="text-center">Error: User not identified.</td></tr>';
-        return;
-    }
-
-    const tableBody = document.querySelector('#my-music-table tbody'); // Assuming table has id="my-music-table"
-    if (!tableBody) {
-        console.error('Table body not found for my music');
-        return;
-    }
-    tableBody.innerHTML = '<tr><td colspan="9" class="text-center">Loading songs...</td></tr>'; // Updated colspan
-
-    try {
-        // Use the /song/selectbyuser endpoint which returns SongDTO
-        const response = await api.get(`/song/selectbyuser?userId=${currentUserId}`);
-        if (response.data && response.data.code === '1') {
-            displaySongs(response.data.data); // Pass the song data array
-        } else {
-            console.error('Failed to fetch songs:', response.data.msg);
-            tableBody.innerHTML = '<tr><td colspan="9" class="text-center">Failed to load songs.</td></tr>'; // Updated colspan
-        }
-    } catch (error) {
-        console.error('Error fetching songs:', error);
-        tableBody.innerHTML = '<tr><td colspan="9" class="text-center">Error loading songs. Please try again later.</td></tr>'; // Updated colspan
-    }
-}
-
-// Function to display songs in the table
-function displaySongs(songs) {
-    const tableBody = document.querySelector('#my-music-table tbody'); // Re-select or pass as argument
-    if (!tableBody) return;
-
-    if (!songs || songs.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="9" class="text-center">No songs found in your library.</td></tr>'; // Updated colspan
-        return;
-    }
-
-    tableBody.innerHTML = ''; // Clear loading/empty message
-
-    songs.forEach(song => {
-        const row = tableBody.insertRow();
-        
-        // Format categories and tags
-        const categoryNames = song.categories ? song.categories.map(c => c.name).join(', ') : 'N/A';
-        const tagNames = song.tags ? song.tags.map(t => t.name).join(', ') : '-';
-        const uploadDate = song.createTime ? new Date(song.createTime).toLocaleDateString() : 'N/A';
-        
-        // Determine status text and badge class
-        let statusText = 'Pending';
-        let statusBadgeClass = 'badge-warning';
-        if (song.status === 1) {
-            statusText = 'Approved';
-            statusBadgeClass = 'badge-success';
-        } else if (song.status === 2) {
-            statusText = 'Rejected';
-            statusBadgeClass = 'badge-danger';
-        } // Assuming 0 or other is Pending
-        
-        row.innerHTML = `
-            <td>
-                <div class="custom-control custom-checkbox">
-                    <input type="checkbox" class="custom-control-input song-checkbox" id="song_${song.id}" data-song-id="${song.id}">
-                    <label class="custom-control-label" for="song_${song.id}"></label>
-                </div>
-            </td>
-            <td>${song.name || 'Untitled'}</td>
-            <td>${categoryNames}</td>
-            <td>${tagNames}</td>
-            <td>${uploadDate}</td>
-            <td><span class="badge ${statusBadgeClass}">${statusText}</span></td>
-            <td>${song.playCount || 0}</td>
-            <td class="text-right">
-                <button class="btn btn-sm btn-outline-primary play-song-btn" data-song-id="${song.id}">
-                    <i data-feather="play" class="width-15 height-15"></i>
-                </button>
-                <button class="btn btn-sm btn-outline-danger delete-song-btn" data-song-id="${song.id}">
-                    <i data-feather="trash-2" class="width-15 height-15"></i>
-                </button>
-                <!-- Add other action buttons like add to playlist if needed -->
-            </td>
-            <td> <!-- New Cell for Edit Button -->
-                <button class="btn btn-sm btn-info edit-song-btn" data-song-id="${song.id}" data-toggle="modal" data-target="#editSongModal">
-                    <i data-feather="edit-2" class="width-15 height-15"></i> Edit
-                </button>
-            </td>
-        `;
-    });
-
-    // Re-initialize Feather Icons for the new buttons
-    if (typeof feather !== 'undefined') {
-        feather.replace();
-    }
-}
-
-// --- Edit Song Modal Logic ---
-
-// Store selected category and tag IDs for the currently editing song
-let selectedEditCategoryIds = new Set();
-let selectedEditTagIds = new Set();
-
-async function openEditSongModal(songId) {
-    console.log(`Opening edit modal for song ID: ${songId}`);
-    const modal = $('#editSongModal'); // Requires jQuery
-    const messageArea = document.getElementById('editSongMessage');
-    const categoryContainer = document.getElementById('editCategoryPillsContainer');
-    const tagContainer = document.getElementById('editTagPillsContainer');
-    const songNameInput = document.getElementById('editSongName');
-    const singerIdInput = document.getElementById('editSingerId');
-    const introductionTextarea = document.getElementById('editIntroduction');
-    const lyricTextarea = document.getElementById('editLyric');
-
-    messageArea.style.display = 'none';
-    messageArea.textContent = '';
-    categoryContainer.innerHTML = '<span class="text-muted">Loading categories...</span>';
-    tagContainer.innerHTML = '<span class="text-muted">Loading tags...</span>';
-    document.getElementById('editSongForm').reset(); // Reset form fields
-    document.getElementById('editSongId').value = songId;
-
-    // Show the modal (Bootstrap 4 requires jQuery)
-    modal.modal('show');
-
-    // --- Fetch data (Separated requests) ---
-    try {
-        // Fetch song details, current categories, current tags, all categories, and all user tags concurrently
-        const [songDetailResponse, currentCategoriesResponse, currentTagsResponse, allCategoriesResponse, allUserTagsResponse] = await Promise.all([
-            api.get(`/song/detail?songId=${songId}`),       // Get basic song info (using request param)
-            api.get(`/song/categories?songId=${songId}`), // Get current categories for this song
-            api.get(`/tag/song?songId=${songId}`),         // Get current tags for this song
-            api.get('/category/selectAll'),               // Get all available categories
-            api.get(`/tag/user?userId=${currentUserId}`)  // Get all tags available to the user
-        ]);
-
-        // --- Process Song Details --- //
-        if (songDetailResponse.data && songDetailResponse.data.code === '1' && songDetailResponse.data.data) {
-            const songData = songDetailResponse.data.data;
-            songNameInput.value = songData.name || '';
-            // Assuming singerId is directly available or needs to be handled if it's an object
-            singerIdInput.value = songData.singerId || ''; 
-            introductionTextarea.value = songData.introduction || '';
-            lyricTextarea.value = songData.lyric || '';
-        } else {
-            throw new Error(`Failed to load song details: ${songDetailResponse.data.msg || 'Unknown error'}`);
-        }
-
-        // --- Process Current Categories & Tags --- //
-        if (currentCategoriesResponse.data && currentCategoriesResponse.data.code === '1') {
-            const currentCategories = currentCategoriesResponse.data.data || [];
-            selectedEditCategoryIds = new Set(currentCategories.map(cat => cat.id));
-            console.log('Initial Category IDs:', selectedEditCategoryIds);
-        } else {
-             console.warn('Could not load current categories for song:', currentCategoriesResponse.data.msg);
-             selectedEditCategoryIds = new Set(); // Start empty if failed
-        }
-
-        if (currentTagsResponse.data && currentTagsResponse.data.code === '1') {
-            const currentTags = currentTagsResponse.data.data || [];
-            selectedEditTagIds = new Set(currentTags.map(tag => tag.id));
-            console.log('Initial Tag IDs:', selectedEditTagIds);
-        } else {
-            console.warn('Could not load current tags for song:', currentTagsResponse.data.msg);
-            selectedEditTagIds = new Set(); // Start empty if failed
-        }
-
-
-        // --- Populate All Categories --- //
-        categoryContainer.innerHTML = ''; // Clear loading
-        if (allCategoriesResponse.data && allCategoriesResponse.data.code === '1' && allCategoriesResponse.data.data) {
-            const allCategories = allCategoriesResponse.data.data;
-            if (allCategories.length === 0) {
-                 categoryContainer.innerHTML = '<span class="text-muted">No categories available.</span>';
-            } else {
-                allCategories.forEach(category => {
-                    const button = document.createElement('button');
-                    button.type = 'button';
-                    button.className = 'btn btn-sm btn-outline-secondary category-pill';
-                    button.textContent = category.name;
-                    button.dataset.categoryId = category.id;
-
-                    if (selectedEditCategoryIds.has(category.id)) {
-                        button.classList.add('active'); // Mark as selected
-                        button.classList.replace('btn-outline-secondary', 'btn-primary');
-                    }
-
-                    button.addEventListener('click', () => {
-                        const categoryId = parseInt(button.dataset.categoryId);
-                        if (selectedEditCategoryIds.has(categoryId)) {
-                            selectedEditCategoryIds.delete(categoryId);
-                            button.classList.remove('active');
-                            button.classList.replace('btn-primary', 'btn-outline-secondary');
-                        } else {
-                            selectedEditCategoryIds.add(categoryId);
-                            button.classList.add('active');
-                            button.classList.replace('btn-outline-secondary', 'btn-primary');
-                        }
-                        console.log('Selected Category IDs:', selectedEditCategoryIds);
-                    });
-                    categoryContainer.appendChild(button);
-                });
-            }
-        } else {
-            categoryContainer.innerHTML = '<span class="text-danger">Failed to load categories.</span>';
-            console.error('Failed to load all categories:', allCategoriesResponse.data.msg);
-        }
-
-        // --- Populate User Tags --- //
-        tagContainer.innerHTML = ''; // Clear loading
-        if (allUserTagsResponse.data && allUserTagsResponse.data.code === '1' && allUserTagsResponse.data.data) {
-            const userTags = allUserTagsResponse.data.data;
-             if (userTags.length === 0) {
-                 tagContainer.innerHTML = '<span class="text-muted">You have no tags. <a href="tag-management.html">Manage Tags</a></span>';
-            } else {
-                userTags.forEach(tag => {
-                    const button = document.createElement('button');
-                    button.type = 'button';
-                    button.className = 'btn btn-sm btn-outline-secondary tag-pill';
-                    button.textContent = tag.name;
-                    button.dataset.tagId = tag.id;
-
-                    if (selectedEditTagIds.has(tag.id)) {
-                        button.classList.add('active'); // Mark as selected
-                         button.classList.replace('btn-outline-secondary', 'btn-primary');
-                    }
-
-                    button.addEventListener('click', () => {
-                        const tagId = parseInt(button.dataset.tagId);
-                        if (selectedEditTagIds.has(tagId)) {
-                            selectedEditTagIds.delete(tagId);
-                            button.classList.remove('active');
-                            button.classList.replace('btn-primary', 'btn-outline-secondary');
-                        } else {
-                            selectedEditTagIds.add(tagId);
-                            button.classList.add('active');
-                            button.classList.replace('btn-outline-secondary', 'btn-primary');
-                        }
-                         console.log('Selected Tag IDs:', selectedEditTagIds);
-                    });
-                    tagContainer.appendChild(button);
-                });
-            }
-        } else {
-            tagContainer.innerHTML = '<span class="text-danger">Failed to load tags.</span>';
-            console.error('Failed to load user tags:', allUserTagsResponse.data.msg);
-        }
-
-    } catch (error) {
-        console.error('Error opening or populating edit modal:', error);
-        showModalMessage(messageArea, `Error loading details: ${error.message}. Please close and try again.`, true);
-        // Optionally disable save button or provide more guidance
-    }
-}
-
-async function saveSongChanges() {
-    console.log('Save changes button clicked');
-    const songId = document.getElementById('editSongId').value;
-    const messageArea = document.getElementById('editSongMessage');
-    messageArea.style.display = 'none';
-    messageArea.textContent = '';
-
-    // TODO: Get updated data from form (basic info, category IDs, tag IDs)
-    // TODO: Call backend API(s) to save changes (e.g., /song/update, /song/categories/{id}, /song/tags/{id})
-    // TODO: Handle success/error responses, show messages, close modal, refresh list
-    console.log(`Save logic for song ID: ${songId} needs to be implemented here.`);
-    
-    // Example of showing a temporary message
-    // showModalMessage(messageArea, 'Saving... Please wait.'); 
-}
-
-// Function to display messages inside the modal
-function showModalMessage(element, message, isError = false) {
-    element.textContent = message;
-    element.className = isError ? 'alert alert-danger mt-3' : 'alert alert-success mt-3';
-    element.style.display = 'block';
-}
-
-// --- Event Listeners ---
-document.addEventListener('DOMContentLoaded', () => {
-    // Get user info from localStorage
-    const userString = localStorage.getItem('user');
-    const currentUser = userString ? JSON.parse(userString) : null;
-    const token = localStorage.getItem('token');
-    
-    // Set the global currentUserId
-    currentUserId = currentUser ? currentUser.id : null;
-
-    if (!currentUserId || !token) { // Check for both ID and token
-        console.error('User ID or Token not found in localStorage. Redirecting...');
-        alert('Please log in to view your music.');
-        window.location.href = '../login.html';
-        return;
-    }
-
-    console.log('User identified, ID:', currentUserId);
-
-    // Initial fetch of songs
-    fetchUserSongs();
-
-    // Event delegation for dynamically added buttons within the table body
-    const tableBody = document.querySelector('#my-music-table tbody');
-    if (tableBody) {
-        tableBody.addEventListener('click', (event) => {
-            const targetButton = event.target.closest('button'); // Find the closest button ancestor
-            if (!targetButton) return; // Exit if the click wasn't on or inside a button
-
-            const songId = targetButton.dataset.songId;
-            if (!songId) return; // Exit if button doesn't have songId
-
-            if (targetButton.classList.contains('edit-song-btn')) {
-                event.preventDefault(); // Prevent default if it's inside a link/form
-                openEditSongModal(songId);
-            } else if (targetButton.classList.contains('play-song-btn')) {
-                // Handle play button click (existing logic might be elsewhere or needs adding)
-                console.log(`Play button clicked for song ID: ${songId}`);
-                // Example: playSong(songId);
-            } else if (targetButton.classList.contains('delete-song-btn')) {
-                // Handle delete button click (existing logic might be elsewhere or needs adding)
-                console.log(`Delete button clicked for song ID: ${songId}`);
-                // Example: confirmAndDeleteSong(songId);
-            }
-            // Add more conditions for other action buttons if needed
-        });
-    }
-    
-    // Add listener for the modal save button
-    const saveButton = document.getElementById('saveSongChangesButton');
-    if (saveButton) {
-        saveButton.addEventListener('click', saveSongChanges);
-    }
-
-    // Add listener for select all checkbox (if needed)
-    // ...
-
-});
-
-// Assume table in my-music.html has id="my-music-table"
-// Remember to include jQuery if using Bootstrap modal functions like $('#editSongModal').modal('show');
-// Ensure Feather Icons are initialized after dynamic content generation. 
+} 

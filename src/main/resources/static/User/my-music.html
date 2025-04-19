@@ -43,6 +43,8 @@
             background: #fff;
             box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.05);
             z-index: 1000;
+            height: 80px;
+            display: none; /* 初始隐藏播放器 */
         }
         
         /* Player styles */
@@ -169,6 +171,26 @@
             border-radius: 50%;
             cursor: pointer;
         }
+        
+        .main-content {
+            padding-bottom: 0; /* 默认不为播放器保留空间 */
+            transition: padding-bottom 0.3s ease; /* 平滑过渡 */
+        }
+        
+        /* 分页区域增强样式 */
+        .pagination {
+            margin-bottom: 0;
+            transition: margin-bottom 0.3s ease; /* 平滑过渡 */
+        }
+        
+        /* 当播放器显示时应用的样式，会由JS控制 */
+        body.player-visible .main-content {
+            padding-bottom: 100px;
+        }
+        
+        body.player-visible .pagination {
+            margin-bottom: 80px;
+        }
     </style>
 
     <!-- Add Axios CDN, ensure early page loading -->
@@ -202,24 +224,17 @@
 
     <!-- begin::main -->
     <div id="main">
-        <!-- BEGIN REPLACEMENT: Navigation -->
+        <!-- begin::navigation -->
         <div class="navigation">
             <div class="navigation-menu-tab">
                 <div class="flex-grow-1">
                     <ul>
-                        <!-- Dashboard Icon Link -->
                         <li><a href="#" data-toggle="tooltip" data-placement="right" title="Dashboard" data-nav-target="#dashboards"><i data-feather="home"></i></a></li>
-                        <!-- My Music Icon Link (ACTIVE) -->
-                        <li><a class="active" href="#" data-toggle="tooltip" data-placement="right" title="My Music" data-nav-target="#my-music"><i data-feather="music"></i></a></li> 
-                        <!-- Categories Icon Link -->
+                        <li><a class="active" href="#" data-toggle="tooltip" data-placement="right" title="My Music" data-nav-target="#my-music"><i data-feather="music"></i></a></li>
                         <li><a href="#" data-toggle="tooltip" data-placement="right" title="Categories" data-nav-target="#categories"><i data-feather="folder"></i></a></li>
-                        <!-- Artists Icon Link -->
                         <li><a href="#" data-toggle="tooltip" data-placement="right" title="Artists" data-nav-target="#artists"><i data-feather="users"></i></a></li>
-                        <!-- Upload Music Icon Link -->
                         <li><a href="#" data-toggle="tooltip" data-placement="right" title="Upload Music" data-nav-target="#upload"><i data-feather="upload"></i></a></li>
-                        <!-- Tags Icon Link -->
                         <li><a href="#" data-toggle="tooltip" data-placement="right" title="Tags" data-nav-target="#tags"><i data-feather="tag"></i></a></li>
-                        <!-- Settings Icon Link -->
                         <li><a href="#" data-toggle="tooltip" data-placement="right" title="Settings" data-nav-target="#settings"><i data-feather="settings"></i></a></li>
                     </ul>
                 </div>
@@ -229,53 +244,44 @@
             <!-- Standard Secondary Navigation Panel -->
             <div class="navigation-menu-body">
                 <div class="navigation-menu-group">
-                    <!-- Dashboard Section -->
-                     <div id="dashboards">
+                    <div id="dashboards">
                         <ul>
                             <li class="navigation-divider">Dashboard</li>
                             <li><a href="index.html">Overview</a></li>
-                             <li><a href="top-songs.html">Top Songs</a></li>
-                             <li><a href="artists.html">All Artists</a></li>
+
                         </ul>
                     </div>
-                    <!-- My Music Section (ACTIVE and OPEN) -->
                     <div id="my-music" class="open">
                         <ul>
                             <li class="navigation-divider">My Music</li>
-                            <li><a class="active" href="my-music.html">All Songs</a></li>
-                             <li><a href="top-songs.html">Top Songs</a></li>
+                            <li><a class="active" href="my-music.html">My Music Dashboard</a></li>
                         </ul>
                     </div>
-                    <!-- Categories Section -->
                     <div id="categories">
                         <ul>
                             <li class="navigation-divider">Categories</li>
                             <li><a href="categories.html">Manage Categories</a></li>
                         </ul>
                     </div>
-                     <!-- Artists Section -->
-                     <div id="artists">
+                    <div id="artists">
                         <ul>
                             <li class="navigation-divider">Artists</li>
                             <li><a href="artists.html">All Artists</a></li>
                         </ul>
                     </div>
-                    <!-- Upload Section -->
                     <div id="upload">
                         <ul>
                             <li class="navigation-divider">Upload</li>
                             <li><a href="upload-music.html">Upload Music</a></li>
                         </ul>
                     </div>
-                    <!-- Tags Section -->
                     <div id="tags">
                         <ul>
                             <li class="navigation-divider">Tags</li>
                             <li><a href="tag-management.html">Manage Tags</a></li>
-                             <li><a href="tag-songs.html">View Songs by Tag</a></li> 
+                            <li><a href="tag-songs.html">View Songs by Tag</a></li>
                         </ul>
                     </div>
-                    <!-- Settings Section -->
                     <div id="settings">
                         <ul>
                             <li class="navigation-divider">Settings</li>
@@ -285,7 +291,7 @@
                 </div>
             </div>
         </div>
-        <!-- END REPLACEMENT: Navigation -->
+        <!-- end::navigation -->
 
         <!-- begin::main-content -->
         <div class="main-content">
@@ -300,7 +306,7 @@
                 <div class="col-md-12">
                     <!-- Statistics Cards -->
                     <div class="row mb-4">
-                        <div class="col-lg-3 col-md-6">
+                        <div class="col-lg-4 col-md-6">
                             <div class="card bg-primary-gradient border-0">
                                 <div class="card-body text-center">
                                     <figure class="avatar mb-3 border-0">
@@ -313,7 +319,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-lg-3 col-md-6">
+                        <div class="col-lg-4 col-md-6">
                             <div class="card bg-success-gradient border-0">
                                 <div class="card-body text-center">
                                     <figure class="avatar mb-3 border-0">
@@ -326,7 +332,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-lg-3 col-md-6">
+                        <div class="col-lg-4 col-md-6">
                             <div class="card bg-warning-gradient border-0">
                                 <div class="card-body text-center">
                                     <figure class="avatar mb-3 border-0">
@@ -336,19 +342,6 @@
                                     </figure>
                                     <h2 class="font-weight-bold mb-3">15</h2>
                                     <h5 class="mb-0">Pending</h5>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-lg-3 col-md-6">
-                            <div class="card bg-info-gradient border-0">
-                                <div class="card-body text-center">
-                                    <figure class="avatar mb-3 border-0">
-                                        <span class="avatar-title bg-white text-info rounded-circle">
-                                            <i data-feather="play-circle"></i>
-                                        </span>
-                                    </figure>
-                                    <h2 class="font-weight-bold mb-3">2.5k</h2>
-                                    <h5 class="mb-0">Total Plays</h5>
                                 </div>
                             </div>
                         </div>
@@ -363,37 +356,43 @@
                                     <button class="btn btn-primary" data-toggle="modal" data-target="#uploadMusicModal">
                                         <i data-feather="upload" class="mr-2"></i> Upload New
                                     </button>
-                                    <button class="btn btn-secondary ml-2">
+                                    <!-- Filter Button Removed for now, using dropdowns directly -->
+                                    <!-- <button class="btn btn-secondary ml-2">
                                         <i data-feather="filter" class="mr-2"></i> Filter
-                                    </button>
+                                    </button> -->
                                 </div>
                             </div>
 
                             <!-- Music Filter Section -->
                             <div class="row mb-4">
                                 <div class="col-md-3">
-                                    <select class="form-control">
-                                        <option>All Categories</option>
-                                        <option>Pop</option>
-                                        <option>Rock</option>
-                                        <option>Jazz</option>
+                                    <label for="categoryFilter" class="sr-only">Category</label>
+                                    <select id="categoryFilter" class="form-control">
+                                        <option value="all" selected>All Categories</option>
+                                        <!-- Options will be populated by JS -->
                                     </select>
                                 </div>
                                 <div class="col-md-3">
-                                    <select class="form-control">
-                                        <option>Status</option>
-                                        <option>Approved</option>
-                                        <option>Pending</option>
-                                        <option>Rejected</option>
+                                    <label for="statusFilter" class="sr-only">Status</label>
+                                    <select id="statusFilter" class="form-control">
+                                        <option value="all" selected>All Status</option>
+                                        <option value="1">Approved</option>
+                                        <option value="0">Pending</option>
+                                        <option value="2">Rejected</option>
                                     </select>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="input-group">
-                                        <input type="text" class="form-control" placeholder="Search music...">
+                                        <label for="searchInput" class="sr-only">Search</label>
+                                        <input type="text" id="searchInput" class="form-control" placeholder="Search by song name...">
                                         <div class="input-group-append">
-                                            <button class="btn btn-primary" type="button">
+                                           <button id="searchButton" class="btn btn-primary" type="button">
                                                 <i data-feather="search"></i>
                                             </button>
+                                            <!-- Add Clear Filters Button -->
+                                            <button id="clearFiltersButton" class="btn btn-outline-secondary ml-2" type="button" title="Clear Filters">
+                                                 <i data-feather="x-circle"></i>
+                                             </button>
                                         </div>
                                     </div>
                                 </div>
@@ -401,7 +400,7 @@
 
                             <!-- Music List Table -->
                             <div class="table-responsive">
-                                <table class="table table-hover">
+                                <table id="my-music-table" class="table table-hover">
                                     <thead>
                                         <tr>
                                             <th>
@@ -415,31 +414,23 @@
                                             <th>Tags</th>
                                             <th>Upload Date</th>
                                             <th>Status</th>
-                                            <th>Plays</th>
+                                            <th>Singer(s)</th>
                                             <th class="text-right">Actions</th>
-                                            <th>Edit</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr>
-                                            <td colspan="9" class="text-center">Loading songs...</td>
+                                            <td colspan="8" class="text-center">Loading songs...</td>
                                         </tr>
                                     </tbody>
                                 </table>
                             </div>
 
-                            <!-- Pagination -->
-                            <nav class="mt-4">
+                            <!-- Pagination Container -->
+                            <nav id="pagination-controls" class="mt-4" aria-label="Song navigation">
+                                <!-- Pagination controls will be inserted here by JavaScript -->
                                 <ul class="pagination justify-content-center">
-                                    <li class="page-item disabled">
-                                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Previous</a>
-                                    </li>
-                                    <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                                    <li class="page-item"><a class="page-link" href="#">2</a></li>
-                                    <li class="page-item"><a class="page-link" href="#">3</a></li>
-                                    <li class="page-item">
-                                        <a class="page-link" href="#">Next</a>
-                                    </li>
+                                     <li class="page-item disabled"><span class="page-link">Loading...</span></li>
                                 </ul>
                             </nav>
                         </div>
@@ -450,73 +441,6 @@
         <!-- end::main-content -->
     </div>
     <!-- end::main -->
-
-    <!-- Edit Song Modal -->
-    <div class="modal fade" id="editSongModal" tabindex="-1" aria-labelledby="editSongModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="editSongModalLabel">Edit Song Details</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <form id="editSongForm">
-                        <input type="hidden" id="editSongId">
-
-                        <!-- Basic Info -->
-                        <div class="form-group">
-                            <label for="editSongName">Song Name *</label>
-                            <input type="text" class="form-control" id="editSongName" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="editSingerId">Singer ID *</label>
-                            <input type="number" class="form-control" id="editSingerId" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="editIntroduction">Introduction</label>
-                            <textarea class="form-control" id="editIntroduction" rows="3"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label for="editLyric">Lyrics</label>
-                            <textarea class="form-control" id="editLyric" rows="5"></textarea>
-                        </div>
-
-                        <hr>
-
-                        <!-- Categories -->
-                        <div class="form-group">
-                            <label for="editCategoryPillsContainer">Categories *</label>
-                            <div id="editCategoryPillsContainer" class="d-flex flex-wrap gap-2 mb-2 p-2 border rounded" style="min-height: 40px;">
-                                <span class="text-muted">Loading categories...</span>
-                            </div>
-                            <small class="form-text text-muted">Select one or more categories.</small>
-                        </div>
-
-                        <hr>
-
-                        <!-- Tags -->
-                        <div class="form-group">
-                            <label for="editTagPillsContainer">Tags</label>
-                            <div id="editTagPillsContainer" class="d-flex flex-wrap gap-2 mb-2 p-2 border rounded" style="min-height: 40px;">
-                                <span class="text-muted">Loading tags...</span>
-                            </div>
-                            <small class="form-text text-muted">Select zero or more tags.</small>
-                        </div>
-
-                        <!-- Message Area -->
-                        <div id="editSongMessage" class="mt-3"></div>
-
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="saveSongChangesButton">Save Changes</button>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Upload Music Modal -->
     <div class="modal fade" id="uploadMusicModal" tabindex="-1">

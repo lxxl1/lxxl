@@ -14,6 +14,7 @@ let currentSongIndex = -1;
 let playlist = [];
 let isPlaying = false;
 let audioVolume = 1.0;
+let playerVisible = false; // 添加播放器可见性变量
 
 // 初始化播放器
 function initAudioPlayer() {
@@ -34,6 +35,9 @@ function initAudioPlayer() {
             console.error('找不到必要的音频播放器元素');
             return;
         }
+        
+        // 默认隐藏播放器，直到有音乐播放
+        hidePlayer();
         
         // 播放/暂停按钮事件
         if (playPauseButton) {
@@ -69,7 +73,13 @@ function initAudioPlayer() {
             
             // 播放结束事件
             audioPlayer.addEventListener('ended', () => {
-                playNext();
+                // 如果是最后一首歌并且没有更多歌曲，则隐藏播放器
+                if (currentSongIndex === playlist.length - 1 && playlist.length > 0) {
+                    isPlaying = false;
+                    hidePlayer();
+                } else {
+                    playNext();
+                }
             });
             
             // 加载元数据事件
@@ -137,6 +147,7 @@ function togglePlayPause() {
             if (playPromise !== undefined) {
                 playPromise.then(() => {
                     isPlaying = true;
+                    showPlayer(); // 显示播放器
                     if (playPauseButton) {
                         playPauseButton.innerHTML = '<i class="fas fa-pause"></i>';
                     }
@@ -148,6 +159,7 @@ function togglePlayPause() {
             // 暂停播放
             audioPlayer.pause();
             isPlaying = false;
+            // 不隐藏播放器，只改变按钮状态
             if (playPauseButton) {
                 playPauseButton.innerHTML = '<i class="fas fa-play"></i>';
             }
@@ -208,6 +220,9 @@ function playSongAtIndex(index) {
         document.getElementById('currentSongTitle').textContent = song.name;
         document.getElementById('currentSongArtist').textContent = song.artist;
         document.getElementById('currentSongCover').src = song.cover;
+        
+        // 显示播放器
+        showPlayer();
         
         // 播放
         const playPromise = audioPlayer.play();
@@ -362,6 +377,34 @@ function showMessage(message, type = 'info') {
     }
 }
 
+// 显示播放器
+function showPlayer() {
+    try {
+        const audioPlayerElement = document.querySelector('.audio-player');
+        if (audioPlayerElement) {
+            audioPlayerElement.style.display = 'block';
+            document.body.classList.add('player-visible'); // 添加CSS类控制布局
+            playerVisible = true;
+        }
+    } catch (error) {
+        console.error('显示播放器出错:', error);
+    }
+}
+
+// 隐藏播放器
+function hidePlayer() {
+    try {
+        const audioPlayerElement = document.querySelector('.audio-player');
+        if (audioPlayerElement) {
+            audioPlayerElement.style.display = 'none';
+            document.body.classList.remove('player-visible'); // 移除CSS类恢复布局
+            playerVisible = false;
+        }
+    } catch (error) {
+        console.error('隐藏播放器出错:', error);
+    }
+}
+
 // 暴露公共方法供外部使用
 window.audioPlayerControls = {
     play: togglePlayPause,
@@ -382,6 +425,9 @@ export function playSongAudioPlayer(url, name, artist, cover) {
         }
 
         console.log(`Attempting to play: ${name} from ${url}`); // Debug log
+
+        // 显示播放器
+        showPlayer();
 
         // Update UI first
         document.getElementById('currentSongTitle').textContent = name;
@@ -427,6 +473,8 @@ export function playSongAudioPlayer(url, name, artist, cover) {
                 console.error(`Playback error for ${name}:`, error);
                 // Avoid setting isPlaying to false here, as the state might be indeterminate
                 showMessage(`无法播放歌曲: ${name}. ${error.message}`, 'error');
+                // 如果播放失败，隐藏播放器
+                hidePlayer();
             });
         }
 
@@ -445,5 +493,7 @@ export function playSongAudioPlayer(url, name, artist, cover) {
     } catch (error) {
         console.error('Error in playSongAudioPlayer:', error);
         showMessage('播放器发生内部错误', 'error');
+        // 如果出现错误，隐藏播放器
+        hidePlayer();
     }
 } 

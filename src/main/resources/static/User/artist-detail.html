@@ -21,7 +21,17 @@
 
     <!-- Player Styles -->
      <style>
-        .audio-player { position: fixed; bottom: 0; left: 0; right: 0; padding: 1rem; background: #fff; box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.05); z-index: 1000; }
+        .audio-player { 
+            position: fixed; 
+            bottom: 0; 
+            left: 0; 
+            right: 0; 
+            padding: 1rem; 
+            background: #fff; 
+            box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.05); 
+            z-index: 1000; 
+            display: none; /* 初始隐藏播放器 */
+        }
         .player-content { display: flex; align-items: center; justify-content: space-between; max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
         .song-info { display: flex; align-items: center; width: 30%; }
         .cover { width: 50px; height: 50px; margin-right: 1rem; overflow: hidden; border-radius: 4px; }
@@ -107,6 +117,24 @@
                 margin-bottom: 1.5rem;
             }
         }
+
+        /* Styles for adjusting content when player is visible */
+        .main-content {
+            padding-bottom: 0; /* Default, no padding */
+            transition: padding-bottom 0.3s ease;
+        }
+        body.player-visible .main-content {
+            padding-bottom: 80px; /* Add padding when player is visible */
+        }
+        
+        /* Ensure pagination is not hidden (if applicable) */
+        .pagination {
+            margin-bottom: 0;
+            transition: margin-bottom 0.3s ease;
+        }
+        body.player-visible .pagination {
+            margin-bottom: 80px;
+        }
     </style>
     
 </head>
@@ -185,51 +213,43 @@
             <!-- Standard Secondary Navigation Panel -->
             <div class="navigation-menu-body">
                 <div class="navigation-menu-group">
-                    <!-- Dashboard Section -->
                     <div id="dashboards">
                         <ul>
                             <li class="navigation-divider">Dashboard</li>
                             <li><a href="index.html">Overview</a></li>
-                            <li><a href="top-songs.html">Top Songs</a></li>
-                            <li><a href="artists.html">All Artists</a></li>
                         </ul>
                     </div>
-                    <!-- My Music Section -->
                     <div id="my-music">
                         <ul>
                             <li class="navigation-divider">My Music</li>
                             <li><a href="my-music.html">My Music Dashboard</a></li>
                         </ul>
                     </div>
-                    <!-- Categories Section -->
                     <div id="categories">
                         <ul>
                             <li class="navigation-divider">Categories</li>
                             <li><a href="categories.html">Manage Categories</a></li>
                         </ul>
                     </div>
-                     <!-- Artists Section (ACTIVE and OPEN) -->
                      <div id="artists" class="open">
                         <ul>
                             <li class="navigation-divider">Artists</li>
-                            <li><a href="artists.html">All Artists</a></li> <!-- Mark parent as active -->
+                            <li><a href="artists.html">All Artists</a></li>
                         </ul>
                     </div>
-                    <!-- Upload Section -->
                     <div id="upload">
                         <ul>
                             <li class="navigation-divider">Upload</li>
                             <li><a href="upload-music.html">Upload Music</a></li>
                         </ul>
                     </div>
-                    <!-- Tags Section -->
                     <div id="tags">
                         <ul>
                             <li class="navigation-divider">Tags</li>
                             <li><a href="tag-management.html">Manage Tags</a></li>
+                            <li><a href="tag-songs.html">View Songs by Tag</a></li>
                         </ul>
                     </div>
-                    <!-- Settings Section -->
                     <div id="settings">
                         <ul>
                             <li class="navigation-divider">Settings</li>

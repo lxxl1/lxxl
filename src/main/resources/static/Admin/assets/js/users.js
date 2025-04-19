@@ -27,9 +27,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load current admin name
     loadAdminInfo();
     
-    // Add custom styles
-    addCustomStyles();
-    
     // Add search and filter container if it doesn't exist
     const tableContainer = document.querySelector('#usersTable')?.parentElement;
     if (tableContainer) {
@@ -786,7 +783,7 @@ function setupEventListeners() {
         usersTable.on('click', '.toggle-status', function() {
             const userId = $(this).data('id');
             const currentStatus = $(this).data('status');
-            confirmStatusUpdate(userId, currentStatus);
+            confirmAndUpdateStatus(userId, currentStatus);
         });
     }
 }
@@ -1191,7 +1188,7 @@ function showUserDetails(user) {
         const userId = this.dataset.id;
         const status = this.dataset.status;
         modal.hide();
-        confirmStatusUpdate(userId, status);
+        confirmAndUpdateStatus(userId, status);
     });
     
     // Clean up when modal is closed
@@ -1350,4 +1347,43 @@ function confirmDeleteBatch(userIds) {
     document.getElementById('deleteBatchModal').addEventListener('hidden.bs.modal', function() {
         this.remove();
     });
+}
+
+/**
+ * NEW FUNCTION: Confirm and update user status
+ */
+async function confirmAndUpdateStatus(userId, currentStatus) {
+    // Determine the target status and action text
+    let newStatus;
+    let actionText;
+    // Handle both string and number status values
+    const statusNumber = parseInt(currentStatus);
+    if (statusNumber === 0 || currentStatus === 'Active') {
+        newStatus = 1; // Target: Inactive
+        actionText = 'disable';
+    } else { // Inactive (1) or Suspended (2)
+        newStatus = 0; // Target: Active
+        actionText = 'activate';
+    }
+
+    if (confirm(`Are you sure you want to ${actionText} this user (ID: ${userId})?`)) {
+        try {
+            // Assuming a POST endpoint like /user/update/status exists
+            // Send data as form-urlencoded
+            const response = await api.post(`/user/update/status`, 
+                new URLSearchParams({ id: userId, status: newStatus }).toString(), 
+                { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } } 
+            );
+
+            if (response.data && (response.data.code === '200' || response.data.code === 200)) {
+                showAlert(`User status updated successfully!`, 'success');
+                loadUsers(); // Reload the user list to reflect the change
+            } else {
+                 showAlert(response.data?.msg || 'Failed to update user status.', 'danger');
+            }
+        } catch (error) {
+            console.error('Error updating user status:', error);
+            showAlert('Error updating user status. ' + (error.response?.data?.msg || error.message), 'danger');
+        }
+    }
 }

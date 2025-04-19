@@ -1,6 +1,7 @@
 package com.cpt202.controller;
 
 import com.cpt202.common.Result;
+import com.cpt202.dto.UserStatsDTO;
 import com.cpt202.service.UserService;
 import com.github.pagehelper.PageInfo;
 import org.springframework.web.bind.annotation.*;
@@ -109,6 +110,30 @@ public class UserController {
             return Result.success(status == 1 ? "禁用成功" : "解禁成功");
         }
         return Result.failure("操作失败");
+    }
+
+    /**
+     * 获取用户统计信息
+     */
+    @GetMapping("/{userId}/stats")
+    public Result getUserStats(@PathVariable Integer userId) {
+        if (userId == null) {
+            return Result.failure("User ID cannot be null");
+        }
+        try {
+            UserStatsDTO stats = userService.getUserStats(userId);
+            if (stats != null) {
+                return Result.success(stats);
+            } else {
+                // Handle case where user exists but has no stats (e.g., no songs)
+                // Return an empty stats object or a specific message
+                return Result.success(new UserStatsDTO()); // Return default empty DTO
+            }
+        } catch (Exception e) {
+            // Log the exception properly in a real application
+            System.err.println("Error fetching user stats for userId " + userId + ": " + e.getMessage());
+            return Result.failure("Failed to retrieve user statistics.");
+        }
     }
 
     /**

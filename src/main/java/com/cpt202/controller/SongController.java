@@ -10,6 +10,7 @@ import com.cpt202.utils.Consts;
 import com.cpt202.utils.OssUtil;
 import com.cpt202.dto.SongDTO;
 import com.cpt202.dto.UpdateSongCategoryRequest;
+import com.github.pagehelper.PageInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
@@ -363,36 +364,36 @@ public class SongController {
         return Result.failure("上传失败");
     }
 
-//    /**
-//     * 更新歌曲MV文件 (Pass null for singerIds in update)
-//     */
-//    @RequestMapping(value = "/updateMVUrl",method = RequestMethod.POST)
-//    public Result updateMVUrl(@RequestParam("file") MultipartFile avatorFile, @RequestParam("id")int id){
-//         if(avatorFile.isEmpty()){
-//            return Result.failure("文件上传失败");
-//        }
-//        String storeAvatorPath = "";
-//        try {
-//            // Use OSS Util
-//            storeAvatorPath = ossUtil.uploadFile(avatorFile, "mv/");
-//              if(!StringUtils.hasText(storeAvatorPath)){
-//                 return Result.failure("MV文件上传失败");
-//            }
-//        } catch (IOException e) {
-//             log.error("IO Exception during MV file upload for id {}: {}", id, e.getMessage());
-//             return Result.failure("MV文件上传IO异常");
-//        }
-//        Song song = new Song();
-//        song.setId(id);
-//        song.setMvurl(storeAvatorPath);
-//          // Pass null or empty list for singerIds
-//         boolean flag = songService.update(song, Collections.emptyList());
-//        if(flag){
-//             // Return only success message for consistency
-//            return Result.success("上传成功");
-//        }
-//        return Result.failure("上传失败");
-//    }
+    /**
+     * 更新歌曲MV文件 (Pass null for singerIds in update)
+     */
+    @RequestMapping(value = "/updateMVUrl",method = RequestMethod.POST)
+    public Result updateMVUrl(@RequestParam("file") MultipartFile avatorFile, @RequestParam("id")int id){
+         if(avatorFile.isEmpty()){
+            return Result.failure("文件上传失败");
+        }
+        String storeAvatorPath = "";
+        try {
+            // Use OSS Util
+            storeAvatorPath = ossUtil.uploadFile(avatorFile, "mv/");
+              if(!StringUtils.hasText(storeAvatorPath)){
+                 return Result.failure("MV文件上传失败");
+            }
+        } catch (IOException e) {
+             log.error("IO Exception during MV file upload for id {}: {}", id, e.getMessage());
+             return Result.failure("MV文件上传IO异常");
+        }
+        Song song = new Song();
+        song.setId(id);
+        // song.setMvurl(storeAvatorPath); // REMOVED as mvurl field is deleted
+          // Pass null or empty list for singerIds as we only updated a file path (now removed)
+         boolean flag = songService.update(song, Collections.emptyList());
+        if(flag){
+             // Return only success message for consistency
+            return Result.success("上传成功");
+        }
+        return Result.failure("上传失败");
+    }
 
     /**
      * 返回指定歌曲ID的详细信息 (包含歌手列表)
@@ -419,28 +420,6 @@ public class SongController {
             log.error("Error fetching song detail for ID: {}", songIdStr, e);
             return Result.failure("获取歌曲详情失败");
         }
-    }
-
-    /**
-     * 增加播放次数 (No change needed)
-     */
-    @RequestMapping(value = "/addNums",method = RequestMethod.GET)
-    public Result addNums(HttpServletRequest request){
-        String songId = request.getParameter("songId");
-        if (!StringUtils.hasText(songId)) {
-             return Result.failure("歌曲ID不能为空");
-        }
-         try {
-             // Service method checks for affected rows now
-            boolean success = songService.addNums(Integer.parseInt(songId.trim()));
-            return success ? Result.success() : Result.failure("增加播放次数失败或歌曲不存在");
-         } catch (NumberFormatException e) {
-             log.error("Invalid songId format for addNums: {}", songId);
-             return Result.failure("歌曲ID格式错误");
-         } catch (Exception e) {
-              log.error("Error adding nums for song ID: {}", songId, e);
-              return Result.failure("增加播放次数时出错");
-         }
     }
 
     /**
@@ -565,25 +544,83 @@ public class SongController {
     }
 
     /**
-     * 根据用户id查询歌曲 (Returns DTO with category/tag/singer info)
+     * 根据用户id查询歌曲 (分页) - 基础版本
      */
-    @RequestMapping(value = "/selectbyuser", method = RequestMethod.GET)
-    public Result songOfUserId(HttpServletRequest request) {
-         String userIdStr = request.getParameter("userId");
-          if (!StringUtils.hasText(userIdStr)) {
-            return Result.failure("用户ID不能为空");
+    @GetMapping("/selectbyuser") // Kept original endpoint for basic fetch if needed
+    public Result songOfUserIdBasic(@RequestParam Integer userId,
+                                    @RequestParam(value = "pageNum", defaultValue = "1") int pageNum,
+                                    @RequestParam(value = "pageSize", defaultValue = "10") int pageSize) {
+        // Simplified original logic without filters
+        if (userId == null) {
+            return Result.failure("User ID cannot be null");
         }
-         try {
-             Integer userId = Integer.parseInt(userIdStr.trim());
-             // This service method now returns DTO including singer info
-             return Result.success(songService.songOfUserId(userId));
-         } catch (NumberFormatException e) {
-              log.error("Invalid userId format for selectbyuser: {}", userIdStr);
-              return Result.failure("用户ID格式错误");
-         } catch (Exception e) {
-              log.error("Error fetching songs for user ID: {}", userIdStr, e);
-              return Result.failure("查询用户歌曲失败");
-         }
+        if (pageNum <= 0 || pageSize <= 0) {
+             return Result.failure("Page number and page size must be positive.");
+        }
+        try {
+            PageInfo<SongDTO> pageInfo = songService.songOfUserId(userId, pageNum, pageSize); // Assumes original service method still exists
+            // Handle empty result properly 
+            if (pageInfo == null || CollectionUtils.isEmpty(pageInfo.getList())) {
+                 PageInfo<SongDTO> emptyPageInfo = new PageInfo<>(Collections.emptyList());
+                 emptyPageInfo.setPageNum(pageNum);
+                 emptyPageInfo.setPageSize(pageSize);
+                 emptyPageInfo.setTotal(0);
+                 emptyPageInfo.setPages(0);
+                 // Return empty PageInfo object directly
+                 return Result.success(emptyPageInfo); 
+            }
+            return Result.success(pageInfo);
+        } catch (Exception e) {
+            log.error("Error fetching basic songs for user ID: {} on page: {}, size: {}", userId, pageNum, pageSize, e);
+            return Result.failure("Error fetching songs: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 根据用户ID、分类、状态、搜索词查询歌曲 (分页) - 新增接口
+     */
+    @GetMapping("/user/search")
+    public Result searchUserSongs(
+            @RequestParam Integer userId,
+            @RequestParam(value = "categoryId", required = false) Integer categoryId, // Optional
+            @RequestParam(value = "status", required = false) Integer status,         // Optional
+            @RequestParam(value = "searchTerm", required = false) String searchTerm,   // Optional
+            @RequestParam(value = "pageNum", defaultValue = "1") int pageNum,
+            @RequestParam(value = "pageSize", defaultValue = "10") int pageSize) {
+
+        if (userId == null) {
+            return Result.failure("User ID cannot be null");
+        }
+        if (pageNum <= 0 || pageSize <= 0) {
+             return Result.failure("Page number and page size must be positive.");
+        }
+
+        try {
+            // Call the new service method
+            PageInfo<SongDTO> pageInfo = songService.searchUserSongs(
+                    userId, categoryId, status, searchTerm, pageNum, pageSize
+            );
+
+            // Handle empty results consistently
+            if (pageInfo == null || CollectionUtils.isEmpty(pageInfo.getList())) {
+                 PageInfo<SongDTO> emptyPageInfo = new PageInfo<>(Collections.emptyList());
+                 emptyPageInfo.setPageNum(pageNum);
+                 emptyPageInfo.setPageSize(pageSize);
+                 // pageInfo might still contain total count even if list is empty for this page
+                 emptyPageInfo.setTotal(pageInfo != null ? pageInfo.getTotal() : 0); 
+                 emptyPageInfo.setPages(pageInfo != null ? pageInfo.getPages() : 0);
+                 return Result.success(emptyPageInfo);
+            }
+            
+            log.info("Searched songs for user {}, page {}, size {}, category {}, status {}, term '{}'. Found: {} total.", 
+                    userId, pageNum, pageSize, categoryId, status, searchTerm, pageInfo.getTotal());
+            return Result.success(pageInfo);
+
+        } catch (Exception e) {
+            log.error("Error searching songs for user ID: {} with params: [cat={}, status={}, term='{}', page={}, size={}]", 
+                      userId, categoryId, status, searchTerm, pageNum, pageSize, e);
+            return Result.failure("Error searching songs: " + e.getMessage());
+        }
     }
 
     /**
