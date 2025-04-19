@@ -1,5 +1,6 @@
 import { API_URL } from '../../../Common/js/config.js';
 import api from '../../../Common/js/api.js';
+import { playSongAudioPlayer } from './audio-player.js'; // Import the function
 
 // Global variables
 let allCategories = []; // Store all available categories
@@ -8,8 +9,8 @@ let currentCategoryName = null; // Current displayed category name
 let currentUserId = null; // Current user ID
 let songs = []; // Store loaded song list
 
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('页面加载完成，正在初始化...');
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('Page loaded, initializing...');
     
     // Check if user is logged in
     try {
@@ -21,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const categoryName = urlParams.get('name');
         
         if (!categoryId) {
-            showAlert('缺少类别ID参数', 'error');
+            showAlert('Missing category ID parameter', 'error');
             setTimeout(() => {
                 window.location.href = 'categories.html';
             }, 2000);
@@ -38,13 +39,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // Set category name in stats card
         document.getElementById('categoryNameStat').textContent = categoryName || '-';
         
-        console.log('正在加载类别歌曲数据...');
+        console.log('Loading category song data...');
         
         // Load songs for this category
-        loadCategorySongs(categoryId);
-        
-        // Load tag count stats
-        loadTagCount();
+        await loadCategorySongs(categoryId);
         
         // Set up search functionality
         const searchInput = document.getElementById('searchInput');
@@ -64,14 +62,14 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Initialize feather icons
         if (window.feather) {
-            console.log('初始化Feather图标');
+            console.log('Initializing Feather icons');
             feather.replace();
         } else {
-            console.warn('Feather图标库未加载');
+            console.warn('Feather icon library not loaded');
         }
     } catch (error) {
-        console.error('页面初始化错误:', error);
-        showAlert('页面初始化失败: ' + (error.message || '未知错误'), 'error');
+        console.error('Page initialization error:', error);
+        showAlert('Page initialization failed: ' + (error.message || 'Unknown error'), 'error');
     }
 });
 
@@ -80,7 +78,7 @@ function checkUserLoggedIn() {
     try {
         const userStr = localStorage.getItem('user');
         if (!userStr) {
-            console.error('未找到用户信息');
+            console.error('User information not found');
             window.location.href = '../login.html';
             return;
         }
@@ -88,16 +86,16 @@ function checkUserLoggedIn() {
         const user = JSON.parse(userStr);
         
         if (!user || !user.id) {
-            console.error('用户信息不完整');
+            console.error('Incomplete user information');
             window.location.href = '../login.html';
             return;
         }
         
-        console.log('用户已登录:', user.id);
+        console.log('User logged in:', user.id);
         currentUserId = user.id;
     } catch (error) {
-        console.error('检查用户登录状态出错:', error);
-        showAlert('请先登录', 'error');
+        console.error('Error checking user login status:', error);
+        showAlert('Please log in first', 'error');
         setTimeout(() => {
             window.location.href = '../login.html';
         }, 2000);
@@ -113,73 +111,43 @@ function getApiEndpoint() {
             return API_URL;
         } else {
             // Default fallback
-            console.warn('API_URL未定义，使用默认地址');
+            console.warn('API_URL not defined, using default address');
             return 'http://localhost:8080';
         }
     } catch (error) {
-        console.error('获取API地址出错:', error);
+        console.error('Error getting API endpoint:', error);
         return 'http://localhost:8080'; // Default fallback
-    }
-}
-
-// Function to load tag count for stats
-async function loadTagCount() {
-    try {
-        console.log('正在加载标签统计...');
-        
-        // If API module is not available, use fetch
-        if (typeof api === 'undefined' || !api) {
-            console.warn('API模块未加载，使用原生fetch');
-            const response = await fetch(`${getApiEndpoint()}/tag/selectbyuser?userId=${currentUserId}`);
-            const data = await response.json();
-            
-            if (data.code === '200') {
-                const tags = data.data || [];
-                document.getElementById('tagCountStat').textContent = tags.length;
-            } else {
-                document.getElementById('tagCountStat').textContent = '?';
-            }
-            return;
-        }
-        
-        const response = await api.get('/tag/selectbyuser', {
-            params: { userId: currentUserId }
-        });
-        
-        if (response.data.code === '200') {
-            const tags = response.data.data || [];
-            document.getElementById('tagCountStat').textContent = tags.length;
-        } else {
-            document.getElementById('tagCountStat').textContent = '?';
-        }
-    } catch (error) {
-        console.error('加载标签统计出错:', error);
-        document.getElementById('tagCountStat').textContent = '?';
     }
 }
 
 // Function to load songs for a specific category
 async function loadCategorySongs(categoryId) {
     try {
-        console.log('正在加载类别歌曲:', categoryId);
+        console.log('Loading songs for category:', categoryId);
         
         // If API module is not available, use fetch
         if (typeof api === 'undefined' || !api) {
-            console.warn('API模块未加载，使用原生fetch');
+            console.warn('API module not loaded, using native fetch');
             const response = await fetch(`${getApiEndpoint()}/song/selectbyuser?userId=${currentUserId}`);
             const data = await response.json();
             
             if (data.code !== '200') {
-                throw new Error(data.msg || '获取歌曲失败');
+                throw new Error(data.msg || 'Failed to get songs');
             }
             
-            const allSongs = data.data || [];
-            
-            // Filter songs by category ID
-            songs = allSongs.filter(song => 
-                song.categoryIds && Array.isArray(song.categoryIds) && 
-                song.categoryIds.includes(parseInt(categoryId))
-            );
+            const allSongsData = data.data; // Assign to a new variable first
+
+            // Check if allSongsData is an array before filtering
+            if (!Array.isArray(allSongsData)) {
+                 console.error('Received non-array data for songs:', allSongsData);
+                 songs = []; // Set songs to empty array
+            } else {
+                // Filter songs by category ID only if it's an array
+                songs = allSongsData.filter(song => 
+                    song && song.categoryIds && Array.isArray(song.categoryIds) && 
+                    song.categoryIds.includes(parseInt(categoryId))
+                );
+            }
             
             // Update song count badge and stat card
             document.getElementById('songCountBadge').textContent = `${songs.length} songs`;
@@ -187,26 +155,41 @@ async function loadCategorySongs(categoryId) {
             
             // Display songs
             displaySongs(songs);
-            return;
+            return; // Exit after fetch logic
         }
         
+        // Use API module if available
         const response = await api.get('/song/selectbyuser', {
             params: { userId: currentUserId }
         });
         
         if (response.data.code !== '200') {
-            throw new Error(response.data.msg || '获取歌曲失败');
+            throw new Error(response.data.msg || 'Failed to get songs');
         }
         
-        const allSongs = response.data.data || [];
+        // Adjust logic to handle paginated response structure { list: [], total: ... }
+        const responseData = response.data.data; 
+        let allSongsArray = []; // Initialize as empty array
+
+        if (responseData && Array.isArray(responseData.list)) {
+            allSongsArray = responseData.list;
+            console.log('Received paginated song data, using list property.');
+        } else if (Array.isArray(responseData)) {
+             // Fallback if the API sometimes returns a direct array (less likely now)
+             allSongsArray = responseData;
+             console.log('Received direct song array data.');
+        } else {
+             console.error('Received unexpected data format for songs:', responseData);
+             // Keep allSongsArray as empty
+        }
         
-        // Filter songs by category ID
-        songs = allSongs.filter(song => 
-            song.categoryIds && Array.isArray(song.categoryIds) && 
+        // Filter songs by category ID from the extracted array
+        songs = allSongsArray.filter(song => 
+            song && song.categoryIds && Array.isArray(song.categoryIds) && 
             song.categoryIds.includes(parseInt(categoryId))
         );
         
-        console.log(`找到 ${songs.length} 首歌曲属于类别 ${categoryId}`);
+        console.log(`Found ${songs.length} songs in category ${categoryId}`);
         
         // Update song count badge and stat card
         document.getElementById('songCountBadge').textContent = `${songs.length} songs`;
@@ -215,8 +198,8 @@ async function loadCategorySongs(categoryId) {
         // Display songs
         displaySongs(songs);
     } catch (error) {
-        console.error('加载歌曲失败:', error);
-        showAlert('加载歌曲失败，请稍后重试: ' + (error.message || '未知错误'), 'error');
+        console.error('Failed to load songs:', error);
+        showAlert('Failed to load songs, please try again later: ' + (error.message || 'Unknown error'), 'error');
         
         // Show empty state
         const songsContainer = document.getElementById('songsContainer');
@@ -228,40 +211,40 @@ async function loadCategorySongs(categoryId) {
 }
 
 // Function to display songs in UI
-function displaySongs(songs) {
+function displaySongs(songsToDisplay) {
     try {
         const songsContainer = document.getElementById('songsContainer');
         const noSongsMessage = document.getElementById('noSongsMessage');
         
         if (!songsContainer || !noSongsMessage) {
-            console.error('找不到歌曲容器元素');
+            console.error('Song container elements not found');
             return;
         }
         
         // Clear loading state
         songsContainer.innerHTML = '';
         
-        if (!songs || songs.length === 0) {
+        if (!songsToDisplay || songsToDisplay.length === 0) {
             songsContainer.style.display = 'none';
             noSongsMessage.style.display = 'block';
             return;
         }
         
         noSongsMessage.style.display = 'none';
-        songsContainer.style.display = 'flex';
+        songsContainer.style.display = 'flex'; // Use flex for row behavior
         
-        console.log('正在渲染歌曲列表...');
+        console.log('Rendering song list...');
         
-        songs.forEach(song => {
+        songsToDisplay.forEach(song => {
             if (song) {
                 const songCard = createSongCard(song);
                 songsContainer.appendChild(songCard);
             } else {
-                console.warn('遇到无效的歌曲数据:', song);
+                console.warn('Encountered invalid song data:', song);
             }
         });
         
-        console.log('歌曲列表渲染完成，初始化事件监听...');
+        console.log('Song list rendered, initializing event listeners...');
         
         // Re-initialize feather icons
         if (window.feather) {
@@ -271,14 +254,11 @@ function displaySongs(songs) {
         // Set up play song event listeners
         setupPlaySongListeners();
         
-        // Set up remove song event listeners
-        setupRemoveSongListeners();
-        
         // Set up edit categories event listeners
         setupEditCategoriesListeners();
     } catch (error) {
-        console.error('渲染歌曲时出错:', error);
-        showAlert('渲染歌曲列表时出错。', 'error');
+        console.error('Error rendering songs:', error);
+        showAlert('Error rendering song list.', 'error');
         // Show empty state
         const songsContainer = document.getElementById('songsContainer');
         const noSongsMessage = document.getElementById('noSongsMessage');
@@ -287,16 +267,31 @@ function displaySongs(songs) {
     }
 }
 
+// Function to check if a URL is absolute
+function isAbsoluteURL(url) {
+  // Simple check for common protocols or protocol-relative URLs
+  // Also checks for data URIs
+  return /^(?:[a-z]+:)?\/\/|data:/i.test(url);
+}
+
 // Function to create a song card HTML element
 function createSongCard(song) {
     const songId = song.id;
-    const songName = escapeHTML(song.name || '未知歌曲');
-    const singerName = escapeHTML(song.singerName || '未知艺术家');
-    const coverUrl = song.pic ? `${getApiEndpoint()}${song.pic}` : 'assets/media/image/default-cover.jpg';
+    const songName = escapeHTML(song.name || 'Unknown Song');
+    const singerName = escapeHTML(song.singerName || 'Unknown Artist');
+
+    // Determine the correct song URL
+    const songUrlRaw = song.url || '#';
+    const songUrl = isAbsoluteURL(songUrlRaw) ? songUrlRaw : (songUrlRaw !== '#' ? `${getApiEndpoint()}${songUrlRaw}` : '#');
+
+    // Determine the correct cover URL
+    const coverUrlRaw = song.pic || 'assets/media/image/default-cover.jpg';
+    const coverUrl = isAbsoluteURL(coverUrlRaw) ? coverUrlRaw : (coverUrlRaw !== 'assets/media/image/default-cover.jpg' ? `${getApiEndpoint()}${coverUrlRaw}` : 'assets/media/image/default-cover.jpg');
 
     const cardCol = document.createElement('div');
     cardCol.className = 'col-lg-3 col-md-4 col-sm-6 mb-4';
 
+    // Use the processed URLs in the innerHTML
     cardCol.innerHTML = `
         <div class="card song-card shadow-sm h-100">
             <img src="${coverUrl}" class="card-img-top song-image" alt="${songName} Cover">
@@ -304,15 +299,17 @@ function createSongCard(song) {
                 <h6 class="card-title flex-grow-1">${songName}</h6>
                 <p class="card-text text-muted small mb-2">${singerName}</p>
                 <div class="mt-auto d-flex justify-content-between align-items-center">
-                     <button class="btn btn-sm btn-outline-primary play-song-btn" data-song-id="${songId}">
+                     <button class="btn btn-sm btn-outline-primary play-song-btn" 
+                             data-song-id="${songId}" 
+                             data-song-url="${songUrl}" 
+                             data-song-name="${songName}" 
+                             data-song-artist="${singerName}" 
+                             data-song-cover="${coverUrl}">
                         <i data-feather="play-circle" class="mr-1" style="width: 16px; height: 16px;"></i> Play
                     </button>
                     <div class="song-controls">
                         <button class="btn btn-sm btn-light text-info edit-categories-btn" data-song-id="${songId}" data-song-name="${songName}" title="Edit Categories">
                             <i data-feather="tag"></i>
-                        </button>
-                        <button class="btn btn-sm btn-light text-danger remove-song-btn" data-song-id="${songId}" data-song-name="${songName}" title="Remove from Category">
-                            <i data-feather="trash-2"></i>
                         </button>
                     </div>
                 </div>
@@ -328,220 +325,52 @@ function setupPlaySongListeners() {
         const playButtons = document.querySelectorAll('.play-song-btn');
         
         playButtons.forEach(button => {
-            button.addEventListener('click', (e) => {
-                const songId = button.getAttribute('data-song-id');
-                
-                // Find the corresponding song card
-                const songCard = document.querySelector(`.play-song-btn[data-song-id="${songId}"]`).closest('.col-lg-3');
-                if (!songCard) {
-                    console.error('找不到对应的歌曲卡片');
-                    return;
-                }
-                
-                // Extract song details from the song card
-                const songName = songCard.querySelector('.card-title').textContent;
-                const songArtist = songCard.querySelector('.card-text').textContent.split('\n')[0];
-                const songCover = songCard.querySelector('.song-image').src;
-                const songUrl = songCard.querySelector('.play-song-btn').getAttribute('data-song-url');
-                
-                // Set the audio player source
-                const audioPlayer = document.getElementById('audioPlayer');
-                if (!audioPlayer) {
-                    console.error('找不到音频播放器元素');
-                    return;
-                }
-                
-                audioPlayer.src = songUrl;
-                
-                // Update the player UI
-                document.getElementById('currentSongTitle').textContent = songName;
-                document.getElementById('currentSongArtist').textContent = songArtist;
-                document.getElementById('currentSongCover').src = songCover;
-                
-                // Change play/pause button icon to pause
-                const playPauseButton = document.getElementById('playPauseButton');
-                if (playPauseButton) {
-                    playPauseButton.innerHTML = '<i class="fas fa-pause"></i>';
-                }
-                
-                // Play the song
-                audioPlayer.play().catch(error => {
-                    console.error('播放歌曲失败:', error);
-                    showAlert('播放歌曲失败: ' + (error.message || '未知错误'), 'error');
-                });
-            });
+            // Remove existing listener before adding a new one to prevent duplicates
+            button.removeEventListener('click', handlePlayButtonClick);
+            button.addEventListener('click', handlePlayButtonClick);
         });
     } catch (error) {
-        console.error('设置播放按钮事件出错:', error);
+        console.error('Error setting up play button listeners:', error);
     }
 }
 
-// Function to set up remove song listeners
-function setupRemoveSongListeners() {
-    try {
-        const removeButtons = document.querySelectorAll('.remove-song-btn');
-        
-        removeButtons.forEach(button => {
-            button.addEventListener('click', async (e) => {
-                const songId = button.getAttribute('data-song-id');
-                
-                // Define confirmation function
-                const confirmRemoval = async () => {
-                    try {
-                        await removeSongFromCategory(songId, currentCategoryId);
-                        
-                        // Refresh songs list
-                        loadCategorySongs(currentCategoryId);
-                        
-                        showAlert('歌曲已从类别中移除', 'success');
-                    } catch (error) {
-                        console.error('移除歌曲出错:', error);
-                        showAlert('移除失败: ' + (error.message || '未知错误'), 'error');
-                    }
-                };
-                
-                // Use SweetAlert2 for confirmation if available
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        title: '确认移除',
-                        text: '您确定要将这首歌从该类别中移除吗？',
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonColor: '#3085d6',
-                        cancelButtonColor: '#d33',
-                        confirmButtonText: '是的，移除它',
-                        cancelButtonText: '取消'
-                    }).then(async (result) => {
-                        if (result.isConfirmed) {
-                            await confirmRemoval();
-                        }
-                    });
-                } else {
-                    // Fallback to browser confirm if SweetAlert is not loaded
-                    if (confirm('确定要将这首歌从该类别中移除吗？')) {
-                        await confirmRemoval();
-                    }
-                }
-            });
-        });
-    } catch (error) {
-        console.error('设置移除按钮事件出错:', error);
-    }
-}
+// Define the handler function separately for clarity and easier removal
+function handlePlayButtonClick(e) {
+    const button = e.currentTarget; // Use currentTarget
+    const songId = button.getAttribute('data-song-id');
+    const songUrl = button.getAttribute('data-song-url');
+    const songName = button.getAttribute('data-song-name');
+    const songArtist = button.getAttribute('data-song-artist');
+    const songCover = button.getAttribute('data-song-cover');
 
-// Function to remove a song from a category
-async function removeSongFromCategory(songId, categoryId) {
-    try {
-        console.log(`正在移除歌曲 ${songId} 从类别 ${categoryId}`);
-        
-        // If API module is not available, use fetch
-        if (typeof api === 'undefined' || !api) {
-            console.warn('API模块未加载，使用原生fetch');
-            
-            // Get current song
-            const songResponse = await fetch(`${getApiEndpoint()}/song/select/${songId}`);
-            const songData = await songResponse.json();
-            
-            if (songData.code !== '200') {
-                throw new Error('获取歌曲详情失败');
-            }
-            
-            const song = songData.data;
-            if (!song || !song.categoryIds || !Array.isArray(song.categoryIds)) {
-                throw new Error('歌曲没有类别数据');
-            }
-            
-            // Filter out the current category ID
-            const updatedCategoryIds = song.categoryIds.filter(id => id !== parseInt(categoryId));
-            
-            // Update song
-            const updateResponse = await fetch(`${getApiEndpoint()}/song/updateCategories`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ 
-                    songId: parseInt(songId), 
-                    categoryIds: updatedCategoryIds 
-                })
-            });
-            
-            const updateData = await updateResponse.json();
-            
-            if (updateData.code !== '200') {
-                throw new Error(updateData.msg || '更新歌曲类别失败');
-            }
-            
-            return true;
-        }
-        
-        // Get current song categories
-        const songResponse = await api.get(`/song/select/${songId}`);
-        if (songResponse.data.code !== '200') {
-            throw new Error('获取歌曲详情失败');
-        }
-        
-        const song = songResponse.data.data;
-        if (!song || !song.categoryIds || !Array.isArray(song.categoryIds)) {
-            throw new Error('歌曲没有类别数据');
-        }
-        
-        // Filter out the current category ID
-        const updatedCategoryIds = song.categoryIds.filter(id => id !== parseInt(categoryId));
-        
-        // Update song with new categories list
-        const updateResponse = await api.put('/song/updateCategories', { 
-            songId: parseInt(songId),
-            categoryIds: updatedCategoryIds
-        });
-        
-        if (updateResponse.data.code !== '200') {
-            throw new Error(updateResponse.data.msg || '更新歌曲类别失败');
-        }
-        
-        return true;
-    } catch (error) {
-        console.error('移除歌曲从类别出错:', error);
-        throw error;
+    if (!songUrl || songUrl === '#') {
+        console.error('Song URL not available for song:', songName);
+        showAlert('Audio file not found for this song.', 'error');
+        return;
     }
+    
+    // Call the imported function from audio-player.js
+    playSongAudioPlayer(songUrl, songName, songArtist, songCover);
 }
 
 // Function to filter songs by search term
 function filterSongs(searchTerm) {
     try {
-        if (!searchTerm || searchTerm.trim() === '') {
-            // If search term is empty, show all songs
-            displaySongs(songs);
-            return;
-        }
-        
-        const term = searchTerm.toLowerCase().trim();
+        const term = (searchTerm || '').toLowerCase().trim();
         const filteredSongs = songs.filter(song => {
             if (!song) return false;
             
             const songName = (song.name || '').toLowerCase();
-            const songArtist = (song.artist || '').toLowerCase();
+            const singerName = (song.singerName || '').toLowerCase();
             
-            // Handle tagNames carefully
-            let tagNamesText = '';
-            if (song.tagNames) {
-                if (Array.isArray(song.tagNames)) {
-                    tagNamesText = song.tagNames.join(' ').toLowerCase();
-                } else if (typeof song.tagNames === 'string') {
-                    tagNamesText = song.tagNames.toLowerCase();
-                }
-            }
-            
-            return songName.includes(term) || 
-                   songArtist.includes(term) || 
-                   tagNamesText.includes(term);
+            return songName.includes(term) || singerName.includes(term);
         });
         
         // Display filtered songs
         displaySongs(filteredSongs);
     } catch (error) {
-        console.error('过滤歌曲出错:', error);
-        showAlert('搜索功能出错: ' + (error.message || '未知错误'), 'error');
+        console.error('Error filtering songs:', error);
+        showAlert('Search error: ' + (error.message || 'Unknown error'), 'error');
     }
 }
 
@@ -564,31 +393,27 @@ function showAlert(message, type = 'info', containerId = 'alerts') {
     
     const alertHTML = `
         <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show" role="alert">
-            ${message}
+            ${escapeHTML(message)} <!-- Escape message -->
             <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                 <span aria-hidden="true">&times;</span>
             </button>
         </div>
     `;
     
-    alertContainer.innerHTML += alertHTML;
+    alertContainer.insertAdjacentHTML('beforeend', alertHTML); // Use insertAdjacentHTML for safer appending
     
     // Auto-dismiss after 5 seconds
     setTimeout(() => {
         const alertElement = document.getElementById(alertId);
         if (alertElement) {
-            if (typeof $ !== 'undefined') {
+            if (typeof $ !== 'undefined' && $.fn.alert) { // Check jQuery and Bootstrap alert
                 $(alertElement).alert('close');
             } else {
-                // Fallback if jQuery is not available
-                alertElement.style.display = 'none';
-                setTimeout(() => {
-                    try {
-                        alertElement.remove();
-                    } catch (e) {
-                        // Element might be already removed
-                    }
-                }, 500);
+                // Fallback if jQuery/Bootstrap JS is not available
+                 try {
+                    alertElement.style.opacity = '0';
+                    setTimeout(() => alertElement.remove(), 600); // Remove after fade out
+                 } catch(e) { /* ignore errors if already removed */ }
             }
         }
     }, 5000);
@@ -598,23 +423,23 @@ function showAlert(message, type = 'info', containerId = 'alerts') {
  * HTML escape function
  */
 function escapeHTML(str) {
-    if (!str) return '';
-    return String(str).replace(/[&<>"']/g, 
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/[&<>'"/]/g, 
         tag => ({
             '&': '&amp;',
             '<': '&lt;',
             '>': '&gt;',
             '"': '&quot;',
-            "'": '&#39;'
+            "'": '&#39;',
+            '/': '&#x2F;' // Escape forward slash too
         }[tag] || tag)
     );
 }
 
 /**
- * Show message notification
+ * Show message notification (Alias for showAlert)
  */
 function showMessage(message, type) {
-    // For backwards compatibility, just call showAlert
     showAlert(message, type);
 }
 
@@ -622,6 +447,7 @@ function showMessage(message, type) {
 function setupEditCategoriesListeners() {
     const editButtons = document.querySelectorAll('.edit-categories-btn');
     editButtons.forEach(button => {
+        button.removeEventListener('click', handleEditCategoriesClick); // Remove previous before adding
         button.addEventListener('click', handleEditCategoriesClick);
     });
     
@@ -632,7 +458,7 @@ function setupEditCategoriesListeners() {
         saveButton.removeEventListener('click', handleSaveChangesClick); 
         saveButton.addEventListener('click', handleSaveChangesClick);
     } else {
-        console.error('找不到保存类别按钮');
+        console.error('Save Categories button not found');
     }
 }
 
@@ -640,26 +466,26 @@ function setupEditCategoriesListeners() {
 async function handleEditCategoriesClick(event) {
     const button = event.currentTarget;
     const songId = button.dataset.songId;
-    const songName = button.dataset.songName;
+    const songName = button.dataset.songName || 'this song';
 
     if (!songId) {
-        console.error('无法获取歌曲ID');
-        showAlert('无法编辑类别，缺少歌曲信息。', 'error');
+        console.error('Could not get song ID');
+        showAlert('Cannot edit categories, missing song information.', 'error');
         return;
     }
 
-    console.log(`编辑歌曲 "${songName}" (ID: ${songId}) 的类别`);
+    console.log(`Editing categories for song "${songName}" (ID: ${songId})`);
 
-    // --- MODIFICATION START --- Find song data locally
+    // Find song data locally
     const songData = songs.find(s => s && s.id === parseInt(songId));
     if (!songData) {
-        console.error(`无法在本地数据中找到歌曲 ID: ${songId}`);
-        showAlert('无法加载歌曲的类别信息。请尝试刷新页面。', 'error');
+        console.error(`Could not find song ID ${songId} in local data.`);
+        showAlert('Could not load category information for this song. Please refresh the page.', 'error');
         return;
     }
-    const songCategoryIds = new Set(songData.categoryIds || []); // Get category IDs from local data
-    console.log('从本地获取的歌曲当前类别ID:', Array.from(songCategoryIds));
-    // --- MODIFICATION END ---
+    // Ensure categoryIds is always an array, convert IDs to numbers
+    const songCategoryIds = new Set((songData.categoryIds || []).map(id => parseInt(id)).filter(id => !isNaN(id))); 
+    console.log('Current category IDs for song (from local data):', Array.from(songCategoryIds));
 
     // Set modal title and song ID
     document.getElementById('modalSongTitle').textContent = songName;
@@ -667,73 +493,79 @@ async function handleEditCategoriesClick(event) {
     
     // Clear previous modal content and show loading indicator
     const categoryListContainer = document.getElementById('modalCategoryList');
-    categoryListContainer.innerHTML = `<div class="text-center"><div class="spinner-border spinner-border-sm" role="status"><span class="visually-hidden">加载类别...</span></div></div>`;
+    categoryListContainer.innerHTML = `<div class="text-center w-100"><div class="spinner-border spinner-border-sm" role="status"><span class="visually-hidden">Loading categories...</span></div></div>`;
     document.getElementById('modalAlerts').innerHTML = ''; // Clear previous alerts
 
-    // Show the modal
-    $('#editCategoriesModal').modal('show');
+    // Show the modal using Bootstrap 4 jQuery method
+    if (typeof $ !== 'undefined' && $.fn.modal) {
+        $('#editCategoriesModal').modal('show');
+    } else {
+        console.error('Bootstrap Modal jQuery plugin not loaded.');
+        showAlert('Error opening category editor.', 'error');
+        return;
+    }
 
     try {
         // Fetch only all categories (song categories are already available locally)
-        const allCategoriesRes = await fetchAllCategories();
+        const allCategories = await fetchAllCategories();
 
-        if (!allCategoriesRes) {
-            // Error handled within fetch function
-            $('#editCategoriesModal').modal('hide'); // Hide modal on critical fetch error
+        if (allCategories === null) { // Check for null explicitly
+            // Error handled within fetch function, it shows an alert
+            console.log('Failed to fetch all categories, hiding modal.');
+             if (typeof $ !== 'undefined' && $.fn.modal) {
+                 $('#editCategoriesModal').modal('hide'); // Hide modal on critical fetch error
+             }
             return;
         }
-
-        const allCategories = allCategoriesRes;
-        // Use locally fetched songCategoryIds
-        console.log('所有类别:', allCategories);
+        
+        console.log('All available categories:', allCategories);
 
         // Populate the modal with categories
         populateCategoryModal(allCategories, songCategoryIds); // Pass local songCategoryIds
 
     } catch (error) {
-        console.error('加载所有类别时出错:', error);
-        showAlert('加载类别列表失败，请稍后重试。', 'error', 'modalAlerts');
-        categoryListContainer.innerHTML = '<p class="text-danger text-center">无法加载类别列表。</p>';
+        console.error('Error loading all categories:', error);
+        showAlert('Failed to load category list, please try again later.', 'error', 'modalAlerts');
+        categoryListContainer.innerHTML = '<p class="text-danger text-center w-100">Could not load category list.</p>';
     }
 }
 
 // Helper function to fetch all categories
 async function fetchAllCategories() {
     try {
-        console.log('正在获取所有类别...');
-        // MODIFIED: Corrected URL case
+        console.log('Fetching all categories...');
         const response = await api.get('/category/selectAll'); 
         if (response.data.code === '200') {
-            console.log('成功获取所有类别:', response.data.data);
+            console.log('Successfully fetched all categories:', response.data.data);
             return response.data.data || [];
         } else {
-            console.error('获取类别失败:', response.data.msg);
-            showAlert('无法获取所有类别: ' + response.data.msg, 'error', 'modalAlerts');
-            return null;
+            console.error('Failed to fetch categories:', response.data.msg);
+            showAlert('Could not fetch all categories: ' + (response.data.msg || 'Server error'), 'error', 'modalAlerts');
+            return null; // Return null on failure
         }
     } catch (error) {
-        console.error('获取所有类别时网络错误:', error);
-        showAlert('网络错误，无法获取所有类别。', 'error', 'modalAlerts');
-        return null;
+        console.error('Network error fetching all categories:', error);
+        showAlert('Network error, could not fetch all categories.', 'error', 'modalAlerts');
+        return null; // Return null on network error
     }
 }
 
-// Helper function to fetch categories for a specific song - REMOVED as we get data locally now
-// async function fetchSongCategories(songId) { ... }
-
 // Function to populate the category modal with pills/badges
-function populateCategoryModal(allCategories, songCategoryIds) {
+function populateCategoryModal(allCategories, songCategoryIdsSet) { // Expect a Set
     const categoryListContainer = document.getElementById('modalCategoryList');
     categoryListContainer.innerHTML = ''; // Clear loading indicator
 
     if (!allCategories || allCategories.length === 0) {
-        categoryListContainer.innerHTML = '<p class="text-muted text-center w-100">没有可用的类别。</p>';
+        categoryListContainer.innerHTML = '<p class="text-muted text-center w-100">No categories available.</p>';
         return;
     }
 
     allCategories.forEach(category => {
-        const categoryId = typeof category.id === 'string' ? parseInt(category.id) : category.id;
-        const isSelected = songCategoryIds.has(categoryId);
+        // Ensure category.id is treated as a number for comparison
+        const categoryId = parseInt(category.id);
+        if (isNaN(categoryId)) return; // Skip if ID is invalid
+        
+        const isSelected = songCategoryIdsSet.has(categoryId); // Check against the Set
         
         // Create a pill element (using button for better accessibility)
         const pill = document.createElement('button');
@@ -745,18 +577,20 @@ function populateCategoryModal(allCategories, songCategoryIds) {
         // Add click listener to toggle selection
         pill.addEventListener('click', () => {
             const currentId = parseInt(pill.dataset.categoryId);
+             if (isNaN(currentId)) return;
+
             if (pill.classList.contains('btn-primary')) {
                 // Deselect
                 pill.classList.remove('btn-primary');
                 pill.classList.add('btn-outline-secondary');
-                songCategoryIds.delete(currentId); // Update the set locally
+                songCategoryIdsSet.delete(currentId); // Update the set locally
             } else {
                 // Select
                 pill.classList.remove('btn-outline-secondary');
                 pill.classList.add('btn-primary');
-                songCategoryIds.add(currentId); // Update the set locally
+                songCategoryIdsSet.add(currentId); // Update the set locally
             }
-            console.log('Updated songCategoryIds:', songCategoryIds); // Log changes
+            // No need to log here, changes are local until save
         });
         
         categoryListContainer.appendChild(pill);
@@ -768,53 +602,52 @@ async function handleSaveChangesClick() {
     const saveButton = document.getElementById('saveCategoriesButton');
     const songId = document.getElementById('modalSongId').value;
     
-    // --- MODIFICATION START --- Get selected IDs from pills
+    // Get selected IDs from pills dataset
     const selectedPills = document.querySelectorAll('#modalCategoryList .btn-primary');
-    const selectedCategoryIds = Array.from(selectedPills).map(pill => pill.dataset.categoryId);
-    // --- MODIFICATION END ---
+    // Ensure IDs are numbers
+    const selectedCategoryIds = Array.from(selectedPills)
+                                     .map(pill => parseInt(pill.dataset.categoryId))
+                                     .filter(id => !isNaN(id)); 
 
     if (!songId) {
-        console.error('无法获取模态框中的歌曲ID');
-        showAlert('无法保存类别，缺少歌曲信息。', 'error', 'modalAlerts');
+        console.error('Could not get song ID from modal');
+        showAlert('Cannot save categories, missing song information.', 'error', 'modalAlerts');
         return;
     }
 
-    console.log(`保存歌曲 ${songId} 的类别:`, selectedCategoryIds);
+    console.log(`Saving categories for song ${songId}:`, selectedCategoryIds);
 
     // Disable button to prevent multiple clicks
     saveButton.disabled = true;
     saveButton.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...`;
 
     try {
-        // --- REVERTED to PUT and JSON --- 
-        // Backend controller needs to be fixed/created to handle this PUT request with JSON body
-        const response = await api.put('/song/updateCategory', { // Use PUT and potentially a new endpoint
+        // Use PUT with JSON body for updating categories
+        const response = await api.put('/song/updateCategory', { 
             songId: parseInt(songId), 
-            categoryIds: selectedCategoryIds.map(id => parseInt(id)) // Send as array of integers
+            categoryIds: selectedCategoryIds // Send as array of integers
         });
-        // --- REVERT END ---
 
         if (response.data.code === '200') {
-            showAlert('歌曲类别已成功更新！', 'success', 'modalAlerts');
-            console.log('类别更新成功');
+            showAlert('Song categories updated successfully!', 'success', 'modalAlerts');
+            console.log('Category update successful');
             
-            // --- MODIFICATION START --- Update local song data
+            // Update local song data
             const songIndex = songs.findIndex(s => s && s.id === parseInt(songId));
             if (songIndex !== -1) {
-                songs[songIndex].categoryIds = selectedCategoryIds.map(id => parseInt(id));
-                console.log(`本地歌曲 ${songId} 的类别已更新:`, songs[songIndex].categoryIds);
+                songs[songIndex].categoryIds = selectedCategoryIds;
+                console.log(`Local categories for song ${songId} updated:`, songs[songIndex].categoryIds);
             }
-             // --- MODIFICATION END ---
 
             // Check if the song should be removed from the current view
-            const currentCategorySelected = selectedCategoryIds.includes(currentCategoryId.toString());
-             if (!currentCategorySelected) {
-                console.log(`歌曲已从此类别 (${currentCategoryId}) 移除，将从列表中删除。`);
+            const currentCategoryIdNum = parseInt(currentCategoryId);
+            if (!selectedCategoryIds.includes(currentCategoryIdNum)) {
+                console.log(`Song removed from current category (${currentCategoryId}), removing from list.`);
                  // Find the card and remove it
-                 const cardToRemove = document.querySelector(`.edit-categories-btn[data-song-id="${songId}"]`).closest('.col-lg-3');
+                 const cardToRemove = document.querySelector(`.edit-categories-btn[data-song-id="${songId}"]`)?.closest('.col-lg-3');
                  if (cardToRemove) {
                      cardToRemove.remove();
-                     // Update counts by filtering the main songs array
+                     // Update counts by filtering the main songs array again
                      songs = songs.filter(s => s.id !== parseInt(songId)); // Remove from global array
                      document.getElementById('songCountBadge').textContent = `${songs.length} songs`;
                      document.getElementById('songCountStat').textContent = songs.length;
@@ -824,19 +657,21 @@ async function handleSaveChangesClick() {
                  }
             }
 
-            // Close the modal after a short delay
+            // Close the modal after a short delay using Bootstrap 4 jQuery method
             setTimeout(() => {
-                $('#editCategoriesModal').modal('hide');
+                 if (typeof $ !== 'undefined' && $.fn.modal) {
+                     $('#editCategoriesModal').modal('hide');
+                 }
             }, 1500);
 
         } else {
-            console.error('保存类别失败:', response.data.msg);
-            showAlert(`保存类别失败: ${response.data.msg || '未知错误'}`, 'error', 'modalAlerts');
+            console.error('Failed to save categories:', response.data.msg);
+            showAlert(`Failed to save categories: ${response.data.msg || 'Unknown server error'}`, 'error', 'modalAlerts');
         }
 
     } catch (error) {
-        console.error('保存类别时网络错误:', error);
-        showAlert(`网络错误，无法保存类别: ${error.message || '请检查网络连接'}`, 'error', 'modalAlerts');
+        console.error('Network error saving categories:', error);
+        showAlert(`Network error, could not save categories: ${error.message || 'Check network connection'}`, 'error', 'modalAlerts');
     } finally {
         // Re-enable button
         saveButton.disabled = false;

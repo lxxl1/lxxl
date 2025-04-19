@@ -33,10 +33,12 @@ public class WebConfig implements WebMvcConfigurer {
                         // 登录注册相关接口
                         "/login", 
                         "/register", 
-                        "/sendEmail", 
+                        "/sendEmail",
+                        // Exclude new password reset endpoints
+                        "/requestPasswordReset",
+                        "/resetPasswordWithCode",
+                        
                         "/verifyToken",
-                        "/resetPassword",
-                        "/forgetPassword",
                         
                         // 错误页
                         "/error", 
@@ -44,10 +46,6 @@ public class WebConfig implements WebMvcConfigurer {
                         // 公开API，不需要认证
                         "/song/**",
                         "/singer/**",
-                        
-                        // 管理员相关API
-                        "/admin/**",
-                        "/Admin/**",
                         
                         // 静态资源
                         "/**/*.html", 

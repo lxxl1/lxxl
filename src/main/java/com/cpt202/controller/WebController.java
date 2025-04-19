@@ -9,11 +9,21 @@ import com.cpt202.domain.Account;
 import com.cpt202.service.AdminService;
 import com.cpt202.service.UserService;
 import com.cpt202.utils.exception.CustomException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+// Import necessary classes for email reset
+import javax.mail.MessagingException;
+import com.cpt202.domain.Mail; // Assuming Mail domain contains email and code
+import com.cpt202.service.EmailService;
+import com.cpt202.utils.VerificationCodeUtils;
+
+import java.util.Map;
 
 /**
  * 基础前端接口
@@ -21,10 +31,14 @@ import java.util.regex.Pattern;
 @RestController
 public class WebController {
 
+    private static final Logger log = LoggerFactory.getLogger(WebController.class);
+
     @Resource
     private AdminService adminService;
     @Resource
     private UserService userService;
+    @Resource
+    private EmailService emailService;
 
     @GetMapping("/hello")
     public Result hello() {
@@ -120,6 +134,97 @@ public class WebController {
             userService.updatePassword(account);
         }
         return Result.success();
+    }
+
+    /**
+     * 请求密码重置 (发送验证码)
+     */
+    @PostMapping("/requestPasswordReset")
+    public Result requestPasswordReset(@RequestBody Map<String, String> payload) {
+        String email = payload.get("email");
+        String role = payload.get("role");
+
+        if (StrUtil.isBlank(email) || StrUtil.isBlank(role)) {
+            return Result.error(ResultCodeEnum.PARAM_LOST_ERROR);
+        }
+
+        Account account = null;
+        try {
+            // Find user by email and role
+            if (RoleEnum.ADMIN.name().equals(role)) {
+                account = adminService.selectByEmail(email); // Need to add selectByEmail to AdminService
+            } else if (RoleEnum.USER.name().equals(role)) {
+                account = userService.selectByEmail(email);   // Need to add selectByEmail to UserService
+            }
+
+            if (ObjectUtil.isNull(account)) {
+                return Result.error(ResultCodeEnum.USER_NOT_EXIST_ERROR.name(), "Account not found for this email and role.");
+            }
+
+            // Generate verification code
+            String code = VerificationCodeUtils.generateCode(6);
+
+            // Send email
+            String subject = "Password Reset Verification Code";
+            String content = "Your password reset verification code is: " + code + ". It is valid for 10 minutes."; // TODO: Add expiration info
+            emailService.sendMail(email, subject, content);
+
+            // Save/Update code in mail table
+            Mail mail = new Mail();
+            mail.setEmail(email);
+            mail.setCode(code);
+            emailService.save(mail); // Assumes save handles insert/update
+
+            return Result.success("Verification code sent to your email.");
+
+        } catch (MessagingException e) {
+            log.error("Failed to send password reset email to {}", email, e);
+            return Result.error(ResultCodeEnum.SYSTEM_ERROR.name(), "Failed to send verification email. Please try again later.");
+        } catch (Exception e) {
+            log.error("Error during password reset request for email {}", email, e);
+            return Result.error(ResultCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+    /**
+     * 使用验证码重置密码
+     */
+    @PostMapping("/resetPasswordWithCode")
+    public Result resetPasswordWithCode(@RequestBody Map<String, String> payload) {
+        String email = payload.get("email");
+        String role = payload.get("role");
+        String code = payload.get("verificationCode");
+        String newPassword = payload.get("newPassword");
+
+        if (StrUtil.isBlank(email) || StrUtil.isBlank(role) || StrUtil.isBlank(code) || StrUtil.isBlank(newPassword)) {
+            return Result.error(ResultCodeEnum.PARAM_LOST_ERROR);
+        }
+        
+        if (newPassword.length() < 8) {
+            return Result.error("4000", "New password must be at least 8 characters long.");
+        }
+
+        try {
+            boolean success = false;
+            if (RoleEnum.ADMIN.name().equals(role)) {
+                success = adminService.resetPasswordWithCode(email, code, newPassword); // Need to add this method
+            } else if (RoleEnum.USER.name().equals(role)) {
+                success = userService.resetPasswordWithCode(email, code, newPassword);   // Need to add this method
+            }
+
+            if (success) {
+                return Result.success("Password reset successfully.");
+            } else {
+                // Service layer should throw specific exceptions for invalid code/user not found etc.
+                // Or return false, handled here.
+                return Result.error("4000", "Password reset failed. Invalid code or other error.");
+            }
+        } catch (CustomException e) {
+            return Result.error(e.getCode(), e.getMsg());
+        } catch (Exception e) {
+            log.error("Error during password reset with code for email {}", email, e);
+            return Result.error(ResultCodeEnum.SYSTEM_ERROR);
+        }
     }
 
 }

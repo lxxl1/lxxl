@@ -101,22 +101,23 @@ async function updateCategoryStatistics(userId) {
         // Available Categories count (already loaded)
         document.querySelector('.col-md-4:nth-child(1) h2').textContent = allAvailableCategories.length; // First card is Available Categories now
         
-        // Your Songs count
-        const songsResponse = await api.get('/song/selectbyuser', { params: { userId: userId } });
-        if (songsResponse.data.code === '200') {
-            const songs = songsResponse.data.data || [];
-            document.querySelector('.col-md-4:nth-child(2) h2').textContent = songs.length; // Second card is Your Songs
-        } else {
-             document.querySelector('.col-md-4:nth-child(2) h2').textContent = '?';
-        }
-        // Third card is unused for now
-         document.querySelector('.col-md-4:nth-child(3) h2').textContent = '-';
+        // Your Songs count - REMOVED
+        // const songsResponse = await api.get('/song/selectbyuser', { params: { userId: userId } });
+        // if (songsResponse.data.code === '200') {
+        //     const songs = songsResponse.data.data || [];
+        //     document.querySelector('.col-md-4:nth-child(2) h2').textContent = songs.length; // Second card is Your Songs
+        // } else {
+        //      document.querySelector('.col-md-4:nth-child(2) h2').textContent = '?';
+        // }
+        // Third card reference REMOVED - Top Category card (now second) is handled by loadTopCategoryStat
+        //  document.querySelector('.col-md-4:nth-child(3) h2').textContent = '-';
 
     } catch (error) {
         console.error('Failed to update statistics:', error);
-         document.querySelector('.col-md-4:nth-child(1) h2').textContent = '?';
-         document.querySelector('.col-md-4:nth-child(2) h2').textContent = '?';
-         document.querySelector('.col-md-4:nth-child(3) h2').textContent = '?';
+         document.querySelector('.col-md-4:nth-child(1) h2').textContent = '?'; // Update first card on error
+         // References to second and third cards on error REMOVED
+         // document.querySelector('.col-md-4:nth-child(2) h2').textContent = '?';
+         // document.querySelector('.col-md-4:nth-child(3) h2').textContent = '?';
     }
 }
 

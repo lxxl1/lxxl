@@ -41,6 +41,9 @@ public interface UserMapper extends BaseMapper<User> {
     @Select("select * from user where username = #{username}")
     User selectByUsername(String username);
 
+    @Select("SELECT * FROM user WHERE email = #{email} LIMIT 1")
+    User selectByEmail(@Param("email") String email);
+
     int selectUserCount();
 
     @Update("update user set user.avatar = #{url} where id =#{id}")

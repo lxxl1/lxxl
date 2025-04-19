@@ -30,33 +30,60 @@
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 </head>
 <body>
-    <!-- begin::preloader-->
-    <div class="preloader">
-        <div class="preloader-icon"></div>
-    </div>
-    <!-- end::preloader -->
+  <!-- begin::preloader-->
+  <div class="preloader">
+    <div class="preloader-icon"></div>
+</div>
+<!-- end::preloader -->
 
-    <!-- begin::header -->
-    <div class="header">
-        <div class="header-left">
-            <div class="navigation-toggler">
-                <a href="#" data-action="navigation-toggler">
-                    <i data-feather="menu"></i>
-                </a>
-            </div>
-            <div class="header-logo">
-                <a href="index.html">
-                    <img class="logo" src="assets/media/image/music-logo.png" alt="Music Resource Management">
-                    <img class="logo-light" src="assets/media/image/music-logo-light.png" alt="Music Resource Management">
-                </a>
+<!-- begin::header -->
+<div class="header">
+   
+
+    <div class="header-body">
+        <div class="header-body-left">
+            <div class="page-title">
+                
             </div>
         </div>
-        <!-- ... other header content ... -->
+        <div class="header-body-right">
+            <ul class="navbar-nav">
+             
+
+                <!-- begin::header fullscreen -->
+                <li class="nav-item dropdown">
+                    <a href="#" class="nav-link" title="Fullscreen" data-toggle="fullscreen">
+                        <i class="maximize" data-feather="maximize"></i>
+                        <i class="minimize" data-feather="minimize"></i>
+                    </a>
+                </li>
+                <!-- end::header fullscreen -->
+
+                <!-- begin::user menu -->
+                <li class="nav-item dropdown">
+                    <a href="#" class="nav-link" title="User menu" data-toggle="dropdown">
+                        <span id="header-user-name" class="mr-2 d-sm-inline d-none">User Name</span>
+                        <figure class="avatar avatar-sm">
+                            <img id="header-user-avatar" src="assets/media/image/user/women_avatar1.jpg" class="rounded-circle" alt="avatar">
+                        </figure>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right">
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="../login.html">
+                            <i class="mr-2" data-feather="log-out"></i> Logout
+                        </a>
+                    </div>
+                </li>
+                <!-- end::user menu -->
+            </ul>
+        </div>
     </div>
-    <!-- end::header -->
+</div>
+<!-- end::header -->
 
     <!-- begin::main -->
     <div id="main">
+
         <!-- begin::navigation -->
         <div class="navigation">
             <div class="navigation-menu-tab">
@@ -81,7 +108,8 @@
                         <ul>
                             <li class="navigation-divider">Dashboard</li>
                             <li><a href="index.html">Overview</a></li>
-
+                            <li><a href="all-songs.html">All song</a></li>
+                            <li><a href="search-results.html">Search Song</a></li>
                         </ul>
                     </div>
                     <div id="my-music">

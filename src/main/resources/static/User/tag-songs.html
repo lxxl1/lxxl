@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Tag Songs - Music Resource Management</title>
+    <title>Songs by Tag - Music Resource Management</title>
     
     <!-- Favicon -->
     <link rel="shortcut icon" href="assets/media/image/favicon.png"/>
@@ -261,11 +261,56 @@
 </head>
 
 <body>
-    <!-- begin::preloader-->
-    <div class="preloader">
-        <div class="preloader-icon"></div>
+ <!-- begin::preloader-->
+ <div class="preloader">
+    <div class="preloader-icon"></div>
+</div>
+<!-- end::preloader -->
+
+<!-- begin::header -->
+<div class="header">
+   
+
+    <div class="header-body">
+        <div class="header-body-left">
+            <div class="page-title">
+                <h4>Songs by Tag: <span id="tagNameTitle">Loading...</span></h4>
+            </div>
+        </div>
+        <div class="header-body-right">
+            <!-- Header icons -->
+            <ul class="navbar-nav">
+                <!-- Fullscreen -->
+                <li class="nav-item dropdown">
+                    <a href="#" class="nav-link" title="Fullscreen" data-toggle="fullscreen">
+                        <i class="maximize" data-feather="maximize"></i>
+                        <i class="minimize" data-feather="minimize"></i>
+                    </a>
+                </li>
+                <!-- User Menu -->
+                <li class="nav-item dropdown">
+                   <a href="#" class="nav-link" title="User menu" data-toggle="dropdown">
+                       <span id="header-user-name" class="mr-2 d-sm-inline d-none">User Name</span>
+                       <figure class="avatar avatar-sm">
+                           <img id="header-user-avatar" src="assets/media/image/user/women_avatar1.jpg" class="rounded-circle" alt="avatar">
+                       </figure>
+                   </a>
+                   <div class="dropdown-menu dropdown-menu-right">
+                       <a class="dropdown-item" href="settings.html"><i class="mr-2" data-feather="user"></i> Profile</a>
+                       <div class="dropdown-divider"></div>
+                       <a class="dropdown-item" href="../login.html">
+                           <i class="mr-2" data-feather="log-out"></i> Logout
+                       </a>
+                   </div>
+               </li>
+            </ul>
+            <!-- Mobile toggler -->
+            <ul class="navbar-nav d-flex align-items-center"><li class="nav-item header-toggler"><a href="#" class="nav-link"><i data-feather="arrow-down"></i></a></li></ul>
+        </div>
     </div>
-    <!-- end::preloader -->
+</div>
+<!-- end::header -->
+
     
     <!-- begin::main -->
     <div id="main">
@@ -293,7 +338,8 @@
                         <ul>
                             <li class="navigation-divider">Dashboard</li>
                             <li><a href="index.html">Overview</a></li>
-                            <li><a href="artists.html">All Artists</a></li>
+                            <li><a href="all-songs.html">All song</a></li>
+                            <li><a href="search-results.html">Search Song</a></li>
                         </ul>
                     </div>
                     <div id="my-music">
@@ -324,7 +370,6 @@
                         <ul>
                             <li class="navigation-divider">Tags</li>
                             <li><a href="tag-management.html">Manage Tags</a></li>
-                            <li><a class="active" href="tag-songs.html">View Songs by Tag</a></li>
                         </ul>
                     </div>
                     <div id="settings">
@@ -345,7 +390,7 @@
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="index.html">Home</a></li>
                     <li class="breadcrumb-item"><a href="tag-management.html">Tags</a></li>
-                    <li class="breadcrumb-item active" aria-current="page" id="tagNameBreadcrumb">Tag Songs</li>
+                    <li class="breadcrumb-item active" aria-current="page" id="tagNameBreadcrumb">Songs by Tag</li>
                 </ol>
             </nav>
             
@@ -360,7 +405,7 @@
                                 </span>
                             </figure>
                             <h2 class="font-weight-bold mb-3" id="tagNameStat">-</h2>
-                            <h5 class="mb-0">Current Tag</h5> 
+                            <h5 class="mb-0">Current Tag</h5>
                         </div>
                     </div>
                 </div>
@@ -377,19 +422,6 @@
                         </div>
                     </div>
                 </div>
-                 <div class="col-md-4">
-                    <div class="card bg-secondary-gradient border-0">
-                        <div class="card-body text-center">
-                             <figure class="avatar mb-3 border-0">
-                                <span class="avatar-title bg-white text-secondary rounded-circle">
-                                    <i data-feather="users"></i>
-                                </span>
-                            </figure>
-                            <h2 class="font-weight-bold mb-3" id="otherStat">-</h2>
-                            <h5 class="mb-0">Users with this Tag</h5>
-                        </div>
-                    </div>
-                </div>
             </div>
             
             <!-- Alerts Container -->
@@ -400,8 +432,8 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
-                            <h6 class="card-title mb-1" id="tagPageTitle">Tag Songs</h6>
-                            <p class="text-muted small">查看和管理带有此标签的歌曲</p>
+                            <h6 class="card-title mb-1" id="tagPageTitle">Songs by Tag</h6>
+                            <p class="text-muted small">View and manage songs associated with this tag.</p>
                         </div>
                         <a href="tag-management.html" class="btn btn-outline-primary btn-sm">
                             <i data-feather="arrow-left" class="mr-1"></i> Back to Tags
@@ -428,7 +460,7 @@
                     <!-- Info Alert -->
                     <div class="alert alert-light mb-4">
                         <i data-feather="info" class="mr-2"></i>
-                        点击歌曲卡片上的 "Edit Tags" 按钮来修改该歌曲所属的标签。
+                        Click the "Edit Tags" button on a song card to modify its associated tags.
                     </div>
                     
                     <!-- Songs List -->
@@ -444,11 +476,10 @@
                     
                     <!-- No Songs Message -->
                     <div id="noSongsMessage" class="text-center py-5" style="display: none;">
-                        <img src="assets/media/image/empty.svg" alt="No songs" class="mb-3" style="width: 150px; opacity: 0.6;">
-                        <h4>没有歌曲带有此标签</h4>
-                        <p class="text-muted mb-4">前往管理标签页面分配标签</p>
+                        <h4>No Songs Found with this Tag</h4>
+                        <p class="text-muted mb-4">Assign tags to your songs on the 'Manage Tags' page.</p>
                         <a href="tag-management.html" class="btn btn-primary">
-                            <i data-feather="tag" class="mr-2"></i> 管理标签
+                            <i data-feather="tag" class="mr-2"></i> Manage Tags
                         </a>
                     </div>
                 </div>

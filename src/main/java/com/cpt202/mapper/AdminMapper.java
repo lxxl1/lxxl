@@ -3,6 +3,7 @@ package com.cpt202.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.cpt202.domain.Admin;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -38,4 +39,7 @@ public interface AdminMapper extends BaseMapper<Admin> {
 
     @Select("select * from admin where username = #{username}")
     Admin selectByUsername(String username);
+
+    @Select("SELECT * FROM admin WHERE email = #{email} LIMIT 1")
+    Admin selectByEmail(@Param("email") String email);
 }

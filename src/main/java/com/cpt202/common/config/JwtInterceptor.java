@@ -40,6 +40,7 @@ public class JwtInterceptor implements HandlerInterceptor {
         // 检查是否是API请求，仅对API请求进行JWT验证
         String requestURI = request.getRequestURI();
         
+        /* Remove Admin Bypass Logic Start
         // 检查请求的来源 - 如果是来自Admin界面的请求，允许通过
         String referer = request.getHeader("Referer");
         boolean isFromAdmin = referer != null && referer.contains("/Admin/");
@@ -52,6 +53,7 @@ public class JwtInterceptor implements HandlerInterceptor {
             log.info("管理员相关请求，跳过JWT验证: {}", requestURI);
             return true;
         }
+        Remove Admin Bypass Logic End */
         
         // 是否是前端Ajax请求
         boolean isApiRequest = isApiRequest(request);
@@ -78,11 +80,12 @@ public class JwtInterceptor implements HandlerInterceptor {
         }
         
         Account account = null;
+        String role = null; // Declare role variable outside the try block
         try {
             // 解析token获取存储的数据
             String userRole = JWT.decode(token).getAudience().get(0);
             String userId = userRole.split("-")[0];
-            String role = userRole.split("-")[1];
+            role = userRole.split("-")[1]; // Assign role here
             // 根据userId查询数据库
             if (RoleEnum.ADMIN.name().equals(role)) {
                 account = adminServiceImpl.selectById(Integer.valueOf(userId));
@@ -123,6 +126,23 @@ public class JwtInterceptor implements HandlerInterceptor {
                 return false;
             }
         }
+        
+        // --- Add Admin Role Check for Admin Paths Start ---
+        if (requestURI.startsWith("/admin/") || requestURI.startsWith("/Admin/")) {
+            if (!RoleEnum.ADMIN.name().equals(role)) { // Check the extracted role
+                log.warn("User with role '{}' attempted to access admin path: {}", role, requestURI);
+                if (isApiRequest) {
+                    // TODO: Replace with a specific PERMISSION_ERROR enum if available
+                    throw new CustomException(ResultCodeEnum.TOKEN_CHECK_ERROR); 
+                } else {
+                     response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access Denied"); // Use Forbidden status
+                     return false;
+                }
+            }
+            // No need for explicit log here if access is granted, preHandle continues
+        }
+        // --- Add Admin Role Check for Admin Paths End ---
+        
         return true;
     }
     

@@ -19,4 +19,7 @@ public interface EmailMapper extends BaseMapper<Mail> {
 
     @Update("UPDATE music.mail SET code = #{code} WHERE email = #{email}")
     void updateCodeByEmail(@Param("email") String email, @Param("code") String code);
+
+    @Select("SELECT code FROM music.mail WHERE email = #{email}")
+    String selectCodeByEmail(@Param("email") String email);
 }

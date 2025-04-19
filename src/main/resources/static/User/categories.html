@@ -50,17 +50,57 @@
 </head>
 <body>
     
-    <!-- begin::preloader-->
-    <div class="preloader">
-        <div class="preloader-icon"></div>
-    </div>
-    <!-- end::preloader -->
+<!-- begin::preloader-->
+<div class="preloader">
+    <div class="preloader-icon"></div>
+</div>
+<!-- end::preloader -->
 
-    <!-- begin::header -->
-    <div class="header">
-        <!-- ... existing header content ... -->
+<!-- begin::header -->
+<div class="header">
+   
+
+    <div class="header-body">
+        <div class="header-body-left">
+            <div class="page-title">
+                
+            </div>
+        </div>
+        <div class="header-body-right">
+            <ul class="navbar-nav">
+             
+
+                <!-- begin::header fullscreen -->
+                <li class="nav-item dropdown">
+                    <a href="#" class="nav-link" title="Fullscreen" data-toggle="fullscreen">
+                        <i class="maximize" data-feather="maximize"></i>
+                        <i class="minimize" data-feather="minimize"></i>
+                    </a>
+                </li>
+                <!-- end::header fullscreen -->
+
+                <!-- begin::user menu -->
+                <li class="nav-item dropdown">
+                    <a href="#" class="nav-link" title="User menu" data-toggle="dropdown">
+                        <span id="header-user-name" class="mr-2 d-sm-inline d-none">User Name</span>
+                        <figure class="avatar avatar-sm">
+                            <img id="header-user-avatar" src="assets/media/image/user/women_avatar1.jpg" class="rounded-circle" alt="avatar">
+                        </figure>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right">
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="../login.html">
+                            <i class="mr-2" data-feather="log-out"></i> Logout
+                        </a>
+                    </div>
+                </li>
+                <!-- end::user menu -->
+            </ul>
+        </div>
     </div>
-    <!-- end::header -->
+</div>
+<!-- end::header -->
+
 
     <!-- begin::main -->
     <div id="main">
@@ -89,7 +129,8 @@
                         <ul>
                             <li class="navigation-divider">Dashboard</li>
                             <li><a href="index.html">Overview</a></li>
-
+                            <li><a href="all-songs.html">All song</a></li>
+                            <li><a href="search-results.html">Search Song</a></li>
                         </ul>
                     </div>
                     <div id="my-music">
@@ -120,7 +161,6 @@
                         <ul>
                             <li class="navigation-divider">Tags</li>
                             <li><a href="tag-management.html">Manage Tags</a></li>
-                            <li><a href="tag-songs.html">View Songs by Tag</a></li>
                         </ul>
                     </div>
                     <div id="settings">
@@ -155,19 +195,6 @@
                             </figure>
                             <h2 class="font-weight-bold mb-3">0</h2>
                             <h5 class="mb-0">Available Categories</h5> 
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                     <div class="card bg-success-gradient border-0">
-                        <div class="card-body text-center">
-                            <figure class="avatar mb-3 border-0">
-                                <span class="avatar-title bg-white text-success rounded-circle">
-                                    <i data-feather="music"></i>
-                                </span>
-                            </figure>
-                            <h2 class="font-weight-bold mb-3">0</h2>
-                            <h5 class="mb-0">Your Songs</h5>
                         </div>
                     </div>
                 </div>

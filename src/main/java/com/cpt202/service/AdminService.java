@@ -62,6 +62,18 @@ public interface AdminService {
      * @return 已审核歌曲列表
      */
     List<Song> getAuditedSongs(Integer status);
+
+    // Method to approve/reject songs
+    void reviewSong(Integer songId, Integer status, String reason, Integer auditorId);
+    
+    // Method to get pending songs
+    PageInfo<Song> getPendingSongs(Integer pageNum, Integer pageSize);
+
+    // Add method to find admin by email
+    Account selectByEmail(String email);
+
+    // Add method to reset password using code
+    boolean resetPasswordWithCode(String email, String code, String newPassword);
 }
 
 

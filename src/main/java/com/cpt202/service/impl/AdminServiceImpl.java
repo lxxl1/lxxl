@@ -15,6 +15,7 @@ import com.cpt202.utils.exception.CustomException;
 import com.cpt202.mapper.AdminMapper;
 import com.cpt202.mapper.UserMapper;
 import com.cpt202.mapper.SongMapper;
+import com.cpt202.mapper.EmailMapper;
 import com.cpt202.service.AdminService;
 import com.cpt202.utils.TokenUtils;
 import com.github.pagehelper.PageHelper;
@@ -44,6 +45,9 @@ public class AdminServiceImpl implements AdminService {
 
     @Resource
     private SongMapper songMapper;
+
+    @Resource
+    private EmailMapper emailMapper;
 
     private final String SALT = "lxxl";
 
@@ -208,10 +212,13 @@ public class AdminServiceImpl implements AdminService {
         if (ObjectUtil.isNull(dbAdmin)) {
             throw new CustomException(ResultCodeEnum.USER_NOT_EXIST_ERROR);
         }
-        if (!account.getPassword().equals(dbAdmin.getPassword())) {
-            throw new CustomException(ResultCodeEnum.PARAM_PASSWORD_ERROR);
+        String currentPasswordEncrypted = DigestUtils.md5DigestAsHex((SALT + account.getPassword()).getBytes());
+        if (!currentPasswordEncrypted.equals(dbAdmin.getPassword())) {
+            throw new CustomException(ResultCodeEnum.PARAM_PASSWORD_ERROR.name(), "Incorrect current password provided.");
         }
-        dbAdmin.setPassword(account.getNewPassword());
+        // Encrypt new password before saving
+        String newPasswordEncrypted = DigestUtils.md5DigestAsHex((SALT + account.getNewPassword()).getBytes());
+        dbAdmin.setPassword(newPasswordEncrypted);
         adminMapper.updateById(dbAdmin);
     }
 
@@ -242,6 +249,67 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public void auditSong(Integer songId, Integer status, String reason, Integer auditorId) {
         songMapper.updateSongAuditStatus(songId, status);
+    }
+
+    /**
+     * 根据邮箱查询管理员
+     */
+    @Override
+    public Account selectByEmail(String email) {
+         // Need to ensure AdminMapper has selectByEmail method
+         return adminMapper.selectByEmail(email);
+    }
+
+    /**
+     * 使用验证码重置密码
+     */
+    @Override
+    public boolean resetPasswordWithCode(String email, String code, String newPassword) {
+        // 1. Verify the code
+        String storedCode = emailMapper.selectCodeByEmail(email); // Need selectCodeByEmail in EmailMapper
+        if (storedCode == null || !storedCode.equals(code)) {
+             // Optionally add expiration check here if timestamps are stored with codes
+             // TODO: Add a specific VERIFICATION_CODE_ERROR enum
+            throw new CustomException(ResultCodeEnum.PARAM_PASSWORD_ERROR); // Using existing error as placeholder
+        }
+
+        // 2. Find the admin by email
+        Admin admin = adminMapper.selectByEmail(email);
+        if (admin == null) {
+            throw new CustomException(ResultCodeEnum.USER_NOT_EXIST_ERROR);
+        }
+
+        // 3. Hash the new password
+        String encryptPassword = DigestUtils.md5DigestAsHex((SALT + newPassword).getBytes());
+
+        // 4. Update the password
+        admin.setPassword(encryptPassword);
+        int updatedRows = adminMapper.updateById(admin);
+
+        // Optionally: Invalidate the code after successful use (e.g., set code to null or remove row)
+        // emailMapper.updateCodeByEmail(email, null); 
+
+        return updatedRows > 0;
+    }
+
+    // Ensure reviewSong and getPendingSongs methods are implemented correctly if they exist
+    @Override
+    public void reviewSong(Integer songId, Integer status, String reason, Integer auditorId) {
+        // Implementation needed based on your logic and UserMapper methods
+        int updated = userMapper.updateSongAuditStatus(songId, status, reason, auditorId);
+         if (updated == 0) {
+             throw new CustomException("500", "Failed to update song status.");
+         }
+    }
+
+    @Override
+    public PageInfo<Song> getPendingSongs(Integer pageNum, Integer pageSize) {
+        // Implementation needed based on your logic and SongMapper methods
+         PageHelper.startPage(pageNum, pageSize);
+         // TODO: Implement SongMapper.selectPendingSongs() if needed
+         // List<Song> list = songMapper.selectPendingSongs(); // Assuming this method exists
+         List<Song> list = new java.util.ArrayList<>(); // Temporary empty list
+         return PageInfo.of(list);
     }
 
 }

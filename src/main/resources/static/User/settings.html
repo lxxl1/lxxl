@@ -34,47 +34,17 @@
 
     <!-- begin::header -->
     <div class="header">
-        <div class="header-left">
-            <div class="navigation-toggler">
-                <a href="#" data-action="navigation-toggler">
-                    <i data-feather="menu"></i>
-                </a>
-            </div>
-            <div class="header-logo">
-                <a href="index.html">
-                    <img class="logo" src="assets/media/image/music-logo.png" alt="Music Resource Management">
-                    <img class="logo-light" src="assets/media/image/music-logo-light.png" alt="Music Resource Management">
-                </a>
-            </div>
-        </div>
+       
 
         <div class="header-body">
             <div class="header-body-left">
                 <div class="page-title">
-                    <h4>Music Streaming Platform</h4>
+                    
                 </div>
             </div>
             <div class="header-body-right">
                 <ul class="navbar-nav">
-                    <!-- begin::header search -->
-                    <li class="nav-item">
-                        <a href="#" class="nav-link" title="Search" data-toggle="dropdown">
-                            <i data-feather="search"></i>
-                        </a>
-                        <div class="dropdown-menu p-2 dropdown-menu-right">
-                            <form id="song-search-form">
-                                <div class="input-group">
-                                    <input type="text" id="song-search-input" class="form-control" placeholder="Search songs...">
-                                    <div class="input-group-append">
-                                        <button class="btn btn-outline-primary" type="submit">
-                                            <i data-feather="search"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                    </li>
-                    <!-- end::header search -->
+                 
 
                     <!-- begin::header fullscreen -->
                     <li class="nav-item dropdown">
@@ -88,18 +58,12 @@
                     <!-- begin::user menu -->
                     <li class="nav-item dropdown">
                         <a href="#" class="nav-link" title="User menu" data-toggle="dropdown">
-                            <span class="mr-2 d-sm-inline d-none">User Name</span>
+                            <span id="header-user-name" class="mr-2 d-sm-inline d-none">User Name</span>
                             <figure class="avatar avatar-sm">
-                                <img src="assets/media/image/user/women_avatar1.jpg" class="rounded-circle" alt="avatar">
+                                <img id="header-user-avatar" src="assets/media/image/user/women_avatar1.jpg" class="rounded-circle" alt="avatar">
                             </figure>
                         </a>
                         <div class="dropdown-menu dropdown-menu-right">
-                            <a class="dropdown-item" href="profile.html">
-                                <i class="mr-2" data-feather="user"></i> Personal Info
-                            </a>
-                            <a class="dropdown-item" href="change-password.html">
-                                <i class="mr-2" data-feather="lock"></i> Change Password
-                            </a>
                             <div class="dropdown-divider"></div>
                             <a class="dropdown-item" href="../login.html">
                                 <i class="mr-2" data-feather="log-out"></i> Logout
@@ -132,13 +96,15 @@
                 <div><ul><li><a href="../login.html" data-toggle="tooltip" data-placement="right" title="Logout"><i data-feather="log-out"></i></a></li></ul></div>
             </div>
 
-            <!-- Secondary Navigation Panel -->
+            <!-- Standard Secondary Navigation Panel -->
             <div class="navigation-menu-body">
                 <div class="navigation-menu-group">
                     <div id="dashboards">
                         <ul>
                             <li class="navigation-divider">Dashboard</li>
                             <li><a href="index.html">Overview</a></li>
+                            <li><a href="all-songs.html">All song</a></li>
+                            <li><a href="search-results.html">Search Song</a></li>
                         </ul>
                     </div>
                     <div id="my-music">
@@ -169,7 +135,6 @@
                         <ul>
                             <li class="navigation-divider">Tags</li>
                             <li><a href="tag-management.html">Manage Tags</a></li>
-                            <li><a href="tag-songs.html">View Songs by Tag</a></li>
                         </ul>
                     </div>
                     <div id="settings" class="open">
@@ -220,14 +185,22 @@
                                                 <img id="profile-avatar-img" src="assets/media/image/user/women_avatar1.jpg" class="rounded-circle" alt="avatar">
                                             </div>
                                             <div class="ml-3">
-                                                <button type="button" class="btn btn-primary">Change Avatar</button>
-                                                <button type="button" class="btn btn-light ml-2">Remove</button>
+                                                <!-- Hidden file input -->
+                                                <input type="file" id="avatar-file-input" accept="image/*" style="display: none;">
+                                                <!-- Button to trigger file input -->
+                                                <button type="button" id="change-avatar-button" class="btn btn-primary">Change Avatar</button>
                                             </div>
                                         </div>
 
                                         <div class="form-group">
                                             <label for="profile-name">Name</label>
                                             <input type="text" class="form-control" id="profile-name" value="">
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label for="profile-username">Username</label>
+                                            <input type="text" class="form-control" id="profile-username" value="" readonly>
+                                            <small class="form-text text-muted">Username cannot be changed.</small>
                                         </div>
 
                                         <div class="form-group">
@@ -296,13 +269,11 @@
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
     <!-- Common API Module -->
-    <!-- REMOVED redundant script tag for api.js -->
+    <script type="module" src="../Common/js/api.js"></script>
 
-    <!-- Auth Check -->
-    <script type="module" src="assets/js/auth-check.js"></script>
-
-    <!-- Settings Page Script -->
+    <!-- Page Specific JS -->
     <script type="module" src="assets/js/settings.js"></script>
+    <script type="module" src="assets/js/auth-check.js"></script>
 
 </body>
 </html> 

@@ -77,48 +77,69 @@
 
 <body>
 
-    <!-- Preloader -->
-    <div class="preloader">
-        <div class="preloader-icon"></div>
-    </div>
-    
-    <!-- Header (Assuming similar structure) -->
-    <div class="header">
-        <div class="header-left">
-            <div class="navigation-toggler"><a href="#" data-action="navigation-toggler"><i data-feather="menu"></i></a></div>
-            <div class="header-logo"><a href="index.html"><img class="logo" src="assets/media/image/music-logo.png" alt="Logo"><img class="logo-light" src="assets/media/image/music-logo-light.png" alt="Logo Light"></a></div>
-        </div>
-        <div class="header-body">
-            <div class="header-body-left"><div class="page-title"><h4>Artists</h4></div></div>
-             <div class="header-body-right">
-                 <!-- Header icons like search, fullscreen, user menu -->
-                 <ul class="navbar-nav">
-                    <!-- Search -->
-                    <li class="nav-item"><a href="#" class="nav-link" title="Search" data-toggle="dropdown"><i data-feather="search"></i></a><div class="dropdown-menu p-2 dropdown-menu-right"><form id="song-search-form-artists"><div class="input-group"><input type="text" id="song-search-input-artists" class="form-control" placeholder="Search songs..."><div class="input-group-append"><button class="btn btn-outline-primary" type="submit"><i data-feather="search"></i></button></div></div></form></div></li>
-                    <!-- Fullscreen -->
-                    <li class="nav-item dropdown"><a href="#" class="nav-link" title="Fullscreen" data-toggle="fullscreen"><i class="maximize" data-feather="maximize"></i><i class="minimize" data-feather="minimize"></i></a></li>
-                    <!-- User Menu -->
-                     <li class="nav-item dropdown"><a href="#" class="nav-link" title="User menu" data-toggle="dropdown"><span class="mr-2 d-sm-inline d-none">User Name</span> <figure class="avatar avatar-sm"><img src="assets/media/image/user/women_avatar1.jpg" class="rounded-circle" alt="avatar"></figure></a><div class="dropdown-menu dropdown-menu-right"><a class="dropdown-item" href="profile.html"><i class="mr-2" data-feather="user"></i> Personal Info</a><a class="dropdown-item" href="change-password.html"><i class="mr-2" data-feather="lock"></i> Change Password</a><div class="dropdown-divider"></div><a class="dropdown-item" href="../login.html"><i class="mr-2" data-feather="log-out"></i> Logout</a></div></li>
-                </ul>
-                <!-- Mobile toggler -->
-                <ul class="navbar-nav d-flex align-items-center"><li class="nav-item header-toggler"><a href="#" class="nav-link"><i data-feather="arrow-down"></i></a></li></ul>
+  <!-- begin::preloader-->
+  <div class="preloader">
+    <div class="preloader-icon"></div>
+</div>
+<!-- end::preloader -->
+
+<!-- begin::header -->
+<div class="header">
+   
+
+    <div class="header-body">
+        <div class="header-body-left">
+            <div class="page-title">
+                
             </div>
         </div>
+        <div class="header-body-right">
+            <ul class="navbar-nav">
+             
+
+                <!-- begin::header fullscreen -->
+                <li class="nav-item dropdown">
+                    <a href="#" class="nav-link" title="Fullscreen" data-toggle="fullscreen">
+                        <i class="maximize" data-feather="maximize"></i>
+                        <i class="minimize" data-feather="minimize"></i>
+                    </a>
+                </li>
+                <!-- end::header fullscreen -->
+
+                <!-- begin::user menu -->
+                <li class="nav-item dropdown">
+                    <a href="#" class="nav-link" title="User menu" data-toggle="dropdown">
+                        <span id="header-user-name" class="mr-2 d-sm-inline d-none">User Name</span>
+                        <figure class="avatar avatar-sm">
+                            <img id="header-user-avatar" src="assets/media/image/user/women_avatar1.jpg" class="rounded-circle" alt="avatar">
+                        </figure>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right">
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="../login.html">
+                            <i class="mr-2" data-feather="log-out"></i> Logout
+                        </a>
+                    </div>
+                </li>
+                <!-- end::user menu -->
+            </ul>
+        </div>
     </div>
+</div>
+<!-- end::header -->
+
     
     <!-- Main Wrapper -->
     <div id="main">
 
-        <!-- BEGIN REPLACEMENT: Navigation -->
+        <!-- begin::navigation -->
         <div class="navigation">
             <div class="navigation-menu-tab">
                 <div class="flex-grow-1">
                     <ul>
-                        <!-- Ensure all primary icons match index.html -->
                         <li><a href="#" data-toggle="tooltip" data-placement="right" title="Dashboard" data-nav-target="#dashboards"><i data-feather="home"></i></a></li>
                         <li><a href="#" data-toggle="tooltip" data-placement="right" title="My Music" data-nav-target="#my-music"><i data-feather="music"></i></a></li>
                         <li><a href="#" data-toggle="tooltip" data-placement="right" title="Categories" data-nav-target="#categories"><i data-feather="folder"></i></a></li>
-                        <!-- Artists Icon Link (ACTIVE) -->
                         <li><a class="active" href="#" data-toggle="tooltip" data-placement="right" title="Artists" data-nav-target="#artists"><i data-feather="users"></i></a></li>
                         <li><a href="#" data-toggle="tooltip" data-placement="right" title="Upload Music" data-nav-target="#upload"><i data-feather="upload"></i></a></li>
                         <li><a href="#" data-toggle="tooltip" data-placement="right" title="Tags" data-nav-target="#tags"><i data-feather="tag"></i></a></li>
@@ -128,13 +149,15 @@
                 <div><ul><li><a href="../login.html" data-toggle="tooltip" data-placement="right" title="Logout"><i data-feather="log-out"></i></a></li></ul></div>
             </div>
 
-            <!-- Standard Secondary Navigation Panel - Make sure structure matches index.html -->
+            <!-- Standard Secondary Navigation Panel -->
             <div class="navigation-menu-body">
                 <div class="navigation-menu-group">
                     <div id="dashboards">
                         <ul>
                             <li class="navigation-divider">Dashboard</li>
                             <li><a href="index.html">Overview</a></li>
+                            <li><a href="all-songs.html">All song</a></li>
+                            <li><a href="search-results.html">Search Song</a></li>
                         </ul>
                     </div>
                     <div id="my-music">
@@ -149,7 +172,7 @@
                             <li><a href="categories.html">Manage Categories</a></li>
                         </ul>
                     </div>
-                     <div id="artists" class="open">
+                    <div id="artists" class="open">
                         <ul>
                             <li class="navigation-divider">Artists</li>
                             <li><a class="active" href="artists.html">All Artists</a></li>
@@ -165,7 +188,6 @@
                         <ul>
                             <li class="navigation-divider">Tags</li>
                             <li><a href="tag-management.html">Manage Tags</a></li>
-                            <li><a href="tag-songs.html">View Songs by Tag</a></li>
                         </ul>
                     </div>
                     <div id="settings">
@@ -177,7 +199,7 @@
                 </div>
             </div>
         </div>
-        <!-- END REPLACEMENT: Navigation -->
+        <!-- end::navigation -->
        
         <!-- Content body -->
         <div class="main-content">
@@ -188,9 +210,11 @@
                 </ol>
             </nav>
             
-            <div class="page-header mb-4">
-                <h1 class="page-title">All Artists</h1>
-                <!-- Add search/filter later if needed -->
+            <div class="page-header d-flex justify-content-between align-items-center mb-4">
+                <h1 class="page-title mb-0">All Artists</h1>
+                <button class="btn btn-primary" data-toggle="modal" data-target="#addArtistModal">
+                    <i data-feather="plus" class="mr-2"></i> Add New Artist
+                </button>
             </div>
 
              <div class="card">
@@ -229,6 +253,68 @@
         <audio id="audioPlayer"></audio>
     </div>
     <!-- End Added Audio Player HTML -->
+
+    <!-- Add Artist Modal -->
+    <div class="modal fade" id="addArtistModal" tabindex="-1" aria-labelledby="addArtistModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addArtistModalLabel">Add New Artist</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form id="addArtistForm">
+                    <div class="modal-body">
+                        <div id="addArtistFormAlerts"></div> <!-- For showing messages -->
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="addArtistName">Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="addArtistName" required>
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="addArtistSex">Gender <span class="text-danger">*</span></label>
+                                <select id="addArtistSex" class="form-control" required>
+                                    <option value="" disabled selected>Select gender...</option>
+                                    <option value="1">Male</option>
+                                    <option value="0">Female</option>
+                                    <option value="2">Group</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                             <div class="form-group col-md-6">
+                                <label for="addArtistBirth">Birth Date</label>
+                                <input type="date" class="form-control" id="addArtistBirth">
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="addArtistLocation">Location</label>
+                                <input type="text" class="form-control" id="addArtistLocation" placeholder="e.g., City, Country">
+                            </div>
+                        </div>
+                       
+                        <div class="form-group">
+                            <label for="addArtistIntroduction">Introduction</label>
+                            <textarea class="form-control" id="addArtistIntroduction" rows="3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="addArtistPic">Artist Picture</label>
+                            <div class="custom-file">
+                                <input type="file" class="custom-file-input" id="addArtistPic" accept="image/*">
+                                <label class="custom-file-label" for="addArtistPic">Choose image...</label>
+                            </div>
+                            <small class="form-text text-muted">Note: Due to backend limitations, the image must be added after the artist is created.</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Artist</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- End Add Artist Modal -->
 
     <!-- Scripts -->
     <!-- Bundle scripts -->

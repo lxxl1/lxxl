@@ -261,12 +261,57 @@
 </head>
 
 <body>
-    <!-- begin::preloader-->
-    <div class="preloader">
-        <div class="preloader-icon"></div>
+  <!-- begin::preloader-->
+  <div class="preloader">
+    <div class="preloader-icon"></div>
+</div>
+<!-- end::preloader -->
+
+<!-- begin::header -->
+<div class="header">
+   
+
+    <div class="header-body">
+        <div class="header-body-left">
+            <div class="page-title">
+                
+            </div>
+        </div>
+        <div class="header-body-right">
+            <ul class="navbar-nav">
+             
+
+                <!-- begin::header fullscreen -->
+                <li class="nav-item dropdown">
+                    <a href="#" class="nav-link" title="Fullscreen" data-toggle="fullscreen">
+                        <i class="maximize" data-feather="maximize"></i>
+                        <i class="minimize" data-feather="minimize"></i>
+                    </a>
+                </li>
+                <!-- end::header fullscreen -->
+
+                <!-- begin::user menu -->
+                <li class="nav-item dropdown">
+                    <a href="#" class="nav-link" title="User menu" data-toggle="dropdown">
+                        <span id="header-user-name" class="mr-2 d-sm-inline d-none">User Name</span>
+                        <figure class="avatar avatar-sm">
+                            <img id="header-user-avatar" src="assets/media/image/user/women_avatar1.jpg" class="rounded-circle" alt="avatar">
+                        </figure>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right">
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="../login.html">
+                            <i class="mr-2" data-feather="log-out"></i> Logout
+                        </a>
+                    </div>
+                </li>
+                <!-- end::user menu -->
+            </ul>
+        </div>
     </div>
-    <!-- end::preloader -->
-    
+</div>
+<!-- end::header -->
+
     <!-- begin::main -->
     <div id="main">
         <!-- begin::navigation -->
@@ -276,7 +321,7 @@
                     <ul>
                         <li><a href="#" data-toggle="tooltip" data-placement="right" title="Dashboard" data-nav-target="#dashboards"><i data-feather="home"></i></a></li>
                         <li><a href="#" data-toggle="tooltip" data-placement="right" title="My Music" data-nav-target="#my-music"><i data-feather="music"></i></a></li>
-                        <li><a href="#" data-toggle="tooltip" data-placement="right" title="Categories" data-nav-target="#categories"><i data-feather="folder"></i></a></li>
+                        <li><a class="active" href="#" data-toggle="tooltip" data-placement="right" title="Categories" data-nav-target="#categories"><i data-feather="folder"></i></a></li>
                         <li><a href="#" data-toggle="tooltip" data-placement="right" title="Artists" data-nav-target="#artists"><i data-feather="users"></i></a></li>
                         <li><a href="#" data-toggle="tooltip" data-placement="right" title="Upload Music" data-nav-target="#upload"><i data-feather="upload"></i></a></li>
                         <li><a href="#" data-toggle="tooltip" data-placement="right" title="Tags" data-nav-target="#tags"><i data-feather="tag"></i></a></li>
@@ -293,6 +338,8 @@
                         <ul>
                             <li class="navigation-divider">Dashboard</li>
                             <li><a href="index.html">Overview</a></li>
+                            <li><a href="all-songs.html">All song</a></li>
+                            <li><a href="search-results.html">Search Song</a></li>
                         </ul>
                     </div>
                     <div id="my-music">
@@ -304,7 +351,7 @@
                     <div id="categories" class="open">
                         <ul>
                             <li class="navigation-divider">Categories</li>
-                            <li><a href="categories.html">Manage Categories</a></li>
+                            <li><a class="active" href="categories.html">Manage Categories</a></li>
                         </ul>
                     </div>
                      <div id="artists">
@@ -323,7 +370,7 @@
                         <ul>
                             <li class="navigation-divider">Tags</li>
                             <li><a href="tag-management.html">Manage Tags</a></li>
-                            <li><a href="tag-songs.html">View Songs by Tag</a></li>
+                            
                         </ul>
                     </div>
                     <div id="settings">
@@ -377,17 +424,7 @@
                     </div>
                 </div>
                  <div class="col-md-4">
-                    <!-- <div class="card bg-secondary-gradient border-0">
-                        <div class="card-body text-center">
-                             <figure class="avatar mb-3 border-0">
-                                <span class="avatar-title bg-white text-secondary rounded-circle">
-                                    <i data-feather="tag"></i> 
-                                </span>
-                            </figure>
-                            <h2 class="font-weight-bold mb-3" id="tagCountStat">-</h2>
-                            <h5 class="mb-0">Total Tags</h5>
-                        </div>
-                    </div> -->
+                    <!-- REMOVED: Tag Count Stat Card -->
                 </div>
             </div>
             
@@ -400,7 +437,7 @@
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
                             <h6 class="card-title mb-1" id="categoryPageTitle">Category Songs</h6>
-                            <p class="text-muted small">查看和管理此类别中的歌曲</p>
+                            <p class="text-muted small">View and manage songs in this category</p>
                         </div>
                         <a href="categories.html" class="btn btn-outline-primary btn-sm">
                             <i data-feather="arrow-left" class="mr-1"></i> Back to Categories
@@ -424,11 +461,7 @@
                         </div>
                     </div>
                     
-                    <!-- Info Alert -->
-                    <div class="alert alert-light mb-4">
-                        <i data-feather="info" class="mr-2"></i>
-                        点击 "Remove" 按钮从此类别中移除歌曲。此操作不会删除歌曲本身，只会解除与类别的关联。
-                    </div>
+                    
                     
                     <!-- Songs List -->
                     <div id="songsContainer" class="row">
@@ -444,10 +477,10 @@
                     <!-- No Songs Message -->
                     <div id="noSongsMessage" class="text-center py-5" style="display: none;">
                         <img src="assets/media/image/empty.svg" alt="No songs" class="mb-3" style="width: 150px; opacity: 0.6;">
-                        <h4>没有歌曲在此类别中</h4>
-                        <p class="text-muted mb-4">从您的音乐库中添加歌曲到此类别</p>
+                        <h4>No Songs in this Category</h4>
+                        <p class="text-muted mb-4">Add songs from your music library to this category</p>
                         <a href="my-music.html" class="btn btn-primary">
-                            <i data-feather="music" class="mr-2"></i> 前往我的音乐库
+                            <i data-feather="music" class="mr-2"></i> Go to My Music Library
                         </a>
                     </div>
                 </div>
@@ -565,6 +598,7 @@
     <!-- Custom Scripts -->
     <script type="module" src="assets/js/category-songs.js"></script>
     <script type="module" src="assets/js/audio-player.js"></script>
+    <script type="module" src="assets/js/auth-check.js"></script>
     
     <script>
         // Initialize Feather Icons

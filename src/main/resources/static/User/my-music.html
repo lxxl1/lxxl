@@ -197,30 +197,57 @@
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
 <body>
-    <!-- begin::preloader-->
-    <div class="preloader">
-        <div class="preloader-icon"></div>
-    </div>
-    <!-- end::preloader -->
+   <!-- begin::preloader-->
+   <div class="preloader">
+    <div class="preloader-icon"></div>
+</div>
+<!-- end::preloader -->
 
-    <!-- begin::header -->
-    <div class="header">
-        <div class="header-left">
-            <div class="navigation-toggler">
-                <a href="#" data-action="navigation-toggler">
-                    <i data-feather="menu"></i>
-                </a>
-            </div>
-            <div class="header-logo">
-                <a href="index.html">
-                    <img class="logo" src="assets/media/image/music-logo.png" alt="Music Resource Management">
-                    <img class="logo-light" src="assets/media/image/music-logo-light.png" alt="Music Resource Management">
-                </a>
+<!-- begin::header -->
+<div class="header">
+   
+
+    <div class="header-body">
+        <div class="header-body-left">
+            <div class="page-title">
+                
             </div>
         </div>
-        <!-- ... Remaining header content ... -->
+        <div class="header-body-right">
+            <ul class="navbar-nav">
+             
+
+                <!-- begin::header fullscreen -->
+                <li class="nav-item dropdown">
+                    <a href="#" class="nav-link" title="Fullscreen" data-toggle="fullscreen">
+                        <i class="maximize" data-feather="maximize"></i>
+                        <i class="minimize" data-feather="minimize"></i>
+                    </a>
+                </li>
+                <!-- end::header fullscreen -->
+
+                <!-- begin::user menu -->
+                <li class="nav-item dropdown">
+                    <a href="#" class="nav-link" title="User menu" data-toggle="dropdown">
+                        <span id="header-user-name" class="mr-2 d-sm-inline d-none">User Name</span>
+                        <figure class="avatar avatar-sm">
+                            <img id="header-user-avatar" src="assets/media/image/user/women_avatar1.jpg" class="rounded-circle" alt="avatar">
+                        </figure>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right">
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="../login.html">
+                            <i class="mr-2" data-feather="log-out"></i> Logout
+                        </a>
+                    </div>
+                </li>
+                <!-- end::user menu -->
+            </ul>
+        </div>
     </div>
-    <!-- end::header -->
+</div>
+<!-- end::header -->
+
 
     <!-- begin::main -->
     <div id="main">
@@ -248,7 +275,8 @@
                         <ul>
                             <li class="navigation-divider">Dashboard</li>
                             <li><a href="index.html">Overview</a></li>
-
+                            <li><a href="all-songs.html">All song</a></li>
+                            <li><a href="search-results.html">Search Song</a></li>
                         </ul>
                     </div>
                     <div id="my-music" class="open">
@@ -279,7 +307,6 @@
                         <ul>
                             <li class="navigation-divider">Tags</li>
                             <li><a href="tag-management.html">Manage Tags</a></li>
-                            <li><a href="tag-songs.html">View Songs by Tag</a></li>
                         </ul>
                     </div>
                     <div id="settings">
@@ -403,12 +430,6 @@
                                 <table id="my-music-table" class="table table-hover">
                                     <thead>
                                         <tr>
-                                            <th>
-                                                <div class="custom-control custom-checkbox">
-                                                    <input type="checkbox" class="custom-control-input" id="selectAll">
-                                                    <label class="custom-control-label" for="selectAll"></label>
-                                                </div>
-                                            </th>
                                             <th>Song Name</th>
                                             <th>Category</th>
                                             <th>Tags</th>
@@ -420,7 +441,7 @@
                                     </thead>
                                     <tbody>
                                         <tr>
-                                            <td colspan="8" class="text-center">Loading songs...</td>
+                                            <td colspan="7" class="text-center">Loading songs...</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -483,6 +504,67 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary">Upload</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Song Details Modal -->
+    <div class="modal fade" id="songDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Song Details</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-4 text-center">
+                            <img id="detailSongImage" src="assets/media/image/music-thumbnail.jpg" 
+                                alt="Song Cover" class="img-fluid mb-3" style="max-width:200px;">
+                            <button id="detailPlayButton" class="btn btn-primary btn-sm">
+                                <i data-feather="play"></i> Play
+                            </button>
+                        </div>
+                        <div class="col-md-8">
+                            <h4 id="detailSongName" class="mb-2">Song Name</h4>
+                            <p id="detailSongArtist" class="text-muted mb-3">Singer(s)</p>
+                            
+                            <div class="row mb-2">
+                                <div class="col-4 font-weight-bold">Category:</div>
+                                <div id="detailSongCategory" class="col-8">-</div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-4 font-weight-bold">Tags:</div>
+                                <div id="detailSongTags" class="col-8">-</div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-4 font-weight-bold">Upload Date:</div>
+                                <div id="detailSongDate" class="col-8">-</div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-4 font-weight-bold">Status:</div>
+                                <div id="detailSongStatus" class="col-8">-</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="mt-3">
+                        <h5>Description</h5>
+                        <p id="detailSongDescription" class="text-muted">-</p>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <h5>Lyrics</h5>
+                        <pre id="detailSongLyrics" class="p-3 bg-light" style="max-height: 200px; overflow-y: auto;">-</pre>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
