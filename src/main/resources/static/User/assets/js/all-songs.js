@@ -152,21 +152,29 @@ function renderSongs() {
         
         html += `
             <div class="col-md-3 col-sm-6 mb-4">
-                <div class="card">
-                    <img src="${song.pic || 'assets/media/image/default-album.png'}" class="card-img-top" alt="${song.name}">
-                    <div class="card-body">
-                        <h6 class="card-title mb-1">${song.name}</h6>
-                        <p class="small text-muted mb-2">${displaySingers}</p>
-                        <div class="d-flex justify-content-between">
-                            <small class="text-muted">
-                                <i data-feather="play"></i> ${song.nums || 0}
-                            </small>
-                            <small class="text-muted">
-                                <i data-feather="heart"></i> ${song.likeCount || 0}
-                            </small>
+                <div class="card h-100">
+                    <div class="song-card-image-container">
+                         <img src="${song.pic || 'assets/media/image/default-album.png'}" 
+                              class="song-card-image" 
+                              alt="${song.name}">
+                    </div>
+                    <div class="card-body d-flex flex-column">
+                        <div>
+                            <h6 class="card-title mb-1 text-truncate">${song.name}</h6>
+                            <p class="small text-muted mb-2 text-truncate">${displaySingers}</p>
+                            <div class="d-flex justify-content-between mb-2">
+                                <small class="text-muted">
+                                    <i data-feather="play" class="width-15 height-15"></i> ${song.nums || 0}
+                                </small>
+                            </div>
                         </div>
-                        <button class="btn btn-primary btn-sm btn-block mt-2 play-song-btn" data-song-id="${song.id}">
-                            <i data-feather="play"></i> Play
+                        <button class="btn btn-primary btn-sm btn-block mt-auto play-song-btn" 
+                                data-song-id="${song.id}" 
+                                data-song-url="${song.url || ''}" 
+                                data-song-name="${song.name || ''}" 
+                                data-artist-name="${displaySingers || ''}" 
+                                data-cover-url="${song.pic || 'assets/media/image/default-album.png'}">
+                            <i data-feather="play" class="width-15 height-15"></i> Play
                         </button>
                     </div>
                 </div>

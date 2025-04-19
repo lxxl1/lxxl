@@ -65,87 +65,96 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use((response) => {
     return response;
 }, (error) => {
-    // 管理员页面不做任何权限处理
-    if (isAdminPage()) {
-        console.log('Admin page API error captured, continuing execution:', error);
-        return Promise.reject(error);
-    }
-    
-    // 检测JWT令牌过期错误
+    let isUnauthorized = false;
+    let errorMessage = 'Session expired or invalid. Please log in again.';
+
     if (error.response) {
-        // 401未授权错误处理
+        // Check for 401 status code
         if (error.response.status === 401) {
-            // 清除存储
-            localStorage.removeItem('user');
-            localStorage.removeItem('token');
-            localStorage.removeItem('role');
-            
-            // 显示友好提示，令牌过期
-            showTokenExpiredMessage();
-            
-            // 延迟跳转，让用户有时间看到消息
-            setTimeout(() => {
-                window.location.href = '/login.html';
-            }, 2000);
-            
-            return Promise.reject(new Error('Session expired. Redirecting to login page...'));
+            isUnauthorized = true;
         }
-        
-        // 检查响应中是否包含令牌验证失败的自定义错误消息
-        if (error.response.data && 
-           (error.response.data.message && error.response.data.message.includes('token') || 
-            error.response.data.msg && error.response.data.msg.includes('token'))) {
-            
-            // 清除存储
-            localStorage.removeItem('user');
-            localStorage.removeItem('token');
-            localStorage.removeItem('role');
-            
-            // 显示友好提示，令牌验证失败
-            showTokenExpiredMessage();
-            
-            // 延迟跳转，让用户有时间看到消息
-            setTimeout(() => {
-                window.location.href = '/login.html';
-            }, 2000);
-            
-            return Promise.reject(new Error('Session expired. Redirecting to login page...'));
+        // Check for specific backend message indicating token issues (adjust if needed)
+        else if (error.response.data) {
+            const msg = error.response.data.message || error.response.data.msg || '';
+            if (typeof msg === 'string' && (msg.toLowerCase().includes('token') || msg.toLowerCase().includes('unauthorized') || msg.toLowerCase().includes('未授权'))) {
+                isUnauthorized = true;
+                errorMessage = msg; // Use backend message if available
+            }
         }
     }
-    
+
+    // Handle unauthorized/token expired error for BOTH user and admin pages
+    if (isUnauthorized) {
+        console.warn(`Unauthorized (401) or token error detected. Redirecting to login. Error: ${error.message}`);
+        // Clear stored credentials
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        localStorage.removeItem('role'); // Also remove role if stored
+        localStorage.removeItem('adminName'); // Clear admin specific data
+
+        // Show a message
+        showTokenExpiredMessage(errorMessage);
+
+        // Redirect to login page - determine path based on current location
+        const loginPath = isAdminPage() ? '../login.html' : '/login.html'; // Adjust base path if needed
+
+        // Use a short delay to allow the message to be seen
+        setTimeout(() => {
+            window.location.href = loginPath;
+        }, 2000); // 2 seconds delay
+
+        // Reject the promise to stop further processing in the original call chain
+        return Promise.reject(new Error(errorMessage));
+    }
+
+    // For non-401 errors on admin pages, log them but don't redirect
+    if (isAdminPage()) {
+        console.error('Admin page API error captured (non-401), continuing execution:', error);
+    }
+
+    // For other errors, just reject the promise
     return Promise.reject(error);
 });
 
 // 显示令牌过期的友好提示
-function showTokenExpiredMessage() {
-    // 创建提示元素
+// Modified to accept a custom message
+function showTokenExpiredMessage(message = 'Your session has expired. Please log in again.') {
+    // Remove any existing message first
+    const existingMessage = document.getElementById('token-expired-message');
+    if (existingMessage) {
+        document.body.removeChild(existingMessage);
+    }
+
+    // Create提示元素
     const messageContainer = document.createElement('div');
+    messageContainer.id = 'token-expired-message'; // Add ID for easy removal
     messageContainer.style.position = 'fixed';
     messageContainer.style.top = '20px';
     messageContainer.style.left = '50%';
     messageContainer.style.transform = 'translateX(-50%)';
     messageContainer.style.zIndex = '9999';
-    messageContainer.style.backgroundColor = '#f8d7da';
-    messageContainer.style.color = '#721c24';
+    messageContainer.style.backgroundColor = '#f8d7da'; // Bootstrap danger background
+    messageContainer.style.color = '#721c24'; // Bootstrap danger text
     messageContainer.style.padding = '15px 30px';
     messageContainer.style.borderRadius = '5px';
     messageContainer.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
     messageContainer.style.textAlign = 'center';
     messageContainer.style.fontSize = '16px';
     messageContainer.style.fontWeight = 'bold';
-    
+    messageContainer.style.border = '1px solid #f5c6cb'; // Bootstrap danger border
+
     // 设置提示文本
-    messageContainer.innerText = 'Your session has expired. Please log in again.';
-    
+    messageContainer.innerText = message;
+
     // 添加到页面
     document.body.appendChild(messageContainer);
-    
-    // 2秒后自动移除
+
+    // Longer duration before auto-removal, as redirect happens
     setTimeout(() => {
         if (document.body.contains(messageContainer)) {
             document.body.removeChild(messageContainer);
         }
-    }, 5000);
+    }, 5000); // 5 seconds
 }
 
 // 立即加载时关闭任何打开的权限对话框

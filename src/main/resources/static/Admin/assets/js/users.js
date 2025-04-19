@@ -86,13 +86,13 @@ function initializeDataTable() {
             { 
                 data: 'username',
                 render: function(data, type, row) {
+                    // Use default avatar if 'avator' is missing or empty
+                    const avatarUrl = row.avator || '../../../Common/assets/images/default-avatar.png'; // Adjust path if needed
                     return `<div class="d-flex align-items-center">
-                        <div class="user-avatar rounded-circle mr-2 bg-light text-primary">
-                            ${data.charAt(0).toUpperCase()}
-                        </div>
+                        <img src="${avatarUrl}" alt="Avatar" class="user-avatar rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
                         <div class="user-info">
-                            <div class="font-weight-bold">${data}</div>
-                            <small class="text-muted">${row.name}</small>
+                            <div class="fw-bold">${escapeHTML(data)}</div>
+                            <small class="text-muted">${escapeHTML(row.name || '')}</small>
                         </div>
                     </div>`;
                 }
@@ -100,50 +100,30 @@ function initializeDataTable() {
             { 
                 data: 'status',
                 render: function(data) {
-                    // 根据数字状态值确定显示文本和样式
+                    // Translate status texts based on numeric values
                     let statusText, badgeClass, icon;
                     
-                    // 数字状态值的处理
-                    if (typeof data === 'number' || !isNaN(parseInt(data))) {
                         const statusValue = parseInt(data);
                         switch (statusValue) {
                             case 0:
-                                statusText = 'Active';
+                            statusText = 'Active'; // 活动
                                 badgeClass = 'bg-success';
                                 icon = 'check-circle';
                                 break;
                             case 1:
-                                statusText = 'Inactive';
+                            statusText = 'Inactive'; // 非活动 (Consider if this state is used/needed)
                                 badgeClass = 'bg-secondary';
                                 icon = 'clock';
                                 break;
                             case 2:
-                                statusText = 'Suspended';
+                            statusText = 'Suspended'; // 禁用
                                 badgeClass = 'bg-danger';
                                 icon = 'ban';
                                 break;
                             default:
                                 statusText = 'Unknown';
-                                badgeClass = 'bg-secondary';
+                            badgeClass = 'bg-light text-dark';
                                 icon = 'question-circle';
-                        }
-                    } 
-                    // 字符串状态值的处理（兼容性保留）
-                    else {
-                        statusText = data;
-                        if (data === 'Active') {
-                            badgeClass = 'bg-success';
-                            icon = 'check-circle';
-                        } else if (data === 'Inactive') {
-                            badgeClass = 'bg-secondary';
-                            icon = 'clock';
-                        } else if (data === 'Suspended') {
-                            badgeClass = 'bg-danger';
-                            icon = 'ban';
-                        } else {
-                            badgeClass = 'bg-secondary';
-                            icon = 'question-circle';
-                        }
                     }
                     
                     return `<span class="badge ${badgeClass}">
@@ -155,10 +135,11 @@ function initializeDataTable() {
             { 
                 data: 'role',
                 render: function(data) {
-                    const roleClass = data === 'ADMIN' ? 'bg-warning' : 'bg-info';
+                    const roleText = data === 'ADMIN' ? 'Admin' : 'User';
+                    const roleClass = data === 'ADMIN' ? 'bg-warning text-dark' : 'bg-info';
                     const icon = data === 'ADMIN' ? 'crown' : 'user';
                     return `<span class="badge ${roleClass}">
-                        <i class="fas fa-${icon} me-1"></i> ${data}
+                        <i class="fas fa-${icon} me-1"></i> ${roleText}
                     </span>`;
                 },
                 className: 'text-center'
@@ -166,44 +147,26 @@ function initializeDataTable() {
             { 
                 data: null,
                 render: function(data, type, row) {
-                    // 确定当前状态文本和切换按钮样式
-                    let statusText, toggleClass, toggleIcon, toggleTitle;
-                    
-                    // 根据状态值确定按钮样式
-                    if (typeof row.status === 'number' || !isNaN(parseInt(row.status))) {
+                    // Translate button tooltips and determine state text
+                    let toggleClass, toggleIcon, toggleTitle;
                         const statusValue = parseInt(row.status);
+
                         switch (statusValue) {
                             case 0: // Active
                                 toggleClass = 'btn-outline-warning';
                                 toggleIcon = 'ban';
-                                toggleTitle = 'Disable User';
-                                break;
-                            case 1: // Inactive
-                                toggleClass = 'btn-outline-success';
-                                toggleIcon = 'check-circle';
-                                toggleTitle = 'Activate User';
+                            toggleTitle = 'Suspend User'; // 禁用用户
                                 break;
                             case 2: // Suspended
                                 toggleClass = 'btn-outline-success';
                                 toggleIcon = 'check-circle';
-                                toggleTitle = 'Activate User';
+                            toggleTitle = 'Activate User'; // 激活用户
                                 break;
-                            default:
-                                toggleClass = 'btn-outline-secondary';
-                                toggleIcon = 'sync';
-                                toggleTitle = 'Toggle Status';
-                        }
-                    } else {
-                        // 兼容处理字符串状态值
-                        if (row.status === 'Active') {
-                            toggleClass = 'btn-outline-warning';
-                            toggleIcon = 'ban';
-                            toggleTitle = 'Disable User';
-                        } else {
+                         case 1: // Inactive (assuming activation is desired)
+                         default: // Also handles unknown status
                             toggleClass = 'btn-outline-success';
                             toggleIcon = 'check-circle';
-                            toggleTitle = 'Activate User';
-                        }
+                            toggleTitle = 'Activate User'; // 激活用户
                     }
                     
                     return `
@@ -220,7 +183,7 @@ function initializeDataTable() {
                                 title="${toggleTitle}">
                                 <i class="fas fa-${toggleIcon}"></i>
                             </button>
-                            <button class="btn btn-sm btn-outline-danger delete-user" data-id="${row.id}" title="Delete User">
+                            <button class="btn btn-sm btn-outline-danger delete-user" data-id="${row.id}" data-username="${escapeHTML(row.username)}" title="Delete User">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -231,23 +194,36 @@ function initializeDataTable() {
             }
         ],
         responsive: true,
-        order: [[1, 'asc']],
+        order: [[1, 'asc']], // Default sort by username
+        // Translate DataTable language options
         language: {
-            search: "_INPUT_",
-            searchPlaceholder: "Search users...",
+            search: "", // Hide default search label, use placeholder
+            searchPlaceholder: "Search by username or name...",
             emptyTable: "No users found",
             info: "Showing _START_ to _END_ of _TOTAL_ users",
             infoEmpty: "No users available",
             infoFiltered: "(filtered from _MAX_ total users)",
             lengthMenu: "Show _MENU_ users per page",
-            zeroRecords: "No matching users found"
+            zeroRecords: "No matching users found",
+            processing: "Processing..." // Added processing message
         },
-        dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
+        dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6 d-flex justify-content-end"f>>' + // Adjusted DOM for search placement
              '<"row"<"col-sm-12"tr>>' +
              '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
         drawCallback: function() {
-            // Add tooltips to action buttons
-            $('[title]').tooltip();
+            // Re-initialize tooltips after table draw
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                // Ensure Bootstrap tooltips are initialized correctly
+                 // Remove existing tooltip instance if present
+                 const existingTooltip = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
+                 if (existingTooltip) {
+                     existingTooltip.dispose();
+                 }
+                 // Create new tooltip instance
+                 return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+            updateBulkActionButtons(); // Update button state after draw
         }
     });
 }
@@ -799,235 +775,163 @@ function loadAdminInfo() {
 /**
  * Show alert message
  */
-function showAlert(message, type = 'primary') {
-    // Check if alert container exists, if not create it
-    let alertContainer = document.getElementById('alertContainer');
+function showAlert(message, type = 'info', duration = 3000) {
+    const alertContainer = document.getElementById('alertContainer');
     if (!alertContainer) {
-        alertContainer = document.createElement('div');
-        alertContainer.id = 'alertContainer';
-        alertContainer.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 9999;
-            min-width: 300px;
-            max-width: 500px;
-        `;
-        document.body.appendChild(alertContainer);
+        console.error('Alert container #alertContainer not found.');
+        // Fallback to Toastify or console
+        showToast(message, type === 'danger' ? 'error' : type);
+        return;
     }
-    
-    const alert = document.createElement('div');
-    alert.className = `alert alert-${type} alert-dismissible fade show d-flex align-items-center`;
-    
-    // Add appropriate icon based on alert type
-    let icon = 'info-circle';
-    switch(type) {
-        case 'success':
-            icon = 'check-circle';
-            break;
-        case 'danger':
-            icon = 'exclamation-circle';
-            break;
-        case 'warning':
-            icon = 'exclamation-triangle';
-            break;
-    }
-    
-    alert.innerHTML = `
-        <i class="fas fa-${icon} me-2"></i>
-        <div class="flex-grow-1">${message}</div>
+
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.role = 'alert';
+    // Translate alert prefix
+    const prefix = type === 'success' ? 'Success!' : type === 'danger' ? 'Error!' : 'Info:';
+    alertDiv.innerHTML = `
+        <strong>${prefix}</strong> ${escapeHTML(message)}
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     `;
     
-    // Add custom styles for smooth animation
-    alert.style.cssText = `
-        opacity: 0;
-        transform: translateX(100%);
-        transition: all 0.3s ease-in-out;
-    `;
-    
-    alertContainer.appendChild(alert);
-    
-    // Trigger animation
+    alertContainer.appendChild(alertDiv);
+
+    // Auto-dismiss alert
+    if (duration) {
     setTimeout(() => {
-        alert.style.opacity = '1';
-        alert.style.transform = 'translateX(0)';
-    }, 50);
-    
-    // Remove the alert after 5 seconds
-    setTimeout(() => {
-        alert.style.opacity = '0';
-        alert.style.transform = 'translateX(100%)';
-        setTimeout(() => alert.remove(), 300);
-    }, 5000);
+            alertDiv.classList.remove('show');
+            // Remove the element after the fade transition
+            setTimeout(() => alertDiv.remove(), 150);
+        }, duration);
+    }
 }
 
 /**
- * Open modal for adding a new user
+ * Open Add User Modal and clear form
  */
 function openAddUserModal() {
-    // Template for the modal - assuming Bootstrap 5
-    const modalHtml = `
-    <div class="modal fade" id="addUserModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Add New User</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="addUserForm">
-                        <div class="mb-3">
-                            <label for="username" class="form-label">Username</label>
-                            <input type="text" class="form-control" id="username" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="name" class="form-label">Name</label>
-                            <input type="text" class="form-control" id="name" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="password" class="form-label">Password</label>
-                            <input type="password" class="form-control" id="password" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="status" class="form-label">Status</label>
-                            <select class="form-select" id="status">
-                                <option value="0">Active</option>
-                                <option value="1">Inactive</option>
-                                <option value="2">Suspended</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="role" class="form-label">Role</label>
-                            <select class="form-select" id="role">
-                                <option value="USER">User</option>
-                                <option value="ADMIN">Admin</option>
-                            </select>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="saveUserBtn">Save User</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    `;
-    
-    // Create and append the modal
-    const modalContainer = document.createElement('div');
-    modalContainer.innerHTML = modalHtml;
-    document.body.appendChild(modalContainer);
-    
-    // Initialize the modal
-    const modal = new bootstrap.Modal(document.getElementById('addUserModal'));
+    // Translate modal title
+    $('#userModalLabel').text('Add New User'); 
+    $('#userForm')[0].reset();
+    $('#userId').val(''); // Ensure ID is cleared
+    $('#username').prop('readonly', false); // Allow username editing for add
+    $('#password').prop('required', true); // Password required for add
+    $('#passwordHelp').show(); // Show password help text
+    // Translate image preview text
+    resetImagePreview('userAvatarPreview', 'avatarPreviewText', 'Add User');
+    const modal = new bootstrap.Modal(document.getElementById('userModal'));
     modal.show();
-    
-    // Handle save button
-    document.getElementById('saveUserBtn').addEventListener('click', async function() {
-        const userData = {
-            username: document.getElementById('username').value,
-            name: document.getElementById('name').value,
-            password: document.getElementById('password').value,
-            status: document.getElementById('status').value,
-            role: document.getElementById('role').value
-        };
-        
-        if (await addUser(userData)) {
-            modal.hide();
-            // Remove the modal from DOM after hiding
-            document.getElementById('addUserModal').addEventListener('hidden.bs.modal', function() {
-                this.remove();
-            });
-        }
-    });
-    
-    // Clean up when modal is closed
-    document.getElementById('addUserModal').addEventListener('hidden.bs.modal', function() {
-        this.remove();
-    });
 }
 
 /**
- * Open modal for editing a user
+ * Open Edit User Modal and populate form
  */
 function openEditUserModal(user) {
-    const modalHtml = `
-    <div class="modal fade" id="editUserModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header bg-light">
-                    <h5 class="modal-title">Edit User</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="editUserForm">
-                        <input type="hidden" id="userId" value="${user.id}">
-                        <div class="mb-3">
-                            <label for="username" class="form-label">Username</label>
-                            <input type="text" class="form-control" id="username" value="${user.username}" readonly>
-                        </div>
-                        <div class="mb-3">
-                            <label for="name" class="form-label">Name</label>
-                            <input type="text" class="form-control" id="name" value="${user.name}" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="status" class="form-label">Status</label>
-                            <select class="form-select" id="status">
-                                <option value="0" ${(user.status === 0 || user.status === '0' || user.status === 'Active') ? 'selected' : ''}>Active</option>
-                                <option value="1" ${(user.status === 1 || user.status === '1' || user.status === 'Inactive') ? 'selected' : ''}>Inactive</option>
-                                <option value="2" ${(user.status === 2 || user.status === '2' || user.status === 'Suspended') ? 'selected' : ''}>Suspended</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="role" class="form-label">Role</label>
-                            <select class="form-select" id="role">
-                                <option value="USER" ${user.role === 'USER' ? 'selected' : ''}>User</option>
-                                <option value="ADMIN" ${user.role === 'ADMIN' ? 'selected' : ''}>Admin</option>
-                            </select>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="updateUserBtn">
-                        <i class="fas fa-save me-1"></i> Save Changes
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-    `;
+    if (!user) return;
+    // Translate modal title
+    $('#userModalLabel').text('Edit User Information'); 
+    $('#userForm')[0].reset();
     
-    // Create and append the modal
-    const modalContainer = document.createElement('div');
-    modalContainer.innerHTML = modalHtml;
-    document.body.appendChild(modalContainer);
+    // Populate form fields
+    $('#userId').val(user.id);
+    $('#username').val(user.username).prop('readonly', true); // Usually cannot edit username
+    $('#name').val(user.name);
+    $('#birth').val(user.birth ? user.birth.split('T')[0] : ''); // Format date YYYY-MM-DD
+    $('#sex').val(user.sex);
+    $('#email').val(user.email);
+    $('#phoneNum').val(user.phoneNum);
+    $('#location').val(user.location);
+    $('#introduction').val(user.introduction);
+    $('#role').val(user.role);
+    $('#status').val(user.status); 
     
-    // Initialize the modal
-    const modal = new bootstrap.Modal(document.getElementById('editUserModal'));
+    // Password is not editable directly, only via reset/change password functionality
+    $('#password').prop('required', false).val(''); // Clear password, make not required for edit
+    $('#passwordHelp').hide(); // Hide password help text
+    
+    // Set image preview
+    const avatarUrl = user.avator || '../../../Common/assets/images/default-avatar.png';
+    // Translate image preview text
+    setImagePreview('userAvatarPreview', 'avatarPreviewText', avatarUrl, 'Edit User');
+    
+    const modal = new bootstrap.Modal(document.getElementById('userModal'));
     modal.show();
-    
-    // Handle update button
-    document.getElementById('updateUserBtn').addEventListener('click', async function() {
-        const userData = {
-            id: document.getElementById('userId').value,
-            username: document.getElementById('username').value,
-            name: document.getElementById('name').value,
-            status: document.getElementById('status').value,
-            role: document.getElementById('role').value
-        };
-        
-        if (await updateUser(userData)) {
-            modal.hide();
+}
+
+/** 
+ * Confirm and delete a single user 
+ */
+function confirmDeleteUser(userId, username) {
+    // Translate confirmation message
+    if (confirm(`Are you sure you want to delete user "${username}" (ID: ${userId})? This action cannot be undone.`)) {
+        // Translate toast message
+        showToast('Deleting user...', 'info');
+        deleteUser(userId)
+            .then(() => {
+                // Translate success toast
+                showToast('User deleted successfully!', 'success');
+            })
+            .catch(error => {
+                // Error toast is handled within deleteUser or globally
+                console.error("Delete confirmation error:", error); 
+            });
+    }
+}
+
+/** 
+ * Confirm and delete batch users 
+ */
+function confirmDeleteBatch(userIds) {
+    // Translate confirmation message
+    if (confirm(`Are you sure you want to delete ${userIds.length} selected users? This action cannot be undone.`)) {
+         // Translate toast message
+        showToast('Deleting selected users...', 'info');
+        deleteBatchUsers(userIds)
+            .then(() => {
+                // Translate success toast
+                showToast(`${userIds.length} users deleted successfully!`, 'success');
+            })
+            .catch(error => {
+                // Error handled within deleteBatchUsers or globally
+                 console.error("Batch delete confirmation error:", error);
+            });
+    }
+}
+
+/** 
+ * Confirm and update user status 
+ */
+async function confirmAndUpdateStatus(userId, currentStatus) {
+    const currentStatusValue = parseInt(currentStatus);
+    let actionText = '';
+    let newStatus = 0; // Default to Active (0)
+
+    if (currentStatusValue === 0) { // Currently Active
+        // Translate confirmation action
+        actionText = 'suspend';
+        newStatus = 2; // Suspend (2)
+    } else { // Currently Suspended (2) or Inactive (1)
+        // Translate confirmation action
+        actionText = 'activate';
+        newStatus = 0; // Activate (0)
+    }
+
+    // Translate confirmation message
+    if (confirm(`Are you sure you want to ${actionText} this user (ID: ${userId})?`)) {
+        // Translate toast message
+        showToast(`Updating user status...`, 'info');
+        try {
+            // Assuming updateUser can handle status updates
+            // Backend needs to handle the status change logic
+            const response = await updateUser({ id: userId, status: newStatus });
+            // Translate success toast
+            showToast('User status updated successfully!', 'success');
+            loadUsers(); // Refresh the table
+        } catch (error) {
+            // Error handled by updateUser or global handler
+            console.error("Status update confirmation error:", error);
         }
-    });
-    
-    // Clean up when modal is closed
-    document.getElementById('editUserModal').addEventListener('hidden.bs.modal', function() {
-        this.remove();
-    });
+    }
 }
 
 /**
@@ -1198,57 +1102,6 @@ function showUserDetails(user) {
 }
 
 /**
- * Confirm before deleting a user
- */
-function confirmDeleteUser(userId) {
-    const modalHtml = `
-    <div class="modal fade" id="deleteUserModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        Confirm Deletion
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p class="mb-0">Are you sure you want to delete this user? This action cannot be undone.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
-                        <i class="fas fa-trash me-1"></i> Delete
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-    `;
-    
-    // 创建并添加模态框
-    const modalContainer = document.createElement('div');
-    modalContainer.innerHTML = modalHtml;
-    document.body.appendChild(modalContainer);
-    
-    // 初始化模态框
-    const modal = new bootstrap.Modal(document.getElementById('deleteUserModal'));
-    modal.show();
-    
-    // 处理删除确认
-    document.getElementById('confirmDeleteBtn').addEventListener('click', async function() {
-        if (await deleteUser(userId)) {
-            modal.hide();
-        }
-    });
-    
-    // 关闭时清理模态框
-    document.getElementById('deleteUserModal').addEventListener('hidden.bs.modal', function() {
-        this.remove();
-    });
-}
-
-/**
  * Update bulk action buttons based on selection
  */
 function updateBulkActionButtons() {
@@ -1282,108 +1135,5 @@ function updateBulkActionButtons() {
         }
     } else if (actionsExist) {
         actionsExist.remove();
-    }
-}
-
-/**
- * Confirm before deleting multiple users
- */
-function confirmDeleteBatch(userIds) {
-    const modalHtml = `
-    <div class="modal fade" id="deleteBatchModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        Confirm Batch Deletion
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p class="mb-0">Are you sure you want to delete these ${userIds.length} users? This action cannot be undone.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-danger" id="confirmBatchDeleteBtn">
-                        <i class="fas fa-trash me-1"></i> Delete All
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-    `;
-    
-    // 创建并添加模态框
-    const modalContainer = document.createElement('div');
-    modalContainer.innerHTML = modalHtml;
-    document.body.appendChild(modalContainer);
-    
-    // 初始化模态框
-    const modal = new bootstrap.Modal(document.getElementById('deleteBatchModal'));
-    modal.show();
-    
-    // 处理删除确认
-    document.getElementById('confirmBatchDeleteBtn').addEventListener('click', async function() {
-        let success = true;
-        for (const userId of userIds) {
-            if (!await deleteUser(userId)) {
-                success = false;
-                break;
-            }
-        }
-        
-        if (success) {
-            showAlert('All selected users have been successfully deleted', 'success');
-            modal.hide();
-            // 清空选择的用户
-            selectedUsers = [];
-            // 更新批量操作按钮
-            updateBulkActionButtons();
-        }
-    });
-    
-    // 关闭时清理模态框
-    document.getElementById('deleteBatchModal').addEventListener('hidden.bs.modal', function() {
-        this.remove();
-    });
-}
-
-/**
- * NEW FUNCTION: Confirm and update user status
- */
-async function confirmAndUpdateStatus(userId, currentStatus) {
-    // Determine the target status and action text
-    let newStatus;
-    let actionText;
-    // Handle both string and number status values
-    const statusNumber = parseInt(currentStatus);
-    if (statusNumber === 0 || currentStatus === 'Active') {
-        newStatus = 1; // Target: Inactive
-        actionText = 'disable';
-    } else { // Inactive (1) or Suspended (2)
-        newStatus = 0; // Target: Active
-        actionText = 'activate';
-    }
-
-    if (confirm(`Are you sure you want to ${actionText} this user (ID: ${userId})?`)) {
-        try {
-            // Assuming a POST endpoint like /user/update/status exists
-            // Send data as form-urlencoded
-            const response = await api.post(`/user/update/status`, 
-                new URLSearchParams({ id: userId, status: newStatus }).toString(), 
-                { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } } 
-            );
-
-            if (response.data && (response.data.code === '200' || response.data.code === 200)) {
-                showAlert(`User status updated successfully!`, 'success');
-                loadUsers(); // Reload the user list to reflect the change
-            } else {
-                 showAlert(response.data?.msg || 'Failed to update user status.', 'danger');
-            }
-        } catch (error) {
-            console.error('Error updating user status:', error);
-            showAlert('Error updating user status. ' + (error.response?.data?.msg || error.message), 'danger');
-        }
     }
 }

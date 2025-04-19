@@ -54,27 +54,46 @@ public class SongController {
     @RequestMapping(value = "/add", method = RequestMethod.POST)
     public Result addSong(HttpServletRequest request,
                           @RequestParam("file") MultipartFile mpFile,
+                          @RequestParam(name = "imageFile", required = false) MultipartFile imageFile,
                           @RequestParam(name = "files", required = false) MultipartFile mvFile) {
         try {
             // 获取前端传来的参数
             String userId = request.getParameter("userId").trim();
-            // String singerId = request.getParameter("singerId").trim(); // REMOVED
-            // Expecting comma-separated string e.g., "1,2,3"
             String singerIdsParam = request.getParameter("singerIds");
             String name = request.getParameter("name").trim();
             String introduction = request.getParameter("introduction").trim();
             String lyric = request.getParameter("lyric").trim();
-            // Consider making this configurable or optional
+            // Default picture path
             String pic = "/img/songPic/tubiao.jpg";
-            // 类别 IDs
             String categoryIdsParam = request.getParameter("categoryIds");
-            // 标签 IDs
             String tagIdsParam = request.getParameter("tagIds");
 
             // 检查音乐文件是否为空
             if (mpFile == null || mpFile.isEmpty()) {
                 return Result.failure("歌曲文件不能为空");
             }
+
+            // Upload image file to OSS if present
+            if (imageFile != null && !imageFile.isEmpty()) {
+                try {
+                    String imageUrl = ossUtil.uploadFile(imageFile, "img/songPic/");
+                    if (StringUtils.hasText(imageUrl)) {
+                        pic = imageUrl; // Update pic with the uploaded image URL
+                        log.info("Successfully uploaded cover image for song: {}", name);
+                    } else {
+                        log.warn("Cover image upload failed for song: {}, using default.", name);
+                        // Keep the default pic if upload failed but file was present
+                    }
+                } catch (IOException e) {
+                     log.error("IO Error during cover image upload for song: {}", name, e);
+                     // Decide if this should be a fatal error or just use default pic
+                     // return Result.failure("封面图片上传过程中发生IO错误: " + e.getMessage()); // Option 1: Fail request
+                     log.warn("IO Error during cover image upload, continuing with default pic."); // Option 2: Continue with default
+                }
+            } else {
+                 log.info("No cover image provided for song: {}, using default.", name);
+            }
+
 
             // 上传音乐文件到OSS
             String musicUrl = ossUtil.uploadFile(mpFile, "song/");
@@ -93,7 +112,6 @@ public class SongController {
 
             // 解析歌手ID列表
             List<Integer> singerIdList = Collections.emptyList();
-            // Use StringUtils for better null/empty check
             if (StringUtils.hasText(singerIdsParam)) {
                  try {
                      singerIdList = Arrays.stream(singerIdsParam.split(","))
@@ -109,31 +127,24 @@ public class SongController {
             }
              if (CollectionUtils.isEmpty(singerIdList)) {
                  log.warn("No valid singer IDs provided for song: {}", name);
-                 // Decide if this is an error or allowed
-                 // return Result.failure("必须至少关联一个歌手");
              }
 
-            // 创建歌曲对象 (removed singerId)
+            // 创建歌曲对象 (pic is now potentially the uploaded image URL)
             Song song = new Song();
             song.setUserId(Integer.parseInt(userId));
-            // song.setSingerId(Integer.parseInt(singerId)); // REMOVED
             song.setName(name);
             song.setIntroduction(introduction);
             song.setPic(pic);
             song.setLyric(lyric);
             song.setUrl(musicUrl);
-            // 设置初始状态为待审核
             song.setStatus(0);
 
             // 1. 保存歌曲信息和歌手关联 (Call updated service method)
             boolean songInsertSuccess = songService.insert(song, singerIdList);
             if (!songInsertSuccess) {
-                // Song insertion itself might have failed, or association failed but was logged
-                // Check service impl logic for exact failure condition
                 return Result.failure("歌曲信息保存失败或歌手关联失败");
             }
 
-            // ID should be populated by service
             Integer newSongId = song.getId();
             if (newSongId == null) {
                  log.error("Error: Failed to retrieve generated song ID after insert service call for song: {}", name);
@@ -186,11 +197,10 @@ public class SongController {
 
         } catch (NumberFormatException e) {
              log.error("Error parsing number in addSong: {}", e.getMessage());
-             // Updated error message
              return Result.failure("用户ID、类别ID或标签ID格式错误");
         } catch (IOException e) {
-            log.error("IO Error during file upload in addSong", e);
-            return Result.failure("文件上传过程中发生IO错误: " + e.getMessage());
+            log.error("IO Error during music file upload in addSong", e);
+            return Result.failure("音乐文件上传过程中发生IO错误: " + e.getMessage());
         } catch (Exception e) {
             log.error("Unknown error in addSong", e);
             return Result.failure("添加歌曲时发生未知错误: " + e.getMessage());

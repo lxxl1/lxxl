@@ -17,9 +17,6 @@ import { checkAuthenticationNoRedirect, logoutNoRedirect } from '../../../Common
     document.addEventListener('DOMContentLoaded', function() {
         // 更新页面上的管理员信息
         updateAdminInfo();
-        
-        // 设置不重定向的登出按钮事件
-        setupLogoutButtonNoRedirect();
     });
 })();
 
@@ -41,16 +38,22 @@ function updateAdminInfo() {
     }
 }
 
-// 设置不重定向的登出按钮事件
-function setupLogoutButtonNoRedirect() {
-    const logoutButton = document.querySelector('.btn.btn-outline-danger');
-    if (logoutButton) {
-        logoutButton.addEventListener('click', function(e) {
-            e.preventDefault();
-            // 使用无重定向版本的登出函数
-            logoutNoRedirect();
-            // 显示已登出消息
-            alert('您已成功退出登录，但页面不会重定向。');
-        });
-    }
-} 
+// 页面加载时执行认证检查
+// document.addEventListener('DOMContentLoaded', checkAuthentication);
+// REMOVED call to setupLogoutButtonNoRedirect if it was here
+
+// Ensure checkAuthentication is called if needed elsewhere, 
+// but specifically remove the setup for the no-redirect button.
+// If checkAuthentication itself called setupLogoutButtonNoRedirect, that call needs removal too.
+
+// Assuming checkAuthentication might call setupLogoutButtonNoRedirect implicitly
+// We need to ensure that implicit call is removed if it exists within checkAuthentication
+// OR modify checkAuthentication not to call it.
+// For now, just removing the function definition is the primary goal.
+
+// // 导出函数 (REMOVED call if exists)
+// export {
+//     checkAuthentication,
+//     logoutNoRedirect,
+//     // setupLogoutButtonNoRedirect // <-- Ensure this is removed if exported
+// }; 

@@ -62,6 +62,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initUploadFunctionality();
     initDragAndDrop();
     initFormSubmit();
+    initImageUploadPreview();
 });
 
 /**
@@ -236,6 +237,15 @@ function validateForm() {
     const musicFile = document.getElementById('musicFileInput').files[0];
     if (!musicFile) {
         showMessage('Please select a music file to upload', 'danger');
+        return false;
+    }
+    
+    // Image File Validation (Optional)
+    const imageFile = document.getElementById('imageFileInput').files[0];
+    if (imageFile && imageFile.size > 5 * 1024 * 1024) { // 5MB limit
+        showMessage('Image file is too large. Please select an image under 5MB', 'danger');
+        document.getElementById('imageFileInput').value = ''; // Clear the input
+        resetImagePreview(); // Reset preview if invalid
         return false;
     }
     
@@ -417,6 +427,12 @@ function initFormSubmit() {
             return;
         }
         
+        // Append Image File
+        const imageFile = document.getElementById('imageFileInput').files[0];
+        if (imageFile) {
+            formData.append('imageFile', imageFile);
+        }
+        
         formData.append('name', document.getElementById('songName').value);
         formData.append('userId', currentUserId);
         
@@ -477,18 +493,18 @@ function initFormSubmit() {
             
             if (response.data.code === '200') {
                 showMessage('Music uploaded successfully! Redirecting...', 'success');
-                // Reset form after successful upload
                 form.reset();
-                // Clear the Sets
                 selectedUploadCategoryIds.clear();
                 selectedUploadTagIds.clear();
-                // Re-render pills to unselected state (or just redirect)
-                loadCategories(); // Re-load to reset visuals
-                loadUserTags();   // Re-load to reset visuals
-                document.getElementById('browseFilesBtn').textContent = 'Browse Files'; // Reset button text
+                selectedSingers.clear(); // Clear selected singers too
+                updateSelectedSingersDisplay(); // Update display to show cleared state
+                loadCategories();
+                loadUserTags();
+                document.getElementById('browseFilesBtn').textContent = 'Browse Files';
+                resetImagePreview(); // <-- Reset image preview on success
                 
                 setTimeout(() => {
-                    window.location.href = 'my-music.html'; // Redirect after success
+                    window.location.href = 'my-music.html';
                 }, 1500); 
             } else {
                 showMessage(`Upload failed: ${response.data.msg || 'Unknown error'}`, 'danger');
@@ -512,6 +528,74 @@ function initFormSubmit() {
             }
         }
     });
+}
+
+/**
+ * Initialize image upload and preview functionality
+ */
+function initImageUploadPreview() {
+    const imageInput = document.getElementById('imageFileInput');
+    const browseImageBtn = document.getElementById('browseImageBtn');
+    const imagePreview = document.getElementById('imagePreview');
+    const imagePreviewText = document.getElementById('imagePreviewText');
+
+    if (!imageInput || !browseImageBtn || !imagePreview || !imagePreviewText) {
+        console.error("Image upload elements not found.");
+        return;
+    }
+
+    browseImageBtn.addEventListener('click', () => {
+        imageInput.click();
+    });
+
+    imageInput.addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            // Basic validation (type)
+            if (!file.type.startsWith('image/')) {
+                showMessage('Please select an image file (JPEG, PNG, GIF)', 'warning');
+                this.value = ''; // Clear the input
+                resetImagePreview();
+                return;
+            }
+
+            // Size validation
+            if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                showMessage('Image file is too large (Max 5MB)', 'danger');
+                this.value = ''; // Clear the input
+                resetImagePreview();
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                imagePreview.src = e.target.result;
+                imagePreview.style.display = 'block';
+                imagePreviewText.style.display = 'none';
+            }
+            reader.readAsDataURL(file);
+        } else {
+            resetImagePreview();
+        }
+    });
+}
+
+/**
+ * Reset image preview to its initial state
+ */
+function resetImagePreview() {
+    const imageInput = document.getElementById('imageFileInput');
+    const imagePreview = document.getElementById('imagePreview');
+    const imagePreviewText = document.getElementById('imagePreviewText');
+
+    if (imageInput) imageInput.value = ''; // Clear the file input
+    if (imagePreview) {
+        imagePreview.src = '#';
+        imagePreview.style.display = 'none';
+    }
+    if (imagePreviewText) {
+        imagePreviewText.style.display = 'block';
+    }
 }
 
 /**
@@ -788,21 +872,10 @@ function initializeFormElements() {
     // Initialize form elements
     const fileInput = document.getElementById('musicFileInput');
     const browseBtn = document.getElementById('browseFilesBtn');
-    
+
     if (browseBtn && fileInput) {
-        browseBtn.addEventListener('click', function() {
-            fileInput.click();
-        });
-        
-        fileInput.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const uploadAreaHeading = document.querySelector('.upload-area-inner h5');
-                if (uploadAreaHeading) {
-                    uploadAreaHeading.textContent = file.name;
-                }
-            }
-        });
+        // REMOVED: browseBtn.addEventListener('click', function() { ... });
+        // REMOVED: fileInput.addEventListener('change', function(e) { ... });
     }
 }
 

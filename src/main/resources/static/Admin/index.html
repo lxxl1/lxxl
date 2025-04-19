@@ -154,7 +154,7 @@
                     </div>
                 </div>
 
-                <!-- Search and Filter Section -->
+                <!-- 删除搜索和过滤部分 -->
                 <div class="row mb-4">
                     <div class="col-12">
                         <div class="card fade-in" style="animation-delay: 0.6s;">
@@ -166,73 +166,54 @@
                     </div>
                 </div>
 
-                <!-- Recent Activity Section -->
+                <!-- 替换 Recent Activity 和 Quick Actions 部分 -->
                 <div class="row">
-                    <div class="col-md-8">
+                    <div class="col-12">
                         <div class="card fade-in" style="animation-delay: 0.8s;">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <h5 class="card-title mb-0">Recent Activity</h5>
-                                <button class="btn btn-sm btn-outline-primary">View All</button>
-                            </div>
-                            <div class="card-body">
-                                <div class="list-group list-group-flush">
-                                    <a href="#" class="list-group-item list-group-item-action">
-                                        <div class="d-flex w-100 justify-content-between align-items-center">
-                                            <div>
-                                                <h6 class="mb-1">New music resource uploaded</h6>
-                                                <p class="mb-1">"Summer Vibes" by Artist Name</p>
-                                            </div>
-                                            <div class="text-end">
-                                                <small class="text-muted">3 minutes ago</small>
-                                                <i class="fas fa-chevron-right ms-2"></i>
-                                            </div>
-                                        </div>
-                                    </a>
-                                    <a href="#" class="list-group-item list-group-item-action">
-                                        <div class="d-flex w-100 justify-content-between align-items-center">
-                                            <div>
-                                                <h6 class="mb-1">User registration</h6>
-                                                <p class="mb-1">New user: john.doe@example.com</p>
-                                            </div>
-                                            <div class="text-end">
-                                                <small class="text-muted">15 minutes ago</small>
-                                                <i class="fas fa-chevron-right ms-2"></i>
-                                            </div>
-                                        </div>
-                                    </a>
-                                    <a href="#" class="list-group-item list-group-item-action">
-                                        <div class="d-flex w-100 justify-content-between align-items-center">
-                                            <div>
-                                                <h6 class="mb-1">Resource review completed</h6>
-                                                <p class="mb-1">"Midnight Dreams" by Artist Name</p>
-                                            </div>
-                                            <div class="text-end">
-                                                <small class="text-muted">1 hour ago</small>
-                                                <i class="fas fa-chevron-right ms-2"></i>
-                                            </div>
-                                        </div>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card fade-in" style="animation-delay: 1s;">
-                            <div class="card-header d-flex justify-content-between align-items-center">
+                            <div class="card-header">
                                 <h5 class="card-title mb-0">Quick Actions</h5>
-                                <button class="btn btn-sm btn-outline-primary">More</button>
                             </div>
                             <div class="card-body">
-                                <div class="d-grid gap-2">
-                                    <button class="btn btn-primary" onclick="window.location.href='songManagement.html'">
-                                        <i class="fas fa-plus"></i> Add New Song
-                                    </button>
-                                    <button class="btn btn-success" onclick="window.location.href='users.html'">
-                                        <i class="fas fa-user-plus"></i> Add New User
-                                    </button>
-                                    <button class="btn btn-info">
-                                        <i class="fas fa-chart-bar"></i> View Reports
-                                    </button>
+                                <div class="row g-4">
+                                    <!-- 用户管理按钮 -->
+                                    <div class="col-md-3 col-sm-6">
+                                        <div class="d-grid">
+                                            <a href="users.html" class="btn btn-primary btn-lg">
+                                                <i class="fas fa-users fa-2x mb-2"></i>
+                                                <p class="mb-0">User Management</p>
+                                            </a>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 歌曲管理按钮 -->
+                                    <div class="col-md-3 col-sm-6">
+                                        <div class="d-grid">
+                                            <a href="songManagement.html" class="btn btn-success btn-lg">
+                                                <i class="fas fa-music fa-2x mb-2"></i>
+                                                <p class="mb-0">Song Management</p>
+                                            </a>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 歌手管理按钮 -->
+                                    <div class="col-md-3 col-sm-6">
+                                        <div class="d-grid">
+                                            <a href="singerManagement.html" class="btn btn-info btn-lg">
+                                                <i class="fas fa-microphone-alt fa-2x mb-2"></i>
+                                                <p class="mb-0">Artist Management</p>
+                                            </a>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 分类管理按钮 -->
+                                    <div class="col-md-3 col-sm-6">
+                                        <div class="d-grid">
+                                            <a href="categoryManagement.html" class="btn btn-warning btn-lg">
+                                                <i class="fas fa-tags fa-2x mb-2"></i>
+                                                <p class="mb-0">Category Management</p>
+                                            </a>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

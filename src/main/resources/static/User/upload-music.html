@@ -203,6 +203,23 @@
                                     </div>
                                 </div>
 
+                                <!-- NEW: Image Upload Section -->
+                                <div class="form-group mt-3">
+                                    <label for="imageFileInput">Cover Image (Optional)</label>
+                                    <div class="d-flex align-items-center">
+                                        <div id="imagePreviewContainer" class="me-3 border rounded" style="width: 100px; height: 100px; background-color: #f8f9fa; background-size: cover; background-position: center; display: flex; justify-content: center; align-items: center;">
+                                            <span id="imagePreviewText" class="text-muted small">Preview</span>
+                                            <img id="imagePreview" src="#" alt="Image Preview" style="max-width: 100%; max-height: 100%; display: none;"/>
+                                        </div>
+                                        <div>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" id="browseImageBtn">Browse Image</button>
+                                            <input type="file" class="d-none" id="imageFileInput" accept="image/jpeg, image/png, image/gif">
+                                            <small class="form-text text-muted d-block mt-1">Recommended: Square image (JPEG, PNG, GIF). Max 5MB.</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- END: Image Upload Section -->
+
                                 <div class="form-group mt-3">
                                     <label for="categoryPillsContainer">Categories *</label>
                                     <div id="categoryPillsContainer" class="d-flex flex-wrap gap-2 mb-2 p-2 border rounded" style="min-height: 40px;">

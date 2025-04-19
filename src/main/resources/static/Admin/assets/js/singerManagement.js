@@ -97,6 +97,7 @@ function initializeDataTable() {
             info: "Showing _START_ to _END_ of _TOTAL_ artists",
             infoEmpty: "Showing 0 artists",
             infoFiltered: "(filtered from _MAX_ total artists)",
+            processing: "Processing...",
             paginate: {
                 first: "First",
                 last: "Last",
@@ -247,7 +248,7 @@ async function handleAddSinger() {
     }
 
     $('#submitAddSinger').prop('disabled', true);
-    showToast('Adding artist details (picture needs to be added separately)...', 'info');
+    showToast('Adding artist details (picture can be added/updated separately)...', 'info');
 
     // Convert data to x-www-form-urlencoded format
     const params = new URLSearchParams();
@@ -274,7 +275,7 @@ async function handleAddSinger() {
         console.log("Add artist response:", addResponse); // Log the response
 
         if (addResponse && addResponse.data && (addResponse.data.code === '200' || addResponse.data.code === 200)) {
-            showToast('Artist added successfully! You can now upload a picture.', 'success');
+            showToast('Artist added successfully! Use the Edit/Update Picture buttons to manage the image.', 'success');
             $('#addSingerModal').modal('hide');
             form.reset();
             $('#addPicPreview').hide();

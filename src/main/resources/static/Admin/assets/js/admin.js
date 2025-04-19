@@ -198,7 +198,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 close: true,
                 gravity: "top",
                 position: "right", 
-                backgroundColor: type === 'success' ? "linear-gradient(to right, #00b09b, #96c93d)" : "linear-gradient(to right, #ff5f6d, #ffc371)",
+                // Use style.background for modern Toastify versions
+                style: {
+                    background: type === 'success' ? "linear-gradient(to right, #00b09b, #96c93d)" : "linear-gradient(to right, #ff5f6d, #ffc371)"
+                },
                 stopOnFocus: true,
             }).showToast();
         } catch (e) {
@@ -248,29 +251,42 @@ document.addEventListener('DOMContentLoaded', function() {
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', function(e) {
-            e.preventDefault(); 
-            console.log('Logout button clicked.');
-            localStorage.removeItem('user');
-            localStorage.removeItem('token');
-            localStorage.removeItem('role'); 
-            showToast('Logout successful. Redirecting...', 'success'); // Use toast
-            setTimeout(() => {
-                window.location.href = '../login.html'; 
-            }, 1500); 
+            e.preventDefault(); // Prevent default link behavior if it's an <a> tag
+            console.log("Logout button clicked.");
+            // Add confirmation dialog
+            if (confirm("Are you sure you want to logout?")) {
+                // Clear local storage
+                localStorage.removeItem('user');
+                localStorage.removeItem('token');
+                localStorage.removeItem('role');
+                localStorage.removeItem('adminName'); // Clear admin specific data too
+                // Optionally clear other relevant storage items
+                localStorage.removeItem('totalUsersCount');
+                localStorage.removeItem('totalSongsCount');
+                localStorage.removeItem('pendingReviewsCount');
+                
+                console.log("Local storage cleared.");
+                
+                // Redirect to login page
+                showToast("Logging out...", 'info'); // Use local showToast
+                setTimeout(() => {
+                    window.location.href = '../login.html'; // Relative path from Admin folder
+                }, 1000); // Short delay for toast visibility
+            } else {
+                console.log("Logout cancelled by user.");
+            }
         });
     } else {
-        console.warn("Logout button ('#logoutBtn') not found.");
+        console.warn("Logout button (#logoutBtn) not found.");
     }
 
-    // --- Make utilities globally available --- 
-    // Avoid polluting global scope if possible, consider modules or a single global object
-    window.musicAdminApp = window.musicAdminApp || {};
-    window.musicAdminApp.api = api;
-    window.musicAdminApp.showToast = showToast;
-    window.musicAdminApp.handleApiError = handleApiError;
-    // window.API_BASE_URL is likely already global via config.js
-    // Expose counting functions globally
-    window.musicAdminApp.fetchAndCountUsers = fetchAndCountUsers;
-    window.musicAdminApp.fetchAndCountSongs = fetchAndCountSongs;
+    // --- Export functions for potential use by other admin scripts ---
+    // Allows calling fetchAndCountUsers() from users.js after adding/deleting
+    window.musicAdminApp = {
+        fetchAndCountUsers: fetchAndCountUsers,
+        fetchAndCountSongs: fetchAndCountSongs,
+        showToast: showToast, // Expose toast function
+        handleApiError: handleApiError // Expose error handler
+    };
 
 }); 

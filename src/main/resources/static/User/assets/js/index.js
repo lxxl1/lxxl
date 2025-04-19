@@ -107,14 +107,18 @@ async function loadCurrentUserSongs() {
     }
 
     try {
-        // Use the same endpoint as my-music.js
+        // Use the same endpoint as my-music.js, but request a large page size
         const response = await api.get('/song/selectbyuser', { 
-            params: { userId: currentUserId }
+            params: { 
+                userId: currentUserId,
+                pageNum: 1,       // Explicitly set page 1
+                pageSize: 999     // Request a large number to get all songs
+            }
         });
         if (response.data && response.data.code === '200' && response.data.data) {
             // Correctly extract the list from the paginated response
             currentUserSongsData = response.data.data && response.data.data.list ? response.data.data.list : [];
-            console.log('Loaded current user songs:', currentUserSongsData);
+            console.log(`Loaded ${currentUserSongsData.length} songs for current user ID: ${currentUserId}`);
             // Update stats and render user music section *after* user songs are loaded
             updateStatistics(); 
             renderMyApprovedMusic();
