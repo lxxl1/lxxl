@@ -74,5 +74,24 @@ public class TokenUtils {
         }
         return new Account();  // 返回空的账号对象
     }
+    
+    /**
+     * 从请求中获取用户ID
+     * @param request HTTP请求
+     * @return 用户ID，如果获取失败返回null
+     */
+    public static Integer getUserIdByRequest(HttpServletRequest request) {
+        try {
+            String token = request.getHeader(Constants.TOKEN);
+            if (ObjectUtil.isNotEmpty(token)) {
+                String userRole = JWT.decode(token).getAudience().get(0);
+                String userId = userRole.split("-")[0];  // 获取用户id
+                return Integer.valueOf(userId);
+            }
+        } catch (Exception e) {
+            log.error("从请求中获取用户ID出错", e);
+        }
+        return null;
+    }
 }
 

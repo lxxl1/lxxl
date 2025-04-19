@@ -304,12 +304,13 @@ public class UserServiceImpl implements UserService {
      * 更新用户头像
      *
      * @param avatarFile 上传的头像文件
+     * @param userId 用户ID 
      * @return 更新后的头像URL
      * @throws IOException 文件上传或处理时可能发生IO异常
      */
     @Override
     @Transactional // Add transaction management
-    public String updateAvatar(MultipartFile avatarFile) throws IOException {
+    public String updateAvatar(MultipartFile avatarFile, Integer userId) throws IOException {
         // 1. Validate the uploaded file
         if (avatarFile == null || avatarFile.isEmpty()) {
             throw new CustomException(ResultCodeEnum.PARAM_ERROR.code, "上传的头像文件不能为空");
@@ -326,13 +327,11 @@ public class UserServiceImpl implements UserService {
             throw new CustomException(ResultCodeEnum.PARAM_ERROR.code, "头像文件大小不能超过5MB");
         }
 
-        // 2. Get current user ID (Replace with your actual logic)
-        // Example using TokenUtils (assuming it stores user info in thread local)
-        Account currentUser = TokenUtils.getCurrentUser();
-        if (currentUser == null || !(currentUser instanceof User)) {
-            throw new CustomException(ResultCodeEnum.TOKEN_INVALID_ERROR.code, "用户未登录或认证信息无效");
+        // 2. Check if user exists
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new CustomException(ResultCodeEnum.USER_NOT_EXIST_ERROR.code, "用户不存在");
         }
-        Integer userId = ((User) currentUser).getId();
 
         // 3. Upload file to OSS
         String folderPath = "avatar/"; // Define the folder in OSS for avatars

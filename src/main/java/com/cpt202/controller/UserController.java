@@ -9,6 +9,7 @@ import com.github.pagehelper.PageInfo;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import com.cpt202.domain.User;
+import com.cpt202.utils.TokenUtils;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
@@ -145,9 +146,16 @@ public class UserController {
      * @return Result object containing the new avatar URL or error
      */
     @PostMapping("/updateAvatar")
-    public Result updateAvatar(@RequestParam("avatarFile") MultipartFile avatarFile) {
+    public Result updateAvatar(@RequestParam("avatarFile") MultipartFile avatarFile,
+                              HttpServletRequest request) {
         try {
-            String newAvatarUrl = userService.updateAvatar(avatarFile);
+            // 获取当前用户ID (从请求中或token中)
+            Integer userId = TokenUtils.getUserIdByRequest(request);
+            if (userId == null) {
+                return Result.error(ResultCodeEnum.TOKEN_INVALID_ERROR.code, "用户未登录或认证信息无效");
+            }
+            
+            String newAvatarUrl = userService.updateAvatar(avatarFile, userId);
             return Result.success(newAvatarUrl); // Return the new URL in the data field
         } catch (CustomException e) {
             // Log the custom exception maybe
