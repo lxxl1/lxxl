@@ -115,4 +115,10 @@
         where username = #{username}
     </select>
 
+    <update id="updateUrl">
+        UPDATE user 
+        SET avatar = #{url}
+        WHERE id = #{id}
+    </update>
+
 </mapper>

@@ -64,8 +64,9 @@ public interface UserService {
      * 更新用户头像
      *
      * @param avatarFile 上传的头像文件
+     * @param userId 用户ID
      * @return 更新后的头像URL
      * @throws IOException 文件上传或处理时可能发生IO异常
      */
-    String updateAvatar(MultipartFile avatarFile) throws IOException;
+    String updateAvatar(MultipartFile avatarFile, Integer userId) throws IOException;
 }
