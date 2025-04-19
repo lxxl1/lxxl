@@ -3,13 +3,13 @@ package com.cpt202.common;
 public enum ErrorCode {
 
     SUCCESS(0, "ok", ""),
-    PARAMS_ERROR(40000, "请求参数错误", ""),
-    NULL_ERROR(40001, "请求数据为空", ""),
-    NOT_LOGIN(40100, "未登录", ""),
-    NO_AUTH(40101, "无权限", ""),
-    SYSTEM_ERROR(50000, "系统内部异常", "")
-    ,UPLOAD_ERROR(50001,"文件上传失败" ,"" ),
-    CODE_ERROR(40002,"验证码错误","");
+    PARAMS_ERROR(40000, "Invalid Request Parameters", ""),
+    NULL_ERROR(40001, "Request Data is Null", ""),
+    NOT_LOGIN(40100, "Not Logged In", ""),
+    NO_AUTH(40101, "No Authorization", ""),
+    SYSTEM_ERROR(50000, "System Internal Error", "")
+    ,UPLOAD_ERROR(50001,"File Upload Failed" ,"" ),
+    CODE_ERROR(40002,"Verification Code Error","");
 
     private final int code;
 

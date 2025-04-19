@@ -4,8 +4,10 @@ public interface Constants {
 
     String TOKEN = "token";
 
-    String AUTHORIZATION = "authorization";
+    String AUTHORIZATION = "Authorization";
 
-    String USER_DEFAULT_PASSWORD = "123456";
+    String USER_DEFAULT_PASSWORD = "password";
+
+    String USER_ID_ATTRIBUTE = "userId";
 
 }

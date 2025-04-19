@@ -45,7 +45,7 @@ public class SongListController {
         if(flag){
             return Result.success();
         }
-        return Result.failure("添加失败");
+        return Result.failure("Failed to add");
     }
 
     /**
@@ -67,7 +67,7 @@ public class SongListController {
         if(flag){
             return Result.success();
         }
-        return Result.failure("修改失败");
+        return Result.failure("Failed to update");
     }
 
     /**
@@ -80,7 +80,7 @@ public class SongListController {
         if(flag){
             return Result.success();
         }
-        return Result.failure("删除失败");
+        return Result.failure("Failed to delete");
     }
 
     /**
@@ -133,7 +133,7 @@ public class SongListController {
     @RequestMapping(value = "/updateSongListPic",method = RequestMethod.POST)
     public Result updateSongListPic(@RequestParam("file") MultipartFile avatorFile, @RequestParam("id")int id){
         if(avatorFile.isEmpty()){
-            return Result.failure("文件上传失败");
+            return Result.failure("File upload failed");
         }
         //文件名=当前时间到毫秒+原来的文件名
         String fileName = System.currentTimeMillis()+avatorFile.getOriginalFilename();
@@ -158,9 +158,9 @@ public class SongListController {
             if(flag){
                 return Result.success(storeAvatorPath);
             }
-            return Result.failure("上传失败");
+            return Result.failure("Upload failed");
         } catch (IOException e) {
-            return Result.failure("上传失败: " + e.getMessage());
+            return Result.failure("Upload failed: " + e.getMessage());
         }
     }
 }

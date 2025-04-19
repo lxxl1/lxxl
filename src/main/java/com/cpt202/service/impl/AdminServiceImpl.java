@@ -138,7 +138,7 @@ public class AdminServiceImpl implements AdminService {
         String validPattern = "[`~!@#$%^&*()+=|{}':;',\\\\[\\\\].<>/?~！@#￥%……&*（）——+|{}【】'；：'。，、？]";
         Matcher matcher = Pattern.compile(validPattern).matcher(account.getUsername());
         if (matcher.find()) {
-            throw new CustomException("4000", "用户名包含非法字符");
+            throw new CustomException(ResultCodeEnum.ACCOUNT_INVALID_CHARACTER_ERROR);
         }
 
         // 生成token
@@ -160,24 +160,21 @@ public class AdminServiceImpl implements AdminService {
 
         String avatar = account.getAvatar();
 
-
-
-
         if (StringUtils.isAnyBlank(username,password)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
+            throw new CustomException(ResultCodeEnum.PARAM_NULL_ERROR);
         }
         if (account.getUsername().length() < 4) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户账号过短");
+            throw new CustomException(ResultCodeEnum.USERNAME_TOO_SHORT_ERROR);
         }
         if (account.getPassword().length() < 8 ) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户密码过短");
+            throw new CustomException(ResultCodeEnum.PASSWORD_TOO_SHORT_ERROR);
         }
 
         // 账户不能包含特殊字符
         String validPattern = "[`~!@#$%^&*()+=|{}':;',\\\\[\\\\].<>/?~！@#￥%……&*（）——+|{}【】'；：'。，、？]";
         Matcher matcher = Pattern.compile(validPattern).matcher(username);
         if (matcher.find()) {
-            return -1L;
+            throw new CustomException(ResultCodeEnum.ACCOUNT_INVALID_CHARACTER_ERROR);
         }
 
         // 账户不能重复
@@ -185,7 +182,7 @@ public class AdminServiceImpl implements AdminService {
         queryWrapper.eq("userName", username);
         long count = adminMapper.selectCount(queryWrapper);
         if (count > 0) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号重复");
+            throw new CustomException(ResultCodeEnum.ACCOUNT_ALREADY_EXIST_ERROR);
         }
         // 2. 加密
         String encryptPassword = DigestUtils.md5DigestAsHex((SALT + password).getBytes());
@@ -199,7 +196,7 @@ public class AdminServiceImpl implements AdminService {
         admin.setPhone(account.getPhone());
         int saveResult = adminMapper.insert(admin);
         if (saveResult == 0) {
-            return -1L;
+            throw new CustomException(ResultCodeEnum.SYSTEM_ERROR);
         }
         return 1L;
     }

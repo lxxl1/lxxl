@@ -1,6 +1,67 @@
 import { API_URL } from '../../../Common/js/config.js';
 import api from '../../../Common/js/api.js';
 
+// Utility function to escape HTML
+function escapeHTML(str) {
+    if (!str) return '';
+    return str.replace(/[&<>"'/]/g, function (s) {
+        const entityMap = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;',
+            '/': '&#x2F;'
+        };
+        return entityMap[s];
+    });
+}
+
+// Show toast notification
+function showToast(message, type = 'info') {
+    // Check if Toastify is available
+    if (typeof Toastify === 'function') {
+        let backgroundColor;
+        let icon = 'info-circle';
+        
+        switch(type) {
+            case 'success':
+                backgroundColor = '#4caf50';
+                icon = 'check-circle';
+                break;
+            case 'error':
+                backgroundColor = '#f44336';
+                icon = 'exclamation-circle';
+                break;
+            case 'warning':
+                backgroundColor = '#ff9800';
+                icon = 'exclamation-triangle';
+                break;
+            default:
+                backgroundColor = '#2196f3';
+        }
+        
+        Toastify({
+            text: message,
+            duration: 3000,
+            close: true,
+            gravity: 'top',
+            position: 'right',
+            backgroundColor: backgroundColor,
+            stopOnFocus: true,
+            onClick: function(){}
+        }).showToast();
+    } 
+    // Fallback to alert if Toastify is not available
+    else {
+        console.log(`${type.toUpperCase()}: ${message}`);
+        // Only show alert for errors to avoid too many popups
+        if (type === 'error') {
+            alert(message);
+        }
+    }
+}
+
 // Initialize DataTable and statistics
 let usersTable;
 let selectedUsers = [];
@@ -86,8 +147,8 @@ function initializeDataTable() {
             { 
                 data: 'username',
                 render: function(data, type, row) {
-                    // Use default avatar if 'avator' is missing or empty
-                    const avatarUrl = row.avator || '../../../Common/assets/images/default-avatar.png'; // Adjust path if needed
+                    // Use default avatar if 'avatar' is missing or empty
+                    const avatarUrl = row.avatar || '../Admin/assets/images/default-artist.png'; // Use 'avatar' field
                     return `<div class="d-flex align-items-center">
                         <img src="${avatarUrl}" alt="Avatar" class="user-avatar rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
                         <div class="user-info">
@@ -568,19 +629,19 @@ async function getUserByUsername(username) {
  */
 async function updateUser(userData) {
     try {
+        // This function now only handles updating user text data
         const response = await api.post('/user/update', userData);
         
         if (response.data.code === '200') {
-            showAlert('User updated successfully!', 'success');
-            loadUsers(); // Reload the table
+            // Don't reload here, let the calling function (saveUser) handle it after potential avatar upload
             return true;
         } else {
-            showAlert('Error updating user: ' + response.data.msg, 'danger');
+            showAlert('Error updating user info: ' + response.data.msg, 'danger');
             return false;
         }
     } catch (error) {
-        console.error('Error updating user:', error);
-        showAlert('Failed to update user. Please try again.', 'danger');
+        console.error('Error updating user info:', error);
+        showAlert('Failed to update user info. Please try again.', 'danger');
         return false;
     }
 }
@@ -692,6 +753,12 @@ function setupEventListeners() {
         addUserButton.addEventListener('click', function() {
             openAddUserModal();
         });
+    }
+    
+    // Save user button (in modal)
+    const saveUserBtn = document.getElementById('saveUserBtn');
+    if (saveUserBtn) {
+        saveUserBtn.addEventListener('click', handleSaveUser);
     }
     
     // Status filter dropdown change
@@ -811,14 +878,22 @@ function showAlert(message, type = 'info', duration = 3000) {
  */
 function openAddUserModal() {
     // Translate modal title
-    $('#userModalLabel').text('Add New User'); 
+    $('#userModalLabel').text('Add New User');
     $('#userForm')[0].reset();
     $('#userId').val(''); // Ensure ID is cleared
     $('#username').prop('readonly', false); // Allow username editing for add
     $('#password').prop('required', true); // Password required for add
     $('#passwordHelp').show(); // Show password help text
+    
+    // Set defaults for Add User
+    $('#role').val('USER').prop('disabled', true); // Default role to USER and disable editing for add
+    $('#status').val('0'); // Default status to Active (0)
+
     // Translate image preview text
-    resetImagePreview('userAvatarPreview', 'avatarPreviewText', 'Add User');
+    resetImagePreview('userAvatarPreview', 'avatarPreviewText');
+    // **Hide avatar upload section when adding**
+    $('#avatarUploadGroup').hide(); 
+
     const modal = new bootstrap.Modal(document.getElementById('userModal'));
     modal.show();
 }
@@ -829,31 +904,29 @@ function openAddUserModal() {
 function openEditUserModal(user) {
     if (!user) return;
     // Translate modal title
-    $('#userModalLabel').text('Edit User Information'); 
+    $('#userModalLabel').text('Edit User Information');
     $('#userForm')[0].reset();
-    
+    $('#role').prop('disabled', false); // Ensure role is enabled for editing
+
     // Populate form fields
     $('#userId').val(user.id);
     $('#username').val(user.username).prop('readonly', true); // Usually cannot edit username
     $('#name').val(user.name);
-    $('#birth').val(user.birth ? user.birth.split('T')[0] : ''); // Format date YYYY-MM-DD
-    $('#sex').val(user.sex);
     $('#email').val(user.email);
-    $('#phoneNum').val(user.phoneNum);
-    $('#location').val(user.location);
-    $('#introduction').val(user.introduction);
     $('#role').val(user.role);
-    $('#status').val(user.status); 
-    
+    $('#status').val(user.status);
+
     // Password is not editable directly, only via reset/change password functionality
     $('#password').prop('required', false).val(''); // Clear password, make not required for edit
     $('#passwordHelp').hide(); // Hide password help text
-    
-    // Set image preview
-    const avatarUrl = user.avator || '../../../Common/assets/images/default-avatar.png';
+
+    // Set image preview - Use 'avatar' field
+    const avatarUrl = user.avatar || '../Admin/assets/images/default-artist.png';
     // Translate image preview text
-    setImagePreview('userAvatarPreview', 'avatarPreviewText', avatarUrl, 'Edit User');
-    
+    setImagePreview('userAvatarPreview', 'avatarPreviewText', avatarUrl);
+    // **Show avatar upload section when editing**
+    $('#avatarUploadGroup').show();
+
     const modal = new bootstrap.Modal(document.getElementById('userModal'));
     modal.show();
 }
@@ -920,17 +993,8 @@ async function confirmAndUpdateStatus(userId, currentStatus) {
     if (confirm(`Are you sure you want to ${actionText} this user (ID: ${userId})?`)) {
         // Translate toast message
         showToast(`Updating user status...`, 'info');
-        try {
-            // Assuming updateUser can handle status updates
-            // Backend needs to handle the status change logic
-            const response = await updateUser({ id: userId, status: newStatus });
-            // Translate success toast
-            showToast('User status updated successfully!', 'success');
-            loadUsers(); // Refresh the table
-        } catch (error) {
-            // Error handled by updateUser or global handler
-            console.error("Status update confirmation error:", error);
-        }
+        // Call the dedicated status update function
+        await updateUserStatus(userId, newStatus); 
     }
 }
 
@@ -1135,5 +1199,213 @@ function updateBulkActionButtons() {
         }
     } else if (actionsExist) {
         actionsExist.remove();
+    }
+}
+
+/**
+ * Set image preview for the user modal
+ */
+function setImagePreview(previewElementId, textElementId, imageUrl, context = 'User') {
+    const imagePreview = document.getElementById(previewElementId);
+    const imagePreviewText = document.getElementById(textElementId);
+
+    if (!imagePreview || !imagePreviewText) {
+        console.warn(`[${context} Modal] Image preview elements (#${previewElementId} or #${textElementId}) not found.`);
+        return;
+    }
+
+    if (imageUrl) {
+        imagePreview.src = imageUrl;
+        imagePreview.style.display = 'block';
+        imagePreviewText.style.display = 'none';
+    } else {
+        // If no URL, reset to default state
+        resetImagePreview(previewElementId, textElementId, context);
+    }
+}
+
+/**
+ * Reset image preview for the user modal to its initial state
+ */
+function resetImagePreview(previewElementId, textElementId, context = 'User') {
+    const imageInput = document.getElementById('userAvatarFile'); // Assuming this ID for file input
+    const imagePreview = document.getElementById(previewElementId);
+    const imagePreviewText = document.getElementById(textElementId);
+
+    if (imageInput) imageInput.value = ''; // Clear the file input
+    if (imagePreview) {
+        imagePreview.src = '#'; // Use # or a transparent gif
+        imagePreview.style.display = 'none';
+    }
+    if (imagePreviewText) {
+        imagePreviewText.textContent = 'No image'; // Reset text
+        imagePreviewText.style.display = 'block';
+    }
+}
+
+/**
+ * Update user status via dedicated endpoint
+ */
+async function updateUserStatus(id, newStatus) {
+    try {
+        const response = await api.post(`/user/status/${id}?status=${newStatus}`); 
+        if (response.data.code === '200') {
+            // Use backend message if available, otherwise default
+            showToast(response.data.msg || 'User status updated successfully!', 'success'); 
+            loadUsers(); // Reload table
+            return true;
+        } else {
+            showToast('Error updating status: ' + response.data.msg, 'error');
+            return false;
+        }
+    } catch (error) {
+        console.error('Error updating status:', error);
+        showToast('Failed to update status. Please try again.', 'error');
+        return false;
+    }
+}
+
+/**
+ * Upload user avatar
+ */
+async function uploadUserAvatar(formData) {
+    try {
+        // 1. Get token from localStorage before making the call
+        const token = localStorage.getItem('token');
+        if (!token) {
+            console.error('Authentication token not found in localStorage.');
+            showAlert('Authentication failed. Please log in again.', 'danger');
+            // Optionally redirect to login
+            // window.location.href = '../login.html'; 
+            return false;
+        }
+
+        const response = await api.post('/user/updateAvatar', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+                // 2. Add the Authorization header (adjust based on your token prefix if any, e.g., 'Bearer ')
+                'Authorization': token // Assuming your interceptor expects just the token
+            }
+        });
+        if (response.data.code === '200') {
+            // Success message can be shown by the caller (saveUser)
+            return true;
+        } else {
+            showAlert('Error uploading avatar: ' + response.data.msg, 'danger');
+            return false;
+        }
+    } catch (error) {
+        console.error('Error uploading avatar:', error);
+        showAlert('Failed to upload avatar. Please try again.', 'danger');
+        return false;
+    }
+}
+
+/**
+ * Handle saving user (Add or Edit) including avatar upload
+ */
+async function handleSaveUser() {
+    const form = document.getElementById('userForm');
+    // Basic form validation (can be enhanced)
+    if (!form.checkValidity()) {
+        form.classList.add('was-validated');
+        showAlert('Please fill in all required fields.', 'warning');
+        return;
+    }
+
+    showToast('Saving user...', 'info');
+
+    const userId = $('#userId').val();
+    const isEdit = !!userId;
+
+    // 1. Prepare user data (excluding file)
+    const userData = {
+        id: isEdit ? parseInt(userId) : null,
+        username: $('#username').val(),
+        name: $('#name').val(),
+        email: $('#email').val(),
+        role: isEdit ? $('#role').val() : 'USER', // Use selected role for edit, force USER for add
+        status: parseInt($('#status').val()), // Use selected status
+        // Do NOT include password if editing and field is empty
+        password: (isEdit && !$('#password').val()) ? null : $('#password').val() 
+    };
+
+    // If adding, ensure status is set (should be defaulted, but double-check)
+    if (!isEdit) {
+        userData.status = userData.status || 0; // Default to 0 if somehow not set
+    }
+
+    try {
+        let success = false;
+        let savedUserId = isEdit ? userData.id : null;
+
+        // 2. Save basic user data
+        if (isEdit) {
+            success = await updateUser(userData);
+            } else {
+            const addResponse = await api.post('/user/add', userData);
+            if (addResponse.data.code === '200') {
+                success = true;
+                // Assuming the backend returns the new user's ID or the full user object
+                // Adjust based on actual backend response structure if needed
+                savedUserId = addResponse.data.data?.id || addResponse.data.data; // Example: get ID if nested
+                if (!savedUserId) {
+                     console.warn("Could not determine saved user ID from response:", addResponse.data);
+                     // Attempt to get user by username as fallback (might be slow)
+                     const newUser = await getUserByUsername(userData.username);
+                     savedUserId = newUser?.id;
+                }
+            } else {
+                showAlert('Error adding user: ' + addResponse.data.msg, 'danger');
+                success = false;
+            }
+        }
+
+        // 3. Upload avatar ONLY if EDITING and a file is selected
+        const avatarFile = document.getElementById('userAvatarFile').files[0];
+        if (success && isEdit && avatarFile && savedUserId) {
+             showToast('Uploading avatar...', 'info');
+             const formData = new FormData();
+             formData.append('avatarFile', avatarFile);
+             
+             // Always send the targetUserId when uploading via admin panel (during edit)
+             formData.append('targetUserId', savedUserId);
+             console.log(`Admin editing user: Appending targetUserId=${savedUserId} to avatar upload.`);
+             
+             const avatarSuccess = await uploadUserAvatar(formData);
+             if (!avatarSuccess) {
+                 // Avatar failed, but user data might be saved. Inform the user.
+                 showAlert('User data saved, but avatar upload failed.', 'warning');
+                 // Decide if you want to proceed or treat as overall failure
+                 success = false; // Treat as overall failure if avatar is critical
+             }
+        } else if (success && !isEdit && avatarFile) {
+            // *** New Block: User added successfully, but avatar was selected. Inform admin to edit. ***
+            console.log("User added, but avatar upload skipped during add flow. Admin needs to edit.");
+            showToast("User added. Please edit the user to upload the avatar.", "info"); // Inform admin
+            // We still consider the overall operation successful as the user was added.
+        } else if (success && !avatarFile && isEdit) {
+            // No new avatar selected during edit, which is fine.
+        } else if (success && !avatarFile && !isEdit) {
+            // No avatar selected during add, which is fine.
+        }
+
+        // 4. Finalize
+        if (success) {
+            showToast(isEdit ? 'User updated successfully!' : 'User added successfully!', 'success');
+            $('#userModal').modal('hide'); // Close the modal
+            loadUsers(); // Reload the table
+        } else {
+             // Specific errors shown by called functions (addUser, updateUser, uploadUserAvatar)
+             // Optionally show a generic failure message here if needed
+             // showToast('Failed to save user.', 'error'); 
+        }
+
+    } catch (error) {
+        console.error('Error saving user:', error);
+        showAlert('An unexpected error occurred while saving the user.', 'danger');
+    } finally {
+         // Remove validation class if added
+         form.classList.remove('was-validated');
     }
 }

@@ -127,6 +127,11 @@ public class JwtInterceptor implements HandlerInterceptor {
             }
         }
         
+        // --- Store verified userId in request attributes --- 
+        Integer verifiedUserId = account.getId(); // Get ID from the account object already fetched
+        request.setAttribute(Constants.USER_ID_ATTRIBUTE, verifiedUserId);
+        log.debug("Stored verified user ID {} in request attribute", verifiedUserId);
+
         // --- Add Admin Role Check for Admin Paths Start ---
         if (requestURI.startsWith("/admin/") || requestURI.startsWith("/Admin/")) {
             if (!RoleEnum.ADMIN.name().equals(role)) { // Check the extracted role

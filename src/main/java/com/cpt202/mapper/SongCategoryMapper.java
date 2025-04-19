@@ -34,4 +34,12 @@ public interface SongCategoryMapper {
      * 查询类别下的所有歌曲ID
      */
     List<Integer> selectSongIdsByCategoryId(@Param("categoryId") Integer categoryId);
+
+    /**
+     * 批量插入歌曲类别关联
+     * @param songId 歌曲ID
+     * @param categoryIds 类别ID列表
+     * @return 影响行数
+     */
+    int insertBatch(@Param("songId") Integer songId, @Param("categoryIds") List<Integer> categoryIds);
 } 

@@ -70,7 +70,7 @@ public class SongController {
 
             // 检查音乐文件是否为空
             if (mpFile == null || mpFile.isEmpty()) {
-                return Result.failure("歌曲文件不能为空");
+                return Result.failure("Song file cannot be empty");
             }
 
             // Upload image file to OSS if present
@@ -98,7 +98,7 @@ public class SongController {
             // 上传音乐文件到OSS
             String musicUrl = ossUtil.uploadFile(mpFile, "song/");
             if (musicUrl == null) {
-                return Result.failure("歌曲文件上传失败");
+                return Result.failure("Song file upload failed");
             }
 
             // 如果有MV文件，上传MV文件到OSS
@@ -122,7 +122,7 @@ public class SongController {
                              .collect(Collectors.toList());
                  } catch (NumberFormatException e) {
                      log.warn("Invalid singer IDs format: {}. Input: {}", e.getMessage(), singerIdsParam);
-                     return Result.failure("歌手ID格式错误");
+                     return Result.failure("Invalid singer ID format");
                  }
             }
              if (CollectionUtils.isEmpty(singerIdList)) {
@@ -142,13 +142,13 @@ public class SongController {
             // 1. 保存歌曲信息和歌手关联 (Call updated service method)
             boolean songInsertSuccess = songService.insert(song, singerIdList);
             if (!songInsertSuccess) {
-                return Result.failure("歌曲信息保存失败或歌手关联失败");
+                return Result.failure("Failed to save song info or associate singers");
             }
 
             Integer newSongId = song.getId();
             if (newSongId == null) {
                  log.error("Error: Failed to retrieve generated song ID after insert service call for song: {}", name);
-                 return Result.failure("无法获取新歌曲ID，后续关联失败");
+                 return Result.failure("Failed to get new song ID, subsequent associations failed");
             }
             log.info("Successfully processed song insertion '{}' with ID: {}", name, newSongId);
 
@@ -193,17 +193,17 @@ public class SongController {
                  tagService.addSongTags(newSongId, Collections.emptyList());
              }
 
-            return Result.success("歌曲添加成功并已处理关联。URL: " + musicUrl);
+            return Result.success("Song added and associations processed successfully. URL: " + musicUrl);
 
         } catch (NumberFormatException e) {
              log.error("Error parsing number in addSong: {}", e.getMessage());
-             return Result.failure("用户ID、类别ID或标签ID格式错误");
+             return Result.failure("Invalid format for User ID, Category ID, or Tag ID");
         } catch (IOException e) {
             log.error("IO Error during music file upload in addSong", e);
-            return Result.failure("音乐文件上传过程中发生IO错误: " + e.getMessage());
+            return Result.failure("IO error occurred during music file upload: " + e.getMessage());
         } catch (Exception e) {
             log.error("Unknown error in addSong", e);
-            return Result.failure("添加歌曲时发生未知错误: " + e.getMessage());
+            return Result.failure("Unknown error occurred while adding song: " + e.getMessage());
         }
     }
 
@@ -214,19 +214,18 @@ public class SongController {
     public Result getSongsBySingerId(HttpServletRequest request){
         String singerIdStr = request.getParameter("singerId");
         if (!StringUtils.hasText(singerIdStr)) {
-            return Result.failure("歌手ID不能为空");
+            return Result.failure("Singer ID cannot be empty");
         }
         try {
              Integer singerId = Integer.parseInt(singerIdStr.trim());
-             // Call the new service method
              List<Song> songs = songService.getSongsBySingerId(singerId);
              return Result.success(songs);
         } catch (NumberFormatException e) {
              log.error("Invalid singerId format: {}", singerIdStr);
-             return Result.failure("歌手ID格式错误");
+             return Result.failure("Invalid singer ID format");
         } catch (Exception e) {
             log.error("Error fetching songs by singer ID: {}", singerIdStr, e);
-            return Result.failure("查询歌手歌曲失败");
+            return Result.failure("Failed to query singer's songs");
         }
     }
 
@@ -235,9 +234,11 @@ public class SongController {
      */
     @RequestMapping(value = "/update",method = RequestMethod.POST)
     public Result updateSong(HttpServletRequest request){
+         String idStr = null; // Declare idStr outside try block
+         Integer songId = null; // Declare songId outside try block
          try {
              //主键
-            String idStr = request.getParameter("id").trim();
+            idStr = request.getParameter("id").trim();
              //歌名
             String name = request.getParameter("name").trim();
              //专辑
@@ -247,7 +248,7 @@ public class SongController {
              // Expecting comma-separated string
             String singerIdsParam = request.getParameter("singerIds");
 
-            Integer songId = Integer.parseInt(idStr);
+            songId = Integer.parseInt(idStr); // Assign value inside try
 
             // 解析歌手ID列表
             List<Integer> singerIdList = Collections.emptyList();
@@ -275,174 +276,158 @@ public class SongController {
              // Call updated service method
             boolean flag = songService.update(song, singerIdList);
             if(flag){   //保存成功
-                return Result.success("歌曲信息及歌手关联更新成功");
+                return Result.success("Song info and singer associations updated successfully");
             }
             // Service layer should throw exception on error or return false meaningfully
-            return Result.failure("修改失败");
+            return Result.failure("Update failed");
         } catch (NumberFormatException e) {
-            log.error("Error parsing number in updateSong: {}", e.getMessage());
-            return Result.failure("歌曲ID或歌手ID格式错误");
+            log.error("Error parsing number in updateSong (ID='{}'): {}", idStr, e.getMessage()); // Log idStr here
+            return Result.failure("Invalid format for Song ID or Singer ID"); // Combined message
         } catch (Exception e) {
-            log.error("Error updating song: {}", e.getMessage(), e);
-            return Result.failure("更新歌曲时发生错误: " + e.getMessage());
+            // Log both songId (if parsed) and original idStr for better debugging
+            log.error("Error updating song (ID={}, RawID='{}'): {}", songId, idStr, e.getMessage(), e);
+            return Result.failure("Error occurred while updating song: " + e.getMessage());
         }
     }
 
     /**
-     * 删除歌曲
+     * 删除歌曲（改名为deleteSong）
      */
     @RequestMapping(value = "/delete", method = RequestMethod.GET)
     public Result deleteSong(HttpServletRequest request){ // Renamed method for clarity
         String idStr = request.getParameter("id");
          if (!StringUtils.hasText(idStr)) {
-            return Result.failure("歌曲ID不能为空");
+            return Result.failure("Song ID cannot be empty");
         }
         try {
             Integer id = Integer.parseInt(idStr.trim());
             boolean flag = songService.delete(id);
-            return flag ? Result.success("删除成功") : Result.failure("删除失败或歌曲不存在");
+            return flag ? Result.success("Deleted successfully") : Result.failure("Failed to delete or song not found");
         } catch (NumberFormatException e) {
             log.error("Invalid songId format for delete: {}", idStr);
-            return Result.failure("歌曲ID格式错误");
+            return Result.failure("Invalid Song ID format");
         } catch (Exception e) {
-            log.error("Error deleting song ID: {}", idStr, e);
-            return Result.failure("删除歌曲时发生错误");
+            log.error("Error deleting song with id: {}", idStr, e);
+            return Result.failure("Error occurred while deleting song");
         }
     }
 
     /**
-     * 更新歌曲图片 (Pass null for singerIds in update)
+     * 更新歌曲图片
      */
     @RequestMapping(value = "/updateSongPic",method = RequestMethod.POST)
     public Result updateSongPic(@RequestParam("file") MultipartFile avatorFile, @RequestParam("id")int id){
-        if(avatorFile.isEmpty()){
-            return Result.failure("文件上传失败");
-        }
-        String storeAvatorPath = "";
+        String picUrl = null;
         try {
-            // Use OSS Util
-            storeAvatorPath = ossUtil.uploadFile(avatorFile, "img/songPic/");
-            if(!StringUtils.hasText(storeAvatorPath)){
-                 return Result.failure("图片上传失败");
+            picUrl = ossUtil.uploadFile(avatorFile, "img/songPic/");
+            if (picUrl == null) {
+                 return Result.failure("Image upload failed");
             }
         } catch (IOException e) {
-             log.error("IO Exception during song pic upload for id {}: {}", id, e.getMessage());
-             return Result.failure("图片上传IO异常");
+            log.error("IO Error during song pic upload for ID: {}", id, e);
+            return Result.failure("Image upload IO exception");
         }
 
         Song song = new Song();
         song.setId(id);
-        song.setPic(storeAvatorPath);
-        // Pass null or empty list for singerIds as we only update pic
-        boolean flag = songService.update(song, Collections.emptyList());
-        if(flag){
-            // Return only success message for consistency
-            return Result.success("上传成功");
+        song.setPic(picUrl);
+        boolean flag = songService.updatePic(song); // Assuming service method exists
+        if (flag) {
+            return Result.success("Upload successful");
+        } else {
+            return Result.failure("Upload failed");
         }
-        return Result.failure("上传失败");
     }
 
     /**
-     * 更新歌曲文件 (Pass null for singerIds in update)
+     * 更新歌曲文件
      */
     @RequestMapping(value = "/updateSongUrl",method = RequestMethod.POST)
-    public Result updateSongUrl(@RequestParam("file") MultipartFile avatorFile, @RequestParam("id")int id){
-         if(avatorFile.isEmpty()){
-            return Result.failure("文件上传失败");
-        }
-        String storeAvatorPath = "";
+    public Result updateSongUrl(@RequestParam("file") MultipartFile songFile, @RequestParam("id")int id){
+        String songUrl = null;
         try {
-            // Use OSS Util
-            storeAvatorPath = ossUtil.uploadFile(avatorFile, "song/");
-             if(!StringUtils.hasText(storeAvatorPath)){
-                 return Result.failure("歌曲文件上传失败");
+            songUrl = ossUtil.uploadFile(songFile, "song/");
+            if (songUrl == null) {
+                return Result.failure("Song file upload failed");
             }
         } catch (IOException e) {
-             log.error("IO Exception during song file upload for id {}: {}", id, e.getMessage());
-             return Result.failure("歌曲文件上传IO异常");
+            log.error("IO Error during song file upload for ID: {}", id, e);
+            return Result.failure("Song file upload IO exception");
         }
 
         Song song = new Song();
         song.setId(id);
-        song.setUrl(storeAvatorPath);
-         // Pass null or empty list for singerIds
-        boolean flag = songService.update(song, Collections.emptyList());
-        if(flag){
-             // Return only success message for consistency
-            return Result.success("上传成功");
+        song.setUrl(songUrl);
+        boolean flag = songService.updateUrl(song); // Assuming service method exists
+        if (flag) {
+            return Result.success("Upload successful");
+        } else {
+            return Result.failure("Upload failed");
         }
-        return Result.failure("上传失败");
     }
 
     /**
-     * 更新歌曲MV文件 (Pass null for singerIds in update)
+     * 更新MV文件
      */
     @RequestMapping(value = "/updateMVUrl",method = RequestMethod.POST)
-    public Result updateMVUrl(@RequestParam("file") MultipartFile avatorFile, @RequestParam("id")int id){
-         if(avatorFile.isEmpty()){
-            return Result.failure("文件上传失败");
-        }
-        String storeAvatorPath = "";
+    public Result updateMVUrl(@RequestParam("file") MultipartFile mvFile, @RequestParam("id")int id){
+        String mvUrl = null;
         try {
-            // Use OSS Util
-            storeAvatorPath = ossUtil.uploadFile(avatorFile, "mv/");
-              if(!StringUtils.hasText(storeAvatorPath)){
-                 return Result.failure("MV文件上传失败");
+            mvUrl = ossUtil.uploadFile(mvFile, "mv/");
+             if (mvUrl == null) {
+                 return Result.failure("MV file upload failed");
             }
         } catch (IOException e) {
-             log.error("IO Exception during MV file upload for id {}: {}", id, e.getMessage());
-             return Result.failure("MV文件上传IO异常");
+             log.error("IO Error during MV file upload for ID: {}", id, e);
+             return Result.failure("MV file upload IO exception");
         }
-        Song song = new Song();
-        song.setId(id);
-        // song.setMvurl(storeAvatorPath); // REMOVED as mvurl field is deleted
-          // Pass null or empty list for singerIds as we only updated a file path (now removed)
-         boolean flag = songService.update(song, Collections.emptyList());
-        if(flag){
-             // Return only success message for consistency
-            return Result.success("上传成功");
+
+        boolean flag = songService.updateMVUrl(id, mvUrl); // Assuming service method exists
+        if (flag) {
+             return Result.success("Upload successful");
+        } else {
+             return Result.failure("Upload failed");
         }
-        return Result.failure("上传失败");
     }
 
     /**
-     * 返回指定歌曲ID的详细信息 (包含歌手列表)
+     * 根据主键查询歌曲详情
      */
     @RequestMapping(value = "/detail",method = RequestMethod.GET)
     public Result detail(HttpServletRequest request){
         String songIdStr = request.getParameter("songId");
          if (!StringUtils.hasText(songIdStr)) {
-            return Result.failure("歌曲ID不能为空");
+            return Result.failure("Song ID cannot be empty");
         }
         try {
             Integer songId = Integer.parseInt(songIdStr.trim());
-            // Call the new service method returning DTO
+            // Use the service method with the correct name
             SongDetailDTO songDetail = songService.selectDetailByPrimaryKey(songId);
             if (songDetail != null) {
                  return Result.success(songDetail);
             } else {
-                 return Result.failure("未找到指定歌曲");
+                 return Result.failure("Specified song not found");
             }
         } catch (NumberFormatException e) {
-            log.error("Invalid songId format for detail: {}", songIdStr);
-            return Result.failure("歌曲ID格式错误");
+             log.error("Invalid songId format for detail: {}", songIdStr);
+             return Result.failure("Invalid Song ID format");
         } catch (Exception e) {
-            log.error("Error fetching song detail for ID: {}", songIdStr, e);
-            return Result.failure("获取歌曲详情失败");
+             log.error("Error fetching song detail for id: {}", songIdStr, e);
+             return Result.failure("Failed to get song details");
         }
     }
 
     /**
-     * 根据歌名精确查询歌曲 (No change needed, returns basic info)
+     * 根据歌名精确查询歌曲
      */
     @RequestMapping(value = "/songOfSongName",method = RequestMethod.GET)
     public Result songOfSongName(HttpServletRequest request){
-        String songName = request.getParameter("songName");
-        if (!StringUtils.hasText(songName)) {
-            return Result.failure("歌曲名称不能为空");
+        String name = request.getParameter("name");
+        if (!StringUtils.hasText(name)) {
+            return Result.failure("Song name cannot be empty");
         }
-        // Service method may need review depending on desired output (basic or DTO)
-        return Result.success(songService.songOfName(songName.trim()));
+        // Use the service method with the correct name
+        return Result.success(songService.songOfName(name.trim()));
     }
 
     /**
@@ -478,7 +463,7 @@ public class SongController {
     }
 
     /**
-     * 审核歌曲 (No change needed)
+     * 审核歌曲 (Approve/Reject)
      */
     @RequestMapping(value = "/audit", method = RequestMethod.POST)
     public Result auditSong(HttpServletRequest request) {
@@ -486,70 +471,72 @@ public class SongController {
         String statusStr = request.getParameter("status");
 
         if (!StringUtils.hasText(songIdStr) || !StringUtils.hasText(statusStr)) {
-            return Result.failure("歌曲ID和审核状态不能为空");
+            return Result.failure("Song ID and audit status cannot be empty");
         }
 
         try {
             Integer songId = Integer.parseInt(songIdStr.trim());
             Integer status = Integer.parseInt(statusStr.trim());
 
-            // Validate status (e.g., must be 1 or 2 for approval/rejection)
             if (status != 1 && status != 2) {
-                return Result.failure("无效的审核状态，必须是 1 (通过) 或 2 (不通过)");
+                 return Result.failure("Invalid audit status, must be 1 (Approved) or 2 (Rejected)");
             }
 
+            // Use the service method with the correct name
             boolean success = songService.updateStatus(songId, status);
             if (success) {
-                return Result.success("歌曲审核状态更新成功");
+                 return Result.success("Song audit status updated successfully");
             } else {
-                return Result.failure("歌曲审核状态更新失败或歌曲不存在");
+                 return Result.failure("Failed to update audit status or song not found");
             }
         } catch (NumberFormatException e) {
-            log.error("Invalid songId or status format during audit. SongId: {}, Status: {}", songIdStr, statusStr);
-            return Result.failure("歌曲ID或状态格式错误");
+            log.error("Invalid songId or status format for audit: songId={}, status={}", songIdStr, statusStr);
+            return Result.failure("Invalid format for Song ID or Status");
         } catch (Exception e) {
-            log.error("Error auditing song ID: {}", songIdStr, e);
-            return Result.failure("审核歌曲时发生错误");
+            log.error("Error auditing song with id: {}", songIdStr, e);
+            return Result.failure("Error occurred while auditing song");
         }
     }
 
     /**
-     * 获取待审核歌曲列表 (No change needed)
+     * 获取待审核歌曲列表
      */
     @RequestMapping(value = "/pending", method = RequestMethod.GET)
     public Result getPendingSongs(HttpServletRequest request) {
-         try {
-             // Service method may need review
-             return Result.success(songService.getPendingSongs());
-         } catch (Exception e) {
-             log.error("Error fetching pending songs", e);
-             return Result.failure("获取待审核歌曲失败");
-         }
+        try {
+            // Use the specific service method for pending songs
+            List<SongDTO> pendingSongs = songService.getPendingSongs();
+            return Result.success(pendingSongs);
+        } catch (Exception e) {
+            log.error("Error fetching pending songs", e);
+            return Result.failure("Failed to get pending songs");
+        }
     }
 
     /**
-     * 获取已审核歌曲列表 (No change needed)
+     * 获取已审核歌曲列表 (通过或拒绝)
      */
     @RequestMapping(value = "/audited", method = RequestMethod.GET)
     public Result getAuditedSongs(HttpServletRequest request) {
-        String statusStr = request.getParameter("status");
+        String statusStr = request.getParameter("status"); // Expecting 1 (Approved) or 2 (Rejected)
          if (!StringUtils.hasText(statusStr)) {
-            return Result.failure("审核状态参数不能为空");
+             return Result.failure("Audit status parameter cannot be empty");
         }
+
         try {
             Integer status = Integer.parseInt(statusStr.trim());
-             // Optionally validate status (e.g., should be 1 or 2)
-             if (status != 1 && status != 2) {
-                 return Result.failure("无效的审核状态");
-             }
-              // Service method may need review
-             return Result.success(songService.getAuditedSongs(status));
+            if (status != 1 && status != 2) {
+                 return Result.failure("Invalid audit status");
+            }
+            // Use the specific service method for audited songs
+            List<SongDTO> auditedSongs = songService.getAuditedSongs(status);
+            return Result.success(auditedSongs);
         } catch (NumberFormatException e) {
-             log.error("Invalid status format for getAuditedSongs: {}", statusStr);
-             return Result.failure("审核状态格式错误");
+            log.error("Invalid status format for audited songs: {}", statusStr);
+            return Result.failure("Invalid Status format");
         } catch (Exception e) {
-             log.error("Error fetching audited songs with status: {}", statusStr, e);
-             return Result.failure("获取已审核歌曲失败");
+            log.error("Error fetching audited songs with status: {}", statusStr, e);
+            return Result.failure("Failed to get audited songs");
         }
     }
 
@@ -634,110 +621,112 @@ public class SongController {
     }
 
     /**
-     * 更新歌曲的类别关联 (No change needed)
+     * 更新歌曲关联的类别
      */
     @RequestMapping(value = "/updateCategories", method = RequestMethod.POST)
     public Result updateSongCategories(HttpServletRequest request) {
-         String songIdStr = request.getParameter("songId");
-         // Expecting comma-separated string
-         String categoryIdsParam = request.getParameter("categoryIds");
+        String songIdStr = request.getParameter("songId");
+        String categoryIdsParam = request.getParameter("categoryIds"); // Comma-separated IDs
 
-         if (!StringUtils.hasText(songIdStr)) {
-             return Result.failure("歌曲ID不能为空");
-         }
+        if (!StringUtils.hasText(songIdStr)) {
+            return Result.failure("Song ID cannot be empty");
+        }
+        // Handle empty category list (means remove all)
+        List<Integer> categoryIdList = Collections.emptyList();
+         if (StringUtils.hasText(categoryIdsParam)) {
+            try {
+                categoryIdList = Arrays.stream(categoryIdsParam.split(","))
+                        .map(String::trim).filter(s -> !s.isEmpty()).map(Integer::parseInt)
+                        .collect(Collectors.toList());
+            } catch (NumberFormatException e) {
+                 log.warn("Invalid category IDs format for song ID: {}. Input: {}", songIdStr, categoryIdsParam, e);
+                 return Result.failure("Invalid Category ID format");
+            }
+        }
 
-         try {
-             Integer songId = Integer.parseInt(songIdStr.trim());
-             List<Integer> categoryIdList = Collections.emptyList();
-
-             if (StringUtils.hasText(categoryIdsParam)) {
-                 categoryIdList = Arrays.stream(categoryIdsParam.split(","))
-                         .map(String::trim)
-                         .filter(s -> !s.isEmpty())
-                         .map(Integer::parseInt)
-                         .collect(Collectors.toList());
-             }
-             // Note: Allowing empty list to remove all categories
-
-             boolean success = songService.updateSongCategories(songId, categoryIdList);
-             if (success) {
-                 return Result.success("歌曲类别关联更新成功");
-             } else {
-                 // Service layer should throw exception on error
-                 return Result.failure("更新歌曲类别关联失败");
-             }
-         } catch (NumberFormatException e) {
-              log.error("Invalid songId or categoryIds format for updateCategories. SongId: {}, CategoryIds: {}", songIdStr, categoryIdsParam);
-              return Result.failure("歌曲ID或类别ID格式错误");
-         } catch (Exception e) {
-              log.error("Error updating categories for song ID: {}", songIdStr, e);
-              return Result.failure("更新歌曲类别关联时发生错误");
-         }
+        try {
+            Integer songId = Integer.parseInt(songIdStr.trim());
+            boolean success = songCategoryService.updateSongCategories(songId, categoryIdList);
+            if (success) {
+                return Result.success("Song category associations updated successfully");
+            } else {
+                 return Result.failure("Failed to update song category associations");
+            }
+        } catch (NumberFormatException e) {
+            log.error("Invalid songId format for updateCategories: {}", songIdStr);
+             return Result.failure("Invalid Song ID or Category ID format");
+        } catch (Exception e) {
+            log.error("Error updating categories for song ID: {}", songIdStr, e);
+            return Result.failure("Error occurred while updating song category associations");
+        }
     }
 
     /**
-     * 获取指定歌曲的类别ID (No change needed)
+     * 获取歌曲关联的所有类别ID
      */
     @RequestMapping(value = "/categories", method = RequestMethod.GET)
     public Result getSongCategories(HttpServletRequest request) {
         String songIdStr = request.getParameter("songId");
          if (!StringUtils.hasText(songIdStr)) {
-            return Result.failure("歌曲ID不能为空");
+             return Result.failure("Song ID cannot be empty");
         }
+
         try {
-             Integer songId = Integer.parseInt(songIdStr.trim());
-             // Use the correct method name found in SongCategoryService
-             List<Integer> categoryIds = songCategoryService.getSongCategories(songId); 
-             return Result.success(categoryIds);
-             // log.warn("Endpoint /categories called, but the method to get category IDs by song ID in SongCategoryService needs correction.");
-             // return Result.failure("获取歌曲类别功能暂时不可用，请联系管理员"); 
-         } catch (NumberFormatException e) {
-             log.error("Invalid songId format for getSongCategories: {}", songIdStr);
-             return Result.failure("歌曲ID格式错误");
-         } catch (Exception e) {
-             log.error("Error fetching categories for song ID: {}", songIdStr, e);
-             return Result.failure("获取歌曲类别失败");
-         }
+            Integer songId = Integer.parseInt(songIdStr.trim());
+            List<Integer> categoryIds = songCategoryService.getCategoryIdsBySongId(songId);
+            return Result.success(categoryIds);
+           // } catch (ServiceException e) {
+           //     log.error("Service error getting categories for song {}: {}", songId, e.getMessage());
+           //     return Result.failure("获取歌曲类别功能暂时不可用，请联系管理员");
+        } catch (NumberFormatException e) {
+             log.error("Invalid songId format for getCategories: {}", songIdStr);
+             return Result.failure("Invalid Song ID format");
+        } catch (Exception e) {
+            log.error("Error getting categories for song ID: {}", songIdStr, e);
+            return Result.failure("Failed to get song categories");
+        }
     }
 
     /**
-     * 根据类别ID获取歌曲列表 (No change needed, but implementation was placeholder)
+     * 根据类别ID获取歌曲列表
      */
     @RequestMapping(value = "/categorySongs", method = RequestMethod.GET)
     public Result getCategorySongs(HttpServletRequest request) {
-         String categoryIdStr = request.getParameter("categoryId");
-         if (!StringUtils.hasText(categoryIdStr)) {
-             return Result.failure("类别ID不能为空");
-         }
-         try {
+        String categoryIdStr = request.getParameter("categoryId");
+        if (!StringUtils.hasText(categoryIdStr)) {
+            return Result.failure("Category ID cannot be empty");
+        }
+
+        try {
              Integer categoryId = Integer.parseInt(categoryIdStr.trim());
-             // Assuming a method exists to get songs by category, e.g., in SongService or a dedicated CategoryService
-             // List<Song> songs = songService.getSongsByCategoryId(categoryId);
-             // return Result.success(songs);
-             // Placeholder - Implement this logic based on your service structure
-             log.warn("Endpoint /categorySongs is not fully implemented yet.");
-             return Result.failure("按类别获取歌曲的功能尚未完全实现");
-         } catch (NumberFormatException e) {
-             log.error("Invalid categoryId format for getCategorySongs: {}", categoryIdStr);
-             return Result.failure("类别ID格式错误");
-         } catch (Exception e) {
-             log.error("Error fetching songs for category ID: {}", categoryIdStr, e);
-             return Result.failure("获取类别歌曲失败");
-         }
+             // This needs a service method implementation
+             List<SongDTO> songs = songService.getSongsByCategoryId(categoryId); // Placeholder
+             if (songs != null) {
+                 return Result.success(songs);
+             } else {
+                 // Consider if null means not implemented or no songs found
+                 return Result.failure("Function to get songs by category is not fully implemented");
+             }
+        } catch (NumberFormatException e) {
+            log.error("Invalid categoryId format: {}", categoryIdStr);
+            return Result.failure("Invalid Category ID format");
+        } catch (Exception e) {
+             log.error("Error fetching songs by category ID: {}", categoryIdStr, e);
+             return Result.failure("Failed to get category songs");
+        }
     }
 
     /**
-     * 根据用户ID和类别ID查询歌曲列表 (Returns DTO with category/singer info)
+     * 获取指定用户在指定分类下的歌曲列表
      */
     @GetMapping("/user/{userId}/category/{categoryId}")
     public Result getUserSongsByCategory(@PathVariable Integer userId, @PathVariable Integer categoryId) {
         try {
-            // Service method now returns DTO including singer info
             List<SongDTO> songs = songService.getUserSongsByCategory(userId, categoryId);
             return Result.success(songs);
         } catch (Exception e) {
-            log.error("Error fetching songs for user {} and category {}: {}", userId, categoryId, e.getMessage(), e);
-            return Result.failure("获取用户分类歌曲失败");
+            log.error("Error fetching user {} songs in category {}: {}", userId, categoryId, e.getMessage());
+            return Result.failure("Failed to get user categorized songs");
         }
     }
 

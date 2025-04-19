@@ -68,20 +68,20 @@ public class UserServiceImpl implements UserService {
 
 
         if (StringUtils.isAnyBlank(username,password)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
+            throw new CustomException(ResultCodeEnum.PARAM_NULL_ERROR);
         }
         if (account.getUsername().length() < 4) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户账号过短");
+            throw new CustomException(ResultCodeEnum.USERNAME_TOO_SHORT_ERROR);
         }
         if (account.getPassword().length() < 8 ) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户密码过短");
+            throw new CustomException(ResultCodeEnum.PASSWORD_TOO_SHORT_ERROR);
         }
 
         // 账户不能包含特殊字符
         String validPattern = "[`~!@#$%^&*()+=|{}':;',\\\\[\\\\].<>/?~！@#￥%……&*（）——+|{}【】'；：'。，、？]";
         Matcher matcher = Pattern.compile(validPattern).matcher(username);
         if (matcher.find()) {
-            return -1L;
+            throw new CustomException(ResultCodeEnum.ACCOUNT_INVALID_CHARACTER_ERROR);
         }
 
         // 账户不能重复
@@ -89,13 +89,13 @@ public class UserServiceImpl implements UserService {
         queryWrapper.eq("userName", username);
         long count = userMapper.selectCount(queryWrapper);
         if (count > 0) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号重复");
+            throw new CustomException(ResultCodeEnum.ACCOUNT_ALREADY_EXIST_ERROR);
         }
 
         //邮箱验证码
         String emailcode = userMapper.selectEmail(account.getEmail());
         if (!Objects.equals(emailcode, account.getCode())){
-            throw new BusinessException(ErrorCode.CODE_ERROR, "验证码错误");
+            throw new CustomException(ResultCodeEnum.EMAIL_CODE_MISMATCH_ERROR);
 
         }
         // 2. 加密
@@ -143,6 +143,19 @@ public class UserServiceImpl implements UserService {
         if (!encryptPassword.equals(dbUser.getPassword())) {
             throw new CustomException(ResultCodeEnum.USER_ACCOUNT_ERROR);
         }
+        
+        // Check user status before generating token
+        // Fetch the full User object to check status
+        User fullUser = userMapper.selectById(dbUser.getId());
+        if (fullUser == null) { // Should not happen if dbUser exists, but safety check
+            throw new CustomException(ResultCodeEnum.USER_NOT_EXIST_ERROR);
+        }
+
+        // Status: 0=Active, 1=Inactive(if used), 2=Suspended/Banned
+        if (fullUser.getStatus() == null || fullUser.getStatus() != 0) { // Check status from User object
+            throw new CustomException(ResultCodeEnum.ACCOUNT_BANNED_ERROR); // Throw specific ban error
+        }
+
         String validPattern = "[`~!@#$%^&*()+=|{}':;',\\\\[\\\\].<>/?~！@#￥%……&*（）——+|{}【】'；：'。，、？]";
         Matcher matcher = Pattern.compile(validPattern).matcher(account.getUsername());
         if (matcher.find()) {
@@ -319,18 +332,20 @@ public class UserServiceImpl implements UserService {
         // Optional: Add more validation like file type and size check
         String contentType = avatarFile.getContentType();
         if (contentType == null || !contentType.startsWith("image/")) {
-             throw new CustomException(ResultCodeEnum.PARAM_ERROR.code, "请上传图片文件");
+             throw new CustomException(ResultCodeEnum.UPLOAD_ERROR.code, "Please upload an image file.");
         }
         // Example size check (e.g., 5MB)
         long maxSize = 5 * 1024 * 1024;
         if (avatarFile.getSize() > maxSize) {
-            throw new CustomException(ResultCodeEnum.PARAM_ERROR.code, "头像文件大小不能超过5MB");
+            throw new CustomException(ResultCodeEnum.UPLOAD_ERROR.code, "Avatar file size cannot exceed 5MB.");
         }
 
-        // 2. Check if user exists
+        // 2. Check if user exists - RESTORED
         User user = userMapper.selectById(userId);
         if (user == null) {
-            throw new CustomException(ResultCodeEnum.USER_NOT_EXIST_ERROR.code, "用户不存在");
+            // This check might fail immediately after user creation due to transaction timing.
+            // Assuming the userId passed in this context (especially after creation) is valid.
+            throw new CustomException(ResultCodeEnum.USER_NOT_EXIST_ERROR);
         }
 
         // 3. Upload file to OSS
@@ -389,8 +404,7 @@ public class UserServiceImpl implements UserService {
         // 1. Verify the code
         String storedCode = emailMapper.selectCodeByEmail(email);
         if (storedCode == null || !storedCode.equals(code)) {
-            // TODO: Add a specific VERIFICATION_CODE_ERROR enum
-            throw new CustomException(ResultCodeEnum.PARAM_PASSWORD_ERROR); // Using existing error as placeholder
+            throw new CustomException(ResultCodeEnum.EMAIL_CODE_MISMATCH_ERROR);
         }
 
         // 2. Find the user by email

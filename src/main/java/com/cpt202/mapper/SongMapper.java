@@ -123,6 +123,28 @@ public interface SongMapper {
      * 计算指定用户所有歌曲的总播放量 (如果没有任何歌曲，SUM可能返回NULL) - REMOVED
      */
     // Long sumTotalPlaysByUserId(@Param("userId") Integer userId);
+
+    // Methods required by Service implementation
+    /**
+     * 更新歌曲封面图片路径
+     */
+    int updatePic(Song song);
+
+    /**
+     * 更新歌曲文件URL
+     */
+    int updateUrl(Song song);
+
+    /**
+     * 更新歌曲MV文件URL
+     * 注意：假设Mapper层需要此方法。签名可能需要根据实际情况调整。
+     */
+    int updateMVUrlById(@Param("id") Integer id, @Param("mvUrl") String mvUrl);
+
+    /**
+     * 根据类别ID查询歌曲列表
+     */
+    List<Song> selectSongsByCategoryId(@Param("categoryId") Integer categoryId);
 }
 
 

@@ -42,7 +42,7 @@ public class WebController {
 
     @GetMapping("/hello")
     public Result hello() {
-        return Result.success("访问成功");
+        return Result.success("Access successful");
     }
 
     /**

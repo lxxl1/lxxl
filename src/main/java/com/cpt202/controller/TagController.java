@@ -31,10 +31,10 @@ public class TagController {
         Integer userId = request.getUserId();
 
         if (name == null || name.trim().isEmpty()) {
-            return Result.failure("标签名称不能为空");
+            return Result.failure("Tag name cannot be empty");
         }
         if (userId == null) {
-             return Result.failure("用户ID不能为空");
+             return Result.failure("User ID cannot be empty");
         }
 
         String trimmedName = name.trim();
@@ -42,13 +42,13 @@ public class TagController {
         try {
             boolean flag = tagService.addTag(trimmedName, userId);
             if (flag) {
-                return Result.success("标签添加成功"); 
+                return Result.success("Tag added successfully");
             } else {
-                return Result.failure("添加标签失败，标签可能已存在"); 
+                return Result.failure("Failed to add tag, it might already exist");
             }
         } catch (Exception e) {
             System.err.println("Error adding tag: " + e.getMessage());
-            return Result.failure("添加标签时发生内部错误");
+            return Result.failure("Internal error occurred while adding tag");
         }
     }
 
@@ -62,7 +62,7 @@ public class TagController {
         if (flag) {
             return Result.success();
         }
-        return Result.failure("删除标签失败");
+        return Result.failure("Failed to delete tag");
     }
 
     /**
@@ -81,7 +81,7 @@ public class TagController {
         if (flag) {
             return Result.success();
         }
-        return Result.failure("更新标签失败");
+        return Result.failure("Failed to update tag");
     }
 
     /**
@@ -110,7 +110,7 @@ public class TagController {
         if (flag) {
             return Result.success();
         }
-        return Result.failure("添加标签失败");
+        return Result.failure("Failed to add tags to song");
     }
 
     /**
@@ -128,7 +128,7 @@ public class TagController {
         if (flag) {
             return Result.success();
         }
-        return Result.failure("移除标签失败");
+        return Result.failure("Failed to remove tag from song");
     }
 
     /**

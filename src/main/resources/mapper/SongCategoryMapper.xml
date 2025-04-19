@@ -32,4 +32,13 @@
         SELECT song_id FROM song_category
         WHERE category_id = #{categoryId}
     </select>
+
+    <!-- 批量插入 -->
+    <insert id="insertBatch">
+        INSERT INTO song_category (song_id, category_id, create_time)
+        VALUES
+        <foreach collection="categoryIds" item="categoryId" separator=",">
+            (#{songId}, #{categoryId}, now())
+        </foreach>
+    </insert>
 </mapper> 

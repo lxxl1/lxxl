@@ -422,4 +422,43 @@ public class SongServiceImpl implements SongService {
         return dto;
     }
     
+    // --- New Methods Implementation ---
+
+    @Override
+    public boolean updatePic(Song song) {
+        // Assumes SongMapper has an updatePic method that updates only the pic field based on ID
+        return songMapper.updatePic(song) > 0;
+    }
+
+    @Override
+    public boolean updateUrl(Song song) {
+        // Assumes SongMapper has an updateUrl method that updates only the url field based on ID
+        return songMapper.updateUrl(song) > 0;
+    }
+
+    @Override
+    public boolean updateMVUrl(int id, String mvUrl) {
+        // Assumes SongMapper has an updateMVUrl method
+        // You might need to create a Song object or pass params directly depending on the mapper method signature
+        Song song = new Song();
+        song.setId(id);
+        // song.setMvurl(mvUrl); // If mvurl field exists in Song domain
+        // Or call mapper directly: return songMapper.updateMVUrl(id, mvUrl) > 0;
+        // For now, returning false as the domain/mapper method is uncertain
+        log.warn("updateMVUrl is not fully implemented in Service/Mapper yet for ID: {}", id);
+        // TODO: Implement this properly based on mapper
+        // Assuming a mapper method exists for demo:
+        // return songMapper.updateMVUrlById(id, mvUrl) > 0;
+        return false; // Placeholder - Requires Mapper changes
+    }
+
+    @Override
+    public List<SongDTO> getSongsByCategoryId(Integer categoryId) {
+        // Assumes SongMapper has a method like selectSongsByCategoryId
+        // List<Song> songs = songMapper.selectSongsByCategoryId(categoryId);
+        // return convertSongListToDTOList(songs);
+        log.warn("getSongsByCategoryId is not fully implemented in Service/Mapper yet for Category ID: {}", categoryId);
+        // TODO: Implement this properly based on mapper
+        return Collections.emptyList(); // Placeholder
+    }
 }

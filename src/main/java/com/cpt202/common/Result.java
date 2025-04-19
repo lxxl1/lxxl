@@ -51,7 +51,7 @@ public class Result {
     // 添加的failure方法
     public static Result failure(String msg) {
         Result tResult = new Result();
-        tResult.setCode(ResultCodeEnum.FAILURE.code); // 使用FAILURE的code
+        tResult.setCode(ResultCodeEnum.PARAM_ERROR.code);
         tResult.setMsg(msg);
         return tResult;
     }

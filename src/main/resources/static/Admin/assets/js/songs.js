@@ -299,6 +299,7 @@ function initializeDataTable() {
     songsTable = $('#songsTable').DataTable({
         processing: true,
         serverSide: false,
+        searching: false,
         data: [], // Initialize with empty data, we'll load it separately
         columns: [
             { data: 'id' },

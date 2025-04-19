@@ -10,6 +10,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import com.cpt202.domain.User;
 import com.cpt202.utils.TokenUtils;
+import com.cpt202.domain.Admin;
+import com.cpt202.mapper.AdminMapper;
+import com.cpt202.common.enums.RoleEnum;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
@@ -26,15 +29,19 @@ public class UserController {
     @Resource
     private UserService userService;
 
+    @Resource
+    private AdminMapper adminMapper;
+
     /**
      * 新增
      */
     @PostMapping("/add")
     public Result addUser(@RequestBody User user) {
         if (userService.insert(user)) {
-            return Result.success("添加成功");
+            return Result.success(user);
+        } else {
+            return Result.failure("Failed to add user");
         }
-        return Result.failure("添加失败");
     }
 
     /**
@@ -43,9 +50,9 @@ public class UserController {
     @DeleteMapping("/delete/{id}")
     public Result deleteUser(@PathVariable Integer id) {
         if (userService.delete(id)) {
-            return Result.success("删除成功");
+            return Result.success("Deleted successfully");
         }
-        return Result.failure("删除失败");
+        return Result.failure("Failed to delete");
     }
 
     /**
@@ -63,9 +70,9 @@ public class UserController {
     @PostMapping("/update")
     public Result updateUser(@RequestBody User user) {
         if (userService.updateById(user)) {
-            return Result.success("修改成功");
+            return Result.success("Updated successfully");
         }
-        return Result.failure("修改失败");
+        return Result.failure("Failed to update");
     }
 
     /**
@@ -77,7 +84,7 @@ public class UserController {
         if (user != null) {
             return Result.success(user);
         }
-        return Result.failure("查询失败");
+        return Result.failure("Failed to query");
     }
 
     @GetMapping("/select/username/{username}")
@@ -86,7 +93,7 @@ public class UserController {
         if (user != null) {
             return Result.success(user);
         }
-        return Result.failure("查询失败");
+        return Result.failure("Failed to query");
     }
 
     /**
@@ -111,9 +118,9 @@ public class UserController {
     @PostMapping("/status/{id}")
     public Result updateStatus(@PathVariable Integer id, @RequestParam Byte status) {
         if (userService.updateStatus(id, status)) {
-            return Result.success(status == 1 ? "禁用成功" : "解禁成功");
+            return Result.success(status == 2 ? "Suspended successfully" : "Activated successfully");
         }
-        return Result.failure("操作失败");
+        return Result.failure("Operation failed");
     }
 
     /**
@@ -147,25 +154,48 @@ public class UserController {
      */
     @PostMapping("/updateAvatar")
     public Result updateAvatar(@RequestParam("avatarFile") MultipartFile avatarFile,
-                              HttpServletRequest request) {
+                               @RequestParam(required = false) Integer targetUserId,
+                               HttpServletRequest request) {
         try {
-            // 获取当前用户ID (从请求中或token中)
-            Integer userId = TokenUtils.getUserIdByRequest(request);
-            if (userId == null) {
-                return Result.error(ResultCodeEnum.TOKEN_INVALID_ERROR.code, "用户未登录或认证信息无效");
+            // 获取当前发出请求的用户ID (从Token中)
+            Integer requestingUserId = TokenUtils.getUserIdByRequest(request);
+            if (requestingUserId == null) {
+                return Result.error(ResultCodeEnum.TOKEN_INVALID_ERROR.code, "User not logged in or authentication invalid");
+            }
+
+            // 确定最终要更新头像的用户ID
+            Integer userIdToUpdate = requestingUserId; // Default to the requesting user
+
+            // 如果请求中提供了 targetUserId (通常由管理员添加新用户时提供)
+            if (targetUserId != null) {
+                // 检查发出请求的用户是否是管理员
+                Admin requestingAdmin = adminMapper.selectById(requestingUserId); // Check if the requester is in the admin table
+                if (requestingAdmin != null && RoleEnum.ADMIN.name().equals(requestingAdmin.getRole())) {
+                    // 如果请求者是管理员，则允许更新目标用户的头像
+                    userIdToUpdate = targetUserId;
+                    System.out.println("Admin (ID: " + requestingUserId + ") updating avatar for target user ID: " + targetUserId);
+                } else {
+                    // 如果请求者不是管理员，但提供了 targetUserId，这是一个非法操作
+                    System.err.println("Warning: Non-admin user (ID: " + requestingUserId + ") attempted to update avatar for target user ID: " + targetUserId);
+                    //可以选择抛出权限错误，或者忽略 targetUserId 并继续更新请求者自己的头像
+                    // return Result.error("403", "Permission denied to update another user's avatar."); 
+                    // 这里我们选择忽略 targetUserId，仅更新请求者自己的头像
+                     userIdToUpdate = requestingUserId;
+                }
             }
             
-            String newAvatarUrl = userService.updateAvatar(avatarFile, userId);
+            // 调用服务更新头像
+            String newAvatarUrl = userService.updateAvatar(avatarFile, userIdToUpdate);
             return Result.success(newAvatarUrl); // Return the new URL in the data field
         } catch (CustomException e) {
             // Log the custom exception maybe
             return Result.error(e.getCode(), e.getMessage());
         } catch (IOException e) {
             // Log the IO exception
-            return Result.error(ResultCodeEnum.SYSTEM_ERROR.code, "文件上传失败");
+            return Result.error(ResultCodeEnum.SYSTEM_ERROR.code, "File upload failed");
         } catch (Exception e) {
             // Log the generic exception
-            return Result.error(ResultCodeEnum.SYSTEM_ERROR.code, "更新头像时发生未知错误");
+            return Result.error(ResultCodeEnum.SYSTEM_ERROR.code, "Unknown error occurred while updating avatar");
         }
     }
 }

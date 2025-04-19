@@ -244,6 +244,43 @@
     </select>
     -->
 
+    <!-- ==================== Added Statements ==================== -->
+
+    <!-- 更新歌曲封面图片 -->
+    <update id="updatePic" parameterType="com.cpt202.domain.Song">
+        UPDATE song
+        SET pic = #{pic,jdbcType=VARCHAR},
+            update_time = now()
+        WHERE id = #{id,jdbcType=INTEGER}
+    </update>
+
+    <!-- 更新歌曲文件URL -->
+    <update id="updateUrl" parameterType="com.cpt202.domain.Song">
+        UPDATE song
+        SET url = #{url,jdbcType=VARCHAR},
+            update_time = now()
+        WHERE id = #{id,jdbcType=INTEGER}
+    </update>
+
+    <!-- 更新歌曲MV文件URL (假设Song实体没有mvUrl字段，直接更新) -->
+    <update id="updateMVUrlById">
+        UPDATE song
+        SET mvurl = #{mvUrl,jdbcType=VARCHAR},  <!-- 假设数据库字段名为 mvurl -->
+            update_time = now()
+        WHERE id = #{id,jdbcType=INTEGER}
+    </update>
+
+    <!-- 根据类别ID查询歌曲列表 -->
+    <select id="selectSongsByCategoryId" resultMap="ResultMapWithBLOBs" parameterType="java.lang.Integer">
+        SELECT s.*
+        FROM song s
+        JOIN song_category sc ON s.id = sc.song_id
+        WHERE sc.category_id = #{categoryId,jdbcType=INTEGER}
+        <!-- 你可能需要添加额外的过滤条件，例如歌曲状态 -->
+        <!-- AND s.status = 1 -->
+        ORDER BY s.create_time DESC
+    </select>
+
 </mapper>
 
 

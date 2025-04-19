@@ -113,4 +113,34 @@ public interface SongService {
      * 更新歌曲的类别关联
      */
     boolean updateSongCategories(Integer songId, List<Integer> categoryIds);
+
+    // New methods required by SongController
+    /**
+     * 更新歌曲封面图片路径
+     * @param song 包含ID和新pic路径的Song对象
+     * @return 是否成功
+     */
+    boolean updatePic(Song song);
+
+    /**
+     * 更新歌曲文件URL
+     * @param song 包含ID和新url路径的Song对象
+     * @return 是否成功
+     */
+    boolean updateUrl(Song song);
+
+    /**
+     * 更新歌曲MV文件URL
+     * @param id 歌曲ID
+     * @param mvUrl 新的MV URL
+     * @return 是否成功
+     */
+    boolean updateMVUrl(int id, String mvUrl);
+
+    /**
+     * 根据类别ID获取歌曲列表 (返回DTO列表)
+     * @param categoryId 类别ID
+     * @return 歌曲DTO列表
+     */
+    List<SongDTO> getSongsByCategoryId(Integer categoryId);
 }

@@ -82,14 +82,23 @@ public class TokenUtils {
      */
     public static Integer getUserIdByRequest(HttpServletRequest request) {
         try {
-            String token = request.getHeader(Constants.TOKEN);
-            if (ObjectUtil.isNotEmpty(token)) {
-                String userRole = JWT.decode(token).getAudience().get(0);
-                String userId = userRole.split("-")[0];  // 获取用户id
-                return Integer.valueOf(userId);
+            // Retrieve userId from request attribute set by JwtInterceptor
+            Object userIdAttribute = request.getAttribute(Constants.USER_ID_ATTRIBUTE);
+            if (userIdAttribute != null) {
+                return (Integer) userIdAttribute;
+            } else {
+                log.warn("User ID not found in request attributes. Token might not have been processed or stored correctly by interceptor.");
+                // Optional: Fallback to decoding token again, but it hides the root cause
+                // String token = request.getHeader(Constants.TOKEN);
+                // if (ObjectUtil.isNotEmpty(token)) {
+                //     String userRole = JWT.decode(token).getAudience().get(0);
+                //     String userId = userRole.split("-")[0];
+                //     return Integer.valueOf(userId);
+                // }
             }
         } catch (Exception e) {
-            log.error("从请求中获取用户ID出错", e);
+            // Log ClassCastException or other errors during retrieval/casting
+            log.error("从请求属性中获取用户ID出错", e); 
         }
         return null;
     }

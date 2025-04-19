@@ -183,6 +183,7 @@ function resetCategoryModal() {
     const categoryTypeSelect = document.getElementById('categoryTypeSelect');
     const customCategoryDiv = document.getElementById('customCategoryDiv');
     const customCategoryNameInput = document.getElementById('customCategoryName');
+    const categoryDescriptionInput = document.getElementById('categoryDescription');
 
     form?.reset(); // Reset form fields
     if (modalTitle) modalTitle.textContent = 'Add Category';
@@ -190,6 +191,7 @@ function resetCategoryModal() {
     if (categoryTypeSelect) categoryTypeSelect.disabled = false; // Enable type selection for add
     if (customCategoryDiv) customCategoryDiv.style.display = 'none'; // Hide custom input initially
     if (customCategoryNameInput) customCategoryNameInput.value = '';
+    if (categoryDescriptionInput) categoryDescriptionInput.value = '';
 
     isEditMode = false;
     currentEditCategoryId = null;
@@ -209,6 +211,7 @@ async function populateEditModal(categoryId) {
     const categoryTypeSelect = document.getElementById('categoryTypeSelect');
     const customCategoryDiv = document.getElementById('customCategoryDiv');
     const customCategoryNameInput = document.getElementById('customCategoryName');
+    const categoryDescriptionInput = document.getElementById('categoryDescription');
     const modalElement = document.getElementById('categoryModal');
     const modal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
 
@@ -243,6 +246,11 @@ async function populateEditModal(categoryId) {
                  if (customCategoryDiv) customCategoryDiv.style.display = 'none'; // Hide if standard
             }
 
+            // Populate description
+            if (categoryDescriptionInput) {
+                categoryDescriptionInput.value = category.description || ''; // Set description or empty string
+            }
+
             // Optionally disable type selection during edit if needed
             // if (categoryTypeSelect) categoryTypeSelect.disabled = true;
 
@@ -268,6 +276,7 @@ async function handleSaveCategory() {
     const categoryId = document.getElementById('categoryId').value;
     const categoryTypeSelect = document.getElementById('categoryTypeSelect');
     const customCategoryNameInput = document.getElementById('customCategoryName');
+    const categoryDescriptionInput = document.getElementById('categoryDescription');
     const saveButton = document.getElementById('saveCategoryBtn');
 
     let categoryName = '';
@@ -290,7 +299,8 @@ async function handleSaveCategory() {
     }
 
     const categoryData = {
-        name: categoryName
+        name: categoryName,
+        description: categoryDescriptionInput.value.trim()
     };
 
     let url = '/category/add';
