@@ -2,6 +2,7 @@ package com.cpt202.service;
 
 import com.cpt202.domain.Account;
 import com.cpt202.domain.User;
+import com.cpt202.dto.UserStatsDTO;
 import com.github.pagehelper.PageInfo;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -46,4 +47,11 @@ public interface UserService {
     
     // 上传并更新用户头像
     String updateAvatar(MultipartFile file, Integer userId) throws IOException;
+
+    /**
+     * 获取指定用户的统计信息
+     * @param userId 用户ID
+     * @return UserStatsDTO 包含统计信息
+     */
+    UserStatsDTO getUserStats(Integer userId);
 }

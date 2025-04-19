@@ -112,6 +112,7 @@
             background: #fff;
             box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.05);
             z-index: 1000;
+            display: none; /* 初始隐藏播放器 */
         }
         
         /* Player styles */
@@ -238,6 +239,24 @@
             border-radius: 50%;
             cursor: pointer;
         }
+
+        /* Styles for adjusting content when player is visible */
+        .main-content {
+            padding-bottom: 0; /* Default, no padding */
+            transition: padding-bottom 0.3s ease;
+        }
+        body.player-visible .main-content {
+            padding-bottom: 80px; /* Add padding when player is visible */
+        }
+        
+        /* Ensure pagination is not hidden (if applicable) */
+        .pagination {
+            margin-bottom: 0;
+            transition: margin-bottom 0.3s ease;
+        }
+        body.player-visible .pagination {
+            margin-bottom: 80px;
+        }
     </style>
 </head>
 
@@ -274,7 +293,6 @@
                         <ul>
                             <li class="navigation-divider">Dashboard</li>
                             <li><a href="index.html">Overview</a></li>
-                            <li><a href="top-songs.html">Top Songs</a></li>
                             <li><a href="artists.html">All Artists</a></li>
                         </ul>
                     </div>
@@ -282,8 +300,6 @@
                         <ul>
                             <li class="navigation-divider">My Music</li>
                             <li><a href="my-music.html">My Music Dashboard</a></li>
-                            <li><a href="all-songs.html">All Songs</a></li>
-                            <li><a href="top-songs.html">Top Songs</a></li>
                         </ul>
                     </div>
                     <div id="categories">

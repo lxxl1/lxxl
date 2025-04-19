@@ -553,6 +553,9 @@ function handleAddSong() {
         // If mvFile exists, FormData(form) should have already included it.
     }
     
+    // --- SOLUTION: Always send userId as 0 from Admin interface ---
+    formData.append('userId', '0');
+
     // Show progress bar
     const progressBar = $('#uploadProgress'); // Ensure this ID exists in the add modal
     const progressIndicator = progressBar.find('.progress-bar');

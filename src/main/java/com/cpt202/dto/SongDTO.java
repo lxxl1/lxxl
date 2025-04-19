@@ -29,9 +29,9 @@ public class SongDTO extends Song implements Serializable {
     private String pic;
     // Skip lyric for list view?
     private String url;
-    private String mvurl;
-    private Integer nums;
-    private Boolean isVip;
+    // private String mvurl; // REMOVED
+    // private Integer nums; // REMOVED
+    // private Boolean isVip; // REMOVED
     private Integer status;
     private Integer userId;
     

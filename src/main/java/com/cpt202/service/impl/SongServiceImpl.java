@@ -7,6 +7,8 @@ import com.cpt202.mapper.*;
 import com.cpt202.domain.Song;
 import com.cpt202.service.SongService;
 import com.cpt202.domain.SongCategory;
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -184,14 +186,6 @@ public class SongServiceImpl implements SongService {
     }
     
     /**
-     * 增加播放次数
-     */
-    @Override
-    public boolean addNums(Integer id) {
-        return songMapper.addNums(id) > 0; // Changed to check affected rows
-    }
-
-    /**
      * 查询所有歌曲 (返回DTO列表)
      */
     @Override
@@ -267,50 +261,92 @@ public class SongServiceImpl implements SongService {
      }
      
      /**
-      * 根据用户id查询歌曲，并包含类别、标签、歌手名称 (返回 DTO 列表)
+      * 获取用户上传的所有歌曲 (分页)
+      *
+      * @param userId 用户ID
+      * @param pageNum 页码
+      * @param pageSize 每页数量
+      * @return 分页后的歌曲列表
       */
-     @Override
-     public List<SongDTO> songOfUserId(Integer userId) {
-         List<Song> songList = songMapper.songOfUserId(userId);
-         // Use the helper method for conversion
-         return convertSongListToDTOList(songList);
-     }
-     
-     /**
-      * 根据用户ID和类别ID查询歌曲列表 (返回DTO列表)
-      */
-     @Override
-     public List<SongDTO> getUserSongsByCategory(Integer userId, Integer categoryId) {
-         List<Song> songList = songMapper.selectUserSongsByCategory(userId, categoryId);
-         // Use the helper method for conversion
-         return convertSongListToDTOList(songList);
-     }
-     
-     /**
-      * 更新歌曲的类别关联
-      */
-     @Override
-     @Transactional
-     public boolean updateSongCategories(Integer songId, List<Integer> categoryIds) {
-         try {
-             // 1. Delete existing categories for the song
-             songCategoryMapper.deleteBySongId(songId);
+      @Override
+      public PageInfo<SongDTO> songOfUserId(Integer userId, int pageNum, int pageSize) {
+          PageHelper.startPage(pageNum, pageSize);
+          List<Song> songs = songMapper.songOfUserId(userId);
+          PageInfo<Song> songPageInfo = new PageInfo<>(songs); 
+          List<SongDTO> songDTOs = convertSongListToDTOList(songPageInfo.getList());
+          PageInfo<SongDTO> songDTOPageInfo = new PageInfo<>();
+          BeanUtils.copyProperties(songPageInfo, songDTOPageInfo);
+          songDTOPageInfo.setList(songDTOs);
+          return songDTOPageInfo;
+      }
+      
+      /**
+       * 根据用户ID和类别ID查询歌曲列表 (返回DTO列表)
+       */
+      @Override
+      public List<SongDTO> getUserSongsByCategory(Integer userId, Integer categoryId) {
+          List<Song> songList = songMapper.selectUserSongsByCategory(userId, categoryId);
+          // Use the helper method for conversion
+          return convertSongListToDTOList(songList);
+      }
+      
+      /**
+       * 更新歌曲的类别关联
+       */
+      @Override
+      @Transactional
+      public boolean updateSongCategories(Integer songId, List<Integer> categoryIds) {
+          try {
+              // 1. Delete existing categories for the song
+              songCategoryMapper.deleteBySongId(songId);
 
-             // 2. Insert new categories if the list is not empty
-             if (!CollectionUtils.isEmpty(categoryIds)) {
-                 for (Integer categoryId : categoryIds) {
-                     SongCategory songCategory = new SongCategory();
-                     songCategory.setSongId(songId);
-                     songCategory.setCategoryId(categoryId);
-                     songCategoryMapper.insert(songCategory);
-                 }
-             }
-             return true;
-         } catch (Exception e) {
-             log.error("Error updating categories for song ID {}: {}", songId, e.getMessage());
-             throw new RuntimeException("Failed to update song categories", e);
-         }
-     }
+              // 2. Insert new categories if the list is not empty
+              if (!CollectionUtils.isEmpty(categoryIds)) {
+                  for (Integer categoryId : categoryIds) {
+                      SongCategory songCategory = new SongCategory();
+                      songCategory.setSongId(songId);
+                      songCategory.setCategoryId(categoryId);
+                      songCategoryMapper.insert(songCategory);
+                  }
+              }
+              return true;
+          } catch (Exception e) {
+              log.error("Error updating categories for song ID {}: {}", songId, e.getMessage());
+              throw new RuntimeException("Failed to update song categories", e);
+          }
+      }
+
+    /**
+     * 根据用户ID、分类、状态、搜索词查询歌曲 (分页) - 新增实现
+     */
+    @Override
+    public PageInfo<SongDTO> searchUserSongs(Integer userId, Integer categoryId, Integer status, String searchTerm, int pageNum, int pageSize) {
+        // Prepare search term for LIKE query if present
+        String formattedSearchTerm = null;
+        if (searchTerm != null && !searchTerm.trim().isEmpty()) {
+            formattedSearchTerm = "%" + searchTerm.trim() + "%";
+        }
+        
+        // Start pagination
+        PageHelper.startPage(pageNum, pageSize);
+        
+        // Call the new mapper method
+        // !! IMPORTANT: `searchUserSongs` method needs to be added to SongMapper interface and XML !!
+        List<Song> songs = songMapper.searchUserSongs(userId, categoryId, status, formattedSearchTerm);
+        
+        // Create PageInfo from the results
+        PageInfo<Song> songPageInfo = new PageInfo<>(songs); 
+        
+        // Convert the current page's songs to DTOs
+        List<SongDTO> songDTOs = convertSongListToDTOList(songPageInfo.getList());
+        
+        // Create PageInfo for DTOs
+        PageInfo<SongDTO> songDTOPageInfo = new PageInfo<>();
+        BeanUtils.copyProperties(songPageInfo, songDTOPageInfo); // Copy pagination properties
+        songDTOPageInfo.setList(songDTOs); // Set the converted list
+        
+        return songDTOPageInfo;
+    }
 
     // --- Helper Method --- 
 

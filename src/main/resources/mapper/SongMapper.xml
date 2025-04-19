@@ -14,9 +14,6 @@
                 property="updateTime"/>
         <result column="pic" jdbcType="VARCHAR" property="pic"/>
         <result column="url" jdbcType="VARCHAR" property="url"/>
-        <result column="mvurl" jdbcType="VARCHAR" property="mvurl"/>
-        <result column="nums" jdbcType="INTEGER" property="nums"/>
-        <result column="is_vip" jdbcType="TINYINT" property="isVip"/>
         <result column="status" jdbcType="INTEGER" property="status"/>
         <result column="user_id" jdbcType="INTEGER" property="userId"/>
     </resultMap>
@@ -28,12 +25,12 @@
 
     <sql id="Base_Column_List">
         id
-        ,name,introduction,create_time,update_time,pic,url,mvurl,nums,is_vip,status,user_id
+        ,name,introduction,create_time,update_time,pic,url,status,user_id
     </sql>
 
     <sql id="Blob_Column_List">
         id
-        ,name,introduction,create_time,update_time,pic,lyric,url,mvurl,nums,is_vip,status,user_id
+        ,name,introduction,create_time,update_time,pic,lyric,url,status,user_id
     </sql>
 
     <insert id="insert" parameterType="com.cpt202.domain.Song" useGeneratedKeys="true" keyProperty="id">
@@ -61,10 +58,9 @@
             <if test="url != null">
                 url,
             </if>
-            <if test="mvurl != null">
-                mvurl,
+            <if test="status != null">
+                status,
             </if>
-            nums
         </trim>
         <trim prefix=" values (" suffix=")" suffixOverrides=",">
             <if test="id != null">
@@ -89,10 +85,9 @@
             <if test="url != null">
                 #{url},
             </if>
-            <if test="mvurl != null">
-                #{mvurl},
+            <if test="status != null">
+                #{status},
             </if>
-            nums=0
         </trim>
     </insert>
 
@@ -115,19 +110,10 @@
             <if test="url != null">
                 url = #{url},
             </if>
-            <if test="mvurl != null">
-                mvurl = #{mvurl},
-            </if>
-            <if test="nums != null">
-                nums = #{nums},
+            <if test="status != null">
+                status = #{status},
             </if>
         </set>
-        where id = #{id}
-    </update>
-
-    <update id="addNums" parameterType="java.lang.Integer">
-        update song
-        set nums=nums + 1
         where id = #{id}
     </update>
 
@@ -172,7 +158,8 @@
     <select id="topSong" resultMap="ResultMapWithBLOBs">
         select
         <include refid="Blob_Column_List"/>
-        from song order by nums desc
+        from song
+        order by create_time desc
     </select>
 
     <select id="songOfName" resultMap="ResultMapWithBLOBs"
@@ -209,6 +196,53 @@
         WHERE 
             s.user_id = #{userId} AND sc.category_id = #{categoryId}
     </select>
+
+    <!-- 新增：根据用户ID、分类、状态、搜索词查询歌曲 -->
+    <select id="searchUserSongs" resultMap="ResultMapWithBLOBs">
+        SELECT DISTINCT s.*
+        FROM song s
+        <!-- 如果需要按分类过滤，需要连接 song_category 表 -->
+        <if test="categoryId != null">
+            LEFT JOIN song_category sc ON s.id = sc.song_id
+        </if>
+        WHERE s.user_id = #{userId}
+        <if test="categoryId != null">
+            AND sc.category_id = #{categoryId}
+        </if>
+        <if test="status != null">
+            AND s.status = #{status}
+        </if>
+        <if test="searchTerm != null and searchTerm != ''">
+            <!-- Use CONCAT for standard SQL LIKE syntax with parameter -->
+            AND s.name LIKE CONCAT('%', #{searchTerm}, '%') 
+            <!-- Alternative for MySQL: AND s.name LIKE #{searchTerm} (if % added in service) -->
+        </if>
+        <!-- 你可能还需要添加排序，例如按创建时间降序 -->
+        ORDER BY s.create_time DESC
+    </select>
+
+    <!-- 统计：用户总歌曲数 -->
+    <select id="countTotalSongsByUserId" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM song
+        WHERE user_id = #{userId}
+    </select>
+
+    <!-- 统计：用户特定状态歌曲数 -->
+    <select id="countSongsByUserIdAndStatus" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM song
+        WHERE user_id = #{userId} AND status = #{status}
+    </select>
+
+    <!-- 统计：用户总播放量 - REMOVED -->
+    <!-- 
+    <select id="sumTotalPlaysByUserId" resultType="java.lang.Long">
+        SELECT SUM(nums) 
+        FROM song
+        WHERE user_id = #{userId}
+    </select>
+    -->
 
 </mapper>
 

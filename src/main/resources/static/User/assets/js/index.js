@@ -3,10 +3,26 @@ import api from '../../../Common/js/api.js';
 import { playSongAudioPlayer } from './audio-player.js'; // Ensure this import exists
 
 // Global variables
-let allSongs = [];
-let approvedSongs = []; // Only songs with status=1
+let allSongs = []; // All songs globally (for total count)
+let approvedSongs = []; // All approved songs globally (for total count)
+let currentUserSongsData = []; // All songs for the current user (from /selectbyuser)
 let allCategories = [];
 let allSingers = [];
+
+// Utility function to get current user ID from localStorage
+function getCurrentUserId() {
+    const userStr = localStorage.getItem('user'); // Assuming user info is stored here
+    if (userStr) {
+        try {
+            const user = JSON.parse(userStr);
+            return user.id; // Assuming user object has an 'id' property
+        } catch (e) {
+            console.error('Error parsing user data from localStorage:', e);
+            return null;
+        }
+    }
+    return null;
+}
 
 // Utility function to escape HTML (add this if not already present)
 function escapeHTML(str) {
@@ -26,18 +42,18 @@ function escapeHTML(str) {
 // Page initialization
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        // Initialize all data
+        // Initialize all data - Added loadCurrentUserSongs
         await Promise.all([
-            loadAllSongs(),
+            loadAllSongs(),      
+            loadCurrentUserSongs(), // <-- Add this call
             loadAllCategories(),
             loadAllSingers()
         ]);
         
         // Update UI components
-        updateStatistics();
-        renderTopSongs();
-        renderTop3SongsList();
-        renderLatestSongs();
+        updateStatistics(); // Will now use currentUserSongsData for one stat
+        renderFeaturedArtists(); 
+        renderMyApprovedMusic(); // Will now use currentUserSongsData
         
         // Setup event listeners
         setupEventListeners();
@@ -49,22 +65,71 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 /**
- * Load all songs from API and filter approved ones
+ * Load ALL songs from API (globally) and filter approved ones for total count
  */
 async function loadAllSongs() {
     try {
         const response = await api.get('/song/allSong');
         if (response.data && response.data.code === '200' && response.data.data) {
             allSongs = response.data.data;
-            // Filter only approved songs (status=1)
             approvedSongs = allSongs.filter(song => song.status === 1);
-            // Update statistics based on DTOs
-            updateStatistics();
+            console.log('Loaded all approved songs (global):', approvedSongs);
+            // Update statistics after loading these global songs
+            updateStatistics(); 
             return true;
+        } else {
+             console.warn('Could not load all global songs or no songs found:', response.data);
+             allSongs = [];
+             approvedSongs = [];
+             updateStatistics();
+             return false;
         }
-        return false;
     } catch (error) {
-        console.error('Error loading songs:', error);
+        console.error('Error loading all global songs:', error);
+        allSongs = [];
+        approvedSongs = [];
+        updateStatistics();
+        return false;
+    }
+}
+
+/**
+ * NEW: Load songs specifically for the current logged-in user
+ */
+async function loadCurrentUserSongs() {
+    const currentUserId = getCurrentUserId();
+    if (currentUserId === null) {
+        console.warn('Cannot load current user songs: User ID not found.');
+        currentUserSongsData = [];
+        updateStatistics(); // Update stats even if user load fails
+        renderMyApprovedMusic(); // Render empty state for user music
+        return false;
+    }
+
+    try {
+        // Use the same endpoint as my-music.js
+        const response = await api.get('/song/selectbyuser', { 
+            params: { userId: currentUserId }
+        });
+        if (response.data && response.data.code === '200' && response.data.data) {
+            currentUserSongsData = response.data.data || [];
+            console.log('Loaded current user songs:', currentUserSongsData);
+            // Update stats and render user music section *after* user songs are loaded
+            updateStatistics(); 
+            renderMyApprovedMusic();
+            return true;
+        } else {
+             console.warn('Could not load current user songs or no songs found:', response.data);
+             currentUserSongsData = [];
+             updateStatistics();
+             renderMyApprovedMusic();
+             return false;
+        }
+    } catch (error) {
+        console.error('Error loading current user songs:', error);
+        currentUserSongsData = [];
+        updateStatistics();
+        renderMyApprovedMusic();
         return false;
     }
 }
@@ -107,136 +172,155 @@ async function loadAllSingers() {
  * Update statistics section with counts
  */
 function updateStatistics() {
-    // Update total songs count (only approved songs)
-    document.getElementById('total-songs-count').textContent = approvedSongs.length;
+    // Update total songs count (use global approvedSongs)
+    const totalSongsElement = document.getElementById('total-songs-count');
+    if (totalSongsElement) {
+        totalSongsElement.textContent = approvedSongs.length; // Count of all approved songs on platform
+    } else {
+        console.error("Element with ID 'total-songs-count' not found.");
+    }
     
     // Update categories count
-    const categoriesElement = document.querySelector('.card.bg-success-gradient h2');
+    const categoriesElement = document.getElementById('total-categories-count');
     if (categoriesElement) {
         categoriesElement.textContent = allCategories.length;
+    } else {
+        console.error("Element with ID 'total-categories-count' not found.");
     }
     
     // Update artists count
-    const artistsElement = document.querySelector('.card.bg-info-gradient h2');
+    const artistsElement = document.getElementById('total-artists-count');
     if (artistsElement) {
         artistsElement.textContent = allSingers.length;
+    } else {
+        console.error("Element with ID 'total-artists-count' not found.");
     }
     
-    // Update top songs count
-    document.getElementById('top-songs-count').textContent = 
-        Math.min(5, approvedSongs.length); // We display top 5 songs
+    // Update My Approved Songs count using currentUserSongsData, filtered for approved
+    const myApprovedSongsElement = document.getElementById('my-approved-songs-count');
+    if (myApprovedSongsElement) {
+        // Filter the user-specific data for approved songs
+        const userApprovedSongs = currentUserSongsData.filter(song => song.status === 1);
+        myApprovedSongsElement.textContent = userApprovedSongs.length; 
+        // Update card title to clarify it's user's songs
+        const mySongsTitleElement = myApprovedSongsElement.nextElementSibling; // Get the <h5> tag
+        if (mySongsTitleElement && mySongsTitleElement.tagName === 'H5') {
+            mySongsTitleElement.textContent = "My Approved Songs"; 
+        }
+    } else {
+        console.error("Element with ID 'my-approved-songs-count' not found.");
+    }
 }
 
 /**
- * Render top songs table
+ * NEW: Render Featured Artists section (3 random artists)
  */
-function renderTopSongs() {
-    const tableBody = document.querySelector('#top-songs-table tbody');
-    if (!tableBody) return;
-    
-    // Sort songs by play count (descending)
-    const topSongs = [...approvedSongs]
-        .sort((a, b) => (b.nums || 0) - (a.nums || 0))
-        .slice(0, 5); // Get top 5
-    
-    if (topSongs.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="5" class="text-center">No songs available</td></tr>';
+function renderFeaturedArtists() {
+    const container = document.getElementById('random-artists-container');
+    if (!container) {
+        console.error('Element with ID random-artists-container not found.');
         return;
     }
-    
-    let html = '';
-    topSongs.forEach((song, index) => {
-        const displaySingers = song.singerNames || 'Unknown Artist';
-        
-        html += `
-            <tr>
-                <td>${index + 1}</td>
-                <td>
-                    <div class="d-flex align-items-center">
-                        <img src="${escapeHTML(song.pic || 'assets/media/image/default-album.png')}" class="mr-3 rounded" width="40" height="40" alt="${escapeHTML(song.name)}">
-                         <a href="song-details.html?songId=${song.id}&from=index" class="text-dark">${escapeHTML(song.name)}</a>
+
+    if (!allSingers || allSingers.length === 0) {
+        container.innerHTML = '<p class="text-center text-muted">No artists available.</p>';
+        return;
+    }
+
+    // Shuffle singers and take the first 3
+    const shuffledSingers = [...allSingers].sort(() => 0.5 - Math.random());
+    const featuredSingers = shuffledSingers.slice(0, 3);
+
+    let html = '<div class="row">'; // Use a row for layout
+    if (featuredSingers.length > 0) {
+        featuredSingers.forEach(singer => {
+            // Use a more likely default image path
+            const imageUrl = singer.pic || 'assets/media/image/user/default.png'; 
+            // Mimic structure from artists.html card (adjust col size)
+            html += `
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100 text-center">
+                        <a href="artist-detail.html?singerId=${singer.id}">
+                            <img src="${escapeHTML(imageUrl)}" class="card-img-top p-3 rounded-circle" alt="${escapeHTML(singer.name)}" style="width: 100px; height: 100px; object-fit: cover; margin: auto;">
+                        </a>
+                        <div class="card-body p-2">
+                            <h6 class="card-title mb-0">
+                                <a href="artist-detail.html?singerId=${singer.id}" class="text-dark">${escapeHTML(singer.name)}</a>
+                            </h6>
+                        </div>
                     </div>
-                </td>
-                <td>${escapeHTML(displaySingers)}</td>
-                <td>${song.nums || 0}</td>
-                <td>
-                     <button class="btn btn-sm btn-primary play-song-btn" 
-                             data-song-id="${song.id}" 
-                             data-song-url="${escapeHTML(song.url)}" 
-                             data-song-name="${escapeHTML(song.name)}" 
-                             data-artist-name="${escapeHTML(displaySingers)}" 
-                             data-cover-url="${escapeHTML(song.pic || 'assets/media/image/default-album.png')}">
-                        <i data-feather="play"></i> Play
-                    </button>
-                </td>
-            </tr>
-        `;
-    });
-    
-    tableBody.innerHTML = html;
-    
-    // Initialize feather icons
-    if (typeof feather !== 'undefined') {
-        feather.replace();
+                </div>
+            `;
+        });
+    } else {
+         html += '<div class="col-12"><p class="text-center text-muted">No artists to feature.</p></div>';
     }
-    
-    // Add event listeners to play buttons within the table
-    tableBody.querySelectorAll('.play-song-btn').forEach(button => {
-        button.addEventListener('click', handlePlayButtonClick);
-    });
+    html += '</div>'; // Close row
+
+    container.innerHTML = html;
 }
 
 /**
- * NEW FUNCTION: Render top 3 songs list
+ * MODIFIED: Render My Approved Music section (3 random user songs)
+ * Uses the global currentUserSongsData list.
  */
-function renderTop3SongsList() {
-    const listContainer = document.getElementById('top-3-songs-list');
-    if (!listContainer) {
-        console.error('Element with ID top-3-songs-list not found.');
+function renderMyApprovedMusic() {
+    const container = document.getElementById('my-approved-music-container');
+    if (!container) {
+        console.error('Element with ID my-approved-music-container not found.');
         return;
     }
 
-    // Sort approved songs by play count (descending) and take top 3
-    const top3Songs = [...approvedSongs]
-        .sort((a, b) => (b.nums || 0) - (a.nums || 0))
-        .slice(0, 3);
+    // Filter the fetched user songs for approved ones
+    const userApprovedSongs = currentUserSongsData.filter(song => song.status === 1);
 
-    if (top3Songs.length === 0) {
-        listContainer.innerHTML = '<div class="list-group-item text-center text-muted">No top songs available yet.</div>';
+    if (!userApprovedSongs || userApprovedSongs.length === 0) {
+        container.innerHTML = '<p class="text-center text-muted">You have no approved music yet.</p>';
         return;
     }
 
-    let html = '';
-    top3Songs.forEach(song => {
-        const displaySingers = song.singerNames || 'Unknown Artist';
-        const coverUrl = song.pic || 'assets/media/image/default-cover.jpg';
-        html += `
-            <div class="list-group-item d-flex align-items-center">
-                <div class="mr-3">
-                    <img src="${escapeHTML(coverUrl)}" alt="${escapeHTML(song.name)}" class="rounded" width="50" height="50" style="object-fit: cover;">
-                </div>
-                <div class="flex-grow-1">
-                    <h6 class="mb-1 text-truncate">
-                        <a href="song-details.html?songId=${song.id}&from=index" class="text-dark">${escapeHTML(song.name)}</a>
-                    </h6>
-                    <small class="text-muted">${escapeHTML(displaySingers)}</small>
-                </div>
-                <div class="ml-3 text-right" style="min-width: 80px;">
-                     <span class="badge badge-light mb-1">${song.nums || 0} plays</span>
-                     <button class="btn btn-sm btn-outline-primary play-song-btn" 
-                             data-song-id="${song.id}" 
-                             data-song-url="${escapeHTML(song.url)}" 
-                             data-song-name="${escapeHTML(song.name)}" 
-                             data-artist-name="${escapeHTML(displaySingers)}" 
-                             data-cover-url="${escapeHTML(coverUrl)}">
-                        <i data-feather="play" class="width-15 height-15"></i>
-                    </button>
-                </div>
-            </div>
-        `;
-    });
+    // Shuffle the approved songs and take the first 3
+    const shuffledApprovedSongs = [...userApprovedSongs].sort(() => 0.5 - Math.random());
+    const randomMySongs = shuffledApprovedSongs.slice(0, 3);
 
-    listContainer.innerHTML = html;
+    // Use list group structure 
+    let html = '<div class="list-group list-group-flush">'; 
+    if (randomMySongs.length > 0) {
+        randomMySongs.forEach(song => {
+            // Use DTO fields directly (assuming /selectbyuser returns DTO with names)
+            const displaySingers = song.singerNames || 'Unknown Artist'; 
+            const coverUrl = song.pic || 'assets/media/image/default-cover.jpg'; // Use default cover
+            html += `
+                <div class="list-group-item d-flex align-items-center">
+                    <div class="mr-3">
+                        <img src="${escapeHTML(coverUrl)}" alt="${escapeHTML(song.name)}" class="rounded" width="50" height="50" style="object-fit: cover;">
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1 text-truncate">
+                             <a href="song-details.html?songId=${song.id}&from=index" class="text-dark">${escapeHTML(song.name)}</a>
+                        </h6>
+                        <small class="text-muted">${escapeHTML(displaySingers)}</small>
+                    </div>
+                    <div class="ml-3">
+                         <button class="btn btn-sm btn-outline-primary play-song-btn" 
+                                 data-song-id="${song.id}" 
+                                 data-song-url="${escapeHTML(song.url)}" 
+                                 data-song-name="${escapeHTML(song.name)}" 
+                                 data-artist-name="${escapeHTML(displaySingers)}" 
+                                 data-cover-url="${escapeHTML(coverUrl)}">
+                            <i data-feather="play" class="width-15 height-15"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+    } else {
+        // This case should technically not be reached if userApprovedSongs was not empty
+        html += '<div class="list-group-item text-center text-muted">No approved music to display.</div>';
+    }
+     html += '</div>'; // Close list-group
+
+    container.innerHTML = html;
 
     // Re-initialize feather icons for the new buttons
     if (typeof feather !== 'undefined') {
@@ -244,61 +328,8 @@ function renderTop3SongsList() {
     }
 
     // Add event listeners for the play buttons in the list
-    listContainer.querySelectorAll('.play-song-btn').forEach(button => {
+    container.querySelectorAll('.play-song-btn').forEach(button => {
         button.addEventListener('click', handlePlayButtonClick);
-    });
-}
-
-/**
- * Render latest songs section
- */
-function renderLatestSongs() {
-    const container = document.getElementById('latest-songs-container');
-    if (!container) return;
-    
-    // Sort songs by creation date (newest first)
-    const latestSongs = [...approvedSongs]
-        .sort((a, b) => new Date(b.createTime || 0) - new Date(a.createTime || 0))
-        .slice(0, 8); // Get latest 8
-    
-    if (latestSongs.length === 0) {
-        container.innerHTML = '<div class="col-12 text-center">No songs available</div>';
-        return;
-    }
-    
-    let html = '';
-    latestSongs.forEach(song => {
-        const displaySingers = song.singerNames || 'Unknown Artist';
-        
-        html += `
-            <div class="col-md-3 col-sm-6 mb-4">
-                <div class="card">
-                    <img src="${song.pic || 'assets/media/image/default-album.png'}" class="card-img-top" alt="${song.name}">
-                    <div class="card-body">
-                        <h6 class="card-title mb-1">${song.name}</h6>
-                        <p class="small text-muted mb-2">${displaySingers}</p>
-                        <button class="btn btn-primary btn-sm btn-block play-song-btn" data-song-id="${song.id}">
-                            <i data-feather="play"></i> Play
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-    });
-    
-    container.innerHTML = html;
-    
-    // Initialize feather icons
-    if (typeof feather !== 'undefined') {
-        feather.replace();
-    }
-    
-    // Add event listeners to play buttons
-    document.querySelectorAll('.play-song-btn').forEach(button => {
-        button.addEventListener('click', (event) => {
-            const songId = event.currentTarget.dataset.songId;
-            playSong(songId);
-        });
     });
 }
 
@@ -364,16 +395,13 @@ async function incrementPlayCount(songId) {
         await api.get(`/song/addNums?songId=${songId}`);
         console.log('Play count incremented for song ID:', songId);
 
-        // Reload song data (ensure this loads DTOs with singerNames)
-        const songsLoaded = await loadAllSongs(); 
-        if (songsLoaded) {
-            // Re-render the top songs table with updated data
-            renderTopSongs(); 
-            // Optionally re-render latest songs too if needed
-            // renderLatestSongs(); 
-        } else {
-             console.warn('Could not reload songs after incrementing count.');
-        }
+        // OPTIONAL: Reload song data if needed for other parts of the page, 
+        // but the sections we modified don't directly depend on play count display.
+        // Consider if reloading `loadMySongs` is necessary if play counts were shown there.
+        // const songsLoaded = await loadMySongs(); 
+        // if (songsLoaded) {
+        //     renderMyApprovedMusic(); 
+        // }
 
     } catch (error) {
         console.error('Error incrementing play count:', error);

@@ -58,15 +58,9 @@ public interface SongMapper {
     // public List<Song> songOfSingerId(Integer singerId);
 
     /**
-     * 增加歌曲播放次数
-     * @return 影响的行数
-     */
-	public int addNums(Integer id);
-
-	/**
      * 查询播放次数排前列的歌曲
      */
-	public List<Song> topSong();
+    public List<Song> topSong();
 
     /**
      * 更新歌曲审核状态
@@ -100,6 +94,35 @@ public interface SongMapper {
      * 根据用户ID和类别ID查询歌曲列表
      */
     List<Song> selectUserSongsByCategory(@Param("userId") Integer userId, @Param("categoryId") Integer categoryId);
+
+    /**
+     * 根据用户ID、分类、状态、搜索词查询歌曲 (分页前的查询) - 新增
+     * 注意：这里的参数名（userId, categoryId, status, searchTerm）需要与XML中的`<if>`测试条件匹配。
+     * @param userId 用户ID (必须)
+     * @param categoryId 类别ID (可选)
+     * @param status 状态 (可选)
+     * @param searchTerm 搜索词 (可选，已包含 %)
+     * @return 匹配的歌曲列表
+     */
+    List<Song> searchUserSongs(@Param("userId") Integer userId,
+                               @Param("categoryId") Integer categoryId,
+                               @Param("status") Integer status,
+                               @Param("searchTerm") String searchTerm);
+
+    /**
+     * 计算指定用户的总歌曲数
+     */
+    Long countTotalSongsByUserId(@Param("userId") Integer userId);
+
+    /**
+     * 计算指定用户特定状态的歌曲数
+     */
+    Long countSongsByUserIdAndStatus(@Param("userId") Integer userId, @Param("status") Integer status);
+
+    /**
+     * 计算指定用户所有歌曲的总播放量 (如果没有任何歌曲，SUM可能返回NULL) - REMOVED
+     */
+    // Long sumTotalPlaysByUserId(@Param("userId") Integer userId);
 }
 
 

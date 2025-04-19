@@ -27,6 +27,9 @@ import java.util.List;
 import com.cpt202.utils.OssUtil;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
+import com.cpt202.dto.UserStatsDTO;
+import com.cpt202.mapper.SongMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 /**
  * 用户业务处理
  **/
@@ -42,6 +45,9 @@ public class UserServiceImpl implements UserService {
 
     @Resource
     private OssUtil ossUtil;
+
+    @Autowired
+    private SongMapper songMapper;
 
     /**
      * 注册
@@ -291,5 +297,33 @@ public class UserServiceImpl implements UserService {
         userMapper.updateById(user);
         
         return fileUrl;
+    }
+
+    /**
+     * 获取用户统计信息
+     * @param userId 用户ID
+     * @return UserStatsDTO
+     */
+    @Override
+    public UserStatsDTO getUserStats(Integer userId) {
+        if (userId == null) {
+            return null; 
+        }
+
+        UserStatsDTO stats = new UserStatsDTO();
+
+        // Get total songs
+        Long totalSongs = songMapper.countTotalSongsByUserId(userId);
+        stats.setTotalSongs(totalSongs != null ? totalSongs : 0);
+
+        // Get approved songs (status = 1)
+        Long approvedSongs = songMapper.countSongsByUserIdAndStatus(userId, 1);
+        stats.setApprovedSongs(approvedSongs != null ? approvedSongs : 0);
+
+        // Get pending songs (status = 0)
+        Long pendingSongs = songMapper.countSongsByUserIdAndStatus(userId, 0);
+        stats.setPendingSongs(pendingSongs != null ? pendingSongs : 0);
+
+        return stats;
     }
 }

@@ -32,7 +32,17 @@
         .song-controls { position: absolute; top: 10px; right: 10px; display: flex; gap: 5px; z-index: 10; }
         
         /* Audio Player Styles */
-        .audio-player { position: fixed; bottom: 0; left: 0; right: 0; padding: 1rem; background: #fff; box-shadow: 0 -5px 15px rgba(0,0,0,0.05); z-index: 1000; }
+        .audio-player { 
+            position: fixed; 
+            bottom: 0; 
+            left: 0; 
+            right: 0; 
+            padding: 1rem; 
+            background: #fff; 
+            box-shadow: 0 -5px 15px rgba(0,0,0,0.05); 
+            z-index: 1000; 
+            display: none; /* 初始隐藏播放器 */
+        }
         .player-content { display: flex; align-items: center; justify-content: space-between; max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
         .song-info { display: flex; align-items: center; width: 30%; }
         .cover { width: 50px; height: 50px; margin-right: 1rem; overflow: hidden; border-radius: 4px; }
@@ -51,6 +61,24 @@
         .volume-slider { width: 80px; }
         input[type="range"] { -webkit-appearance: none; height: 4px; background: #e9ecef; border-radius: 2px; }
         input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; background: #007bff; border-radius: 50%; cursor: pointer; }
+
+        /* Styles for adjusting content when player is visible */
+        .main-content {
+            padding-bottom: 0; /* Default, no padding */
+            transition: padding-bottom 0.3s ease;
+        }
+        body.player-visible .main-content {
+            padding-bottom: 80px; /* Add padding when player is visible */
+        }
+        
+        /* Ensure pagination is not hidden (if applicable) */
+        .pagination {
+            margin-bottom: 0;
+            transition: margin-bottom 0.3s ease;
+        }
+        body.player-visible .pagination {
+            margin-bottom: 80px;
+        }
     </style>
 </head>
 <body>
@@ -81,15 +109,12 @@
                         <ul>
                             <li class="navigation-divider">Dashboard</li>
                             <li><a href="index.html">Overview</a></li>
-                            <li><a href="top-songs.html">Top Songs</a></li>
-                            <li><a href="artists.html">All Artists</a></li>
                         </ul>
                     </div>
                     <div id="my-music">
                         <ul>
                             <li class="navigation-divider">My Music</li>
-                            <li><a href="my-music.html">All Songs</a></li>
-                            <li><a href="top-songs.html">Top Songs</a></li>
+                            <li><a href="my-music.html">My Music Dashboard</a></li>
                         </ul>
                     </div>
                     <div id="categories">
@@ -114,7 +139,6 @@
                         <ul>
                             <li class="navigation-divider">Tags</li>
                             <li><a class="active" href="tag-management.html">Manage Tags</a></li>
-                            <li><a href="tag-songs.html">View Songs by Tag</a></li>
                         </ul>
                     </div>
                     <div id="settings">

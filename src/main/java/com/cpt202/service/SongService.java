@@ -3,6 +3,7 @@ package com.cpt202.service;
 import com.cpt202.domain.Song;
 import com.cpt202.dto.SongDTO;
 import com.cpt202.dto.SongDetailDTO;
+import com.github.pagehelper.PageInfo;
 
 import java.util.List;
 import java.util.Map;
@@ -38,11 +39,6 @@ public interface SongService {
      * @return SongDetailDTO 或 null (如果未找到)
      */
     SongDetailDTO selectDetailByPrimaryKey(Integer id);
-
-    /**
-     * 增加播放次数
-     */
-    boolean addNums(Integer id);
 
     /**
      * 查询所有歌曲 (返回包含歌手、类别、标签等信息的DTO列表)
@@ -87,10 +83,25 @@ public interface SongService {
     List<SongDTO> getAuditedSongs(Integer status);
 
     /**
-     * 根据用户id查询歌曲 (返回包含类别、标签、歌手信息的DTO列表)
-     * // TODO: Update the return type and implementation if needed
+     * 根据用户id查询歌曲 (返回包含类别、标签、歌手信息的分页DTO列表) - 基础版本
+     * @param userId 用户ID
+     * @param pageNum 页码
+     * @param pageSize 每页数量
+     * @return 包含歌曲信息和分页详情的PageInfo对象
      */
-    List<SongDTO> songOfUserId(Integer userId);
+    PageInfo<SongDTO> songOfUserId(Integer userId, int pageNum, int pageSize);
+
+    /**
+     * 根据用户ID、分类、状态、搜索词查询歌曲 (返回分页DTO列表) - 新增
+     * @param userId 用户ID
+     * @param categoryId 类别ID (null表示不过滤)
+     * @param status 状态 (null表示不过滤, 0:待审核, 1:通过, 2:不通过)
+     * @param searchTerm 搜索词 (null或空表示不搜索，按歌名搜索)
+     * @param pageNum 页码
+     * @param pageSize 每页数量
+     * @return 包含歌曲信息和分页详情的PageInfo对象
+     */
+    PageInfo<SongDTO> searchUserSongs(Integer userId, Integer categoryId, Integer status, String searchTerm, int pageNum, int pageSize);
 
     /**
      * 根据用户ID和类别ID查询歌曲列表 (返回包含当前所有类别ID的DTO列表)
