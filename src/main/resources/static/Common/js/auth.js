@@ -127,5 +127,4 @@ export function logout() {
  */
 export function logoutNoRedirect() {
     clearAuthData();
-    console.log('Logged out without redirect');
 } 

@@ -88,19 +88,35 @@ async function preloadUserSongs() {
     console.log("Loading user songs...");
     try {
         const response = await api.get('/song/selectbyuser', { params: { userId: currentUserId } });
+        
+        // Check response code
         if (response.data.code === '200') {
-            const songs = response.data.data || [];
-            console.log(`Loaded ${songs.length} user songs.`);
-            return songs;
+            const responseData = response.data.data;
+            
+            // Check the returned data structure, prioritize list property (handle paginated object)
+            if (responseData && Array.isArray(responseData.list)) {
+                 console.log(`Loaded ${responseData.list.length} user songs (from paginated list).`);
+                 return responseData.list; // Return the list array
+            } 
+            // Handle direct array return compatibility
+            else if (Array.isArray(responseData)) {
+                 console.log(`Loaded ${responseData.length} user songs (from direct array).`);
+                 return responseData; // Return the array directly
+            } 
+            // Handle empty data or unexpected format
+            else {
+                console.warn("Received non-array or unexpected data format for user songs:", responseData);
+                 return []; // Return empty array
+            }
         } else {
             console.warn("Failed to load user songs:", response.data.msg);
             showAlert('Failed to load your songs list.', 'warning');
-            return [];
+            return []; // Return empty array
         }
     } catch (error) {
         console.error("Error loading user songs:", error);
         showAlert('Error loading your songs list.', 'danger');
-        return [];
+        return []; // Return empty array
     }
 }
 

@@ -126,66 +126,50 @@ async function loadUserSongs() {
  */
 function renderSongsList(songs) {
     const tableBody = document.querySelector('#my-music-table tbody');
-    
+    tableBody.innerHTML = ''; // Clear existing rows
+
     if (!songs || songs.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="8" class="text-center">No songs found matching your criteria.</td></tr>'; // Colspan 8
+        tableBody.innerHTML = '<tr><td colspan="7" class="text-center">No songs found. Try uploading some music!</td></tr>';
         return;
     }
     
-    tableBody.innerHTML = '';
-    
     songs.forEach((song, index) => {
+        const singerNamesStr = Array.isArray(song.singerNames) ? song.singerNames.join(', ') : (song.singerNames || '-');
+        const statusInfo = getStatusInfo(song.status); // Get status text and class
+        
         const row = document.createElement('tr');
-        let statusText = 'Unknown';
-        let statusClass = 'secondary';
-        
-        switch(song.status) {
-            case 0: statusText = 'Pending'; statusClass = 'warning'; break;
-            case 1: statusText = 'Approved'; statusClass = 'success'; break;
-            case 2: statusText = 'Rejected'; statusClass = 'danger'; break;
-        }
-        
-        // Colspan is 8 (Removed Plays, Added Singers)
         row.innerHTML = `
             <td>
-                <div class="custom-control custom-checkbox">
-                    <input type="checkbox" class="custom-control-input" id="song${song.id}">
-                    <label class="custom-control-label" for="song${song.id}"></label>
-                </div>
-            </td>
-            <td>
                 <div class="d-flex align-items-center">
-                    <img src="${song.pic || 'assets/media/image/music-thumbnail.jpg'}" alt="" class="mr-3" 
-                        style="width: 40px; height: 40px; object-fit: cover;">
-                    <div>
-                        <h6 class="mb-0">
-                            <a href="song-details.html?songId=${song.id}&from=my-music" class="text-dark">${escapeHTML(song.name)}</a>
-                        </h6>
-                        <!-- Display singer names in main info block if available -->
-                        <!-- <small class="text-muted">${song.singerNames || ''}</small> --> 
-                    </div>
+                    <figure class="avatar avatar-sm mr-3">
+                        <img src="${song.pic || 'assets/media/image/default-cover.jpg'}" alt="${song.name}">
+                    </figure>
+                    <span class="song-name">${song.name}</span>
                 </div>
             </td>
-            <td>${escapeHTML(song.categoryNames || 'N/A')}</td>
-            <td>${escapeHTML(song.tagNames || 'N/A')}</td>
+            <td>${song.categoryNames || '-'}</td>
+            <td>${song.tagNames || '-'}</td>
             <td>${formatDate(song.createTime)}</td>
-            <td><span class="badge badge-${statusClass}">${statusText}</span></td>
-            <!-- Display Singer(s) instead of Plays -->
-            <td>${escapeHTML(song.singerNames || 'N/A')}</td> 
+            <td><span class="badge badge-${statusInfo.class}">${statusInfo.text}</span></td>
+            <td>${singerNamesStr}</td>
             <td class="text-right">
                 <div class="dropdown">
-                    <button class="btn btn-light btn-sm" type="button" data-toggle="dropdown">
-                        <i data-feather="more-horizontal"></i>
-                    </button>
+                    <a href="#" class="btn btn-sm btn-icon" data-toggle="dropdown">
+                        <i data-feather="more-vertical"></i>
+                    </a>
                     <div class="dropdown-menu dropdown-menu-right">
-                        <a class="dropdown-item play-song" href="#" data-id="${song.id}" data-url="${song.url}">
+                        <a class="dropdown-item play-song" href="#" 
+                           data-songid="${song.id}" 
+                           data-url="${song.url || ''}" 
+                           data-name="${escapeHTML(song.name || 'Unknown Song')}" 
+                           data-singer="${escapeHTML(singerNamesStr)}" 
+                           data-pic="${song.pic || 'assets/media/image/default-cover.jpg'}">
                             <i class="mr-2" data-feather="play"></i>Play
                         </a>
-                        <a class="dropdown-item" href="song-details.html?songId=${song.id}&from=my-music">
+                        <a class="dropdown-item song-details" href="#" data-id="${song.id}">
                             <i class="mr-2" data-feather="info"></i>Details
                         </a>
-                        <div class="dropdown-divider"></div>
-                        <a class="dropdown-item text-danger delete-song" href="#" data-id="${song.id}">
+                        <a class="dropdown-item delete-song" href="#" data-id="${song.id}">
                             <i class="mr-2" data-feather="trash"></i>Delete
                         </a>
                     </div>
@@ -193,11 +177,79 @@ function renderSongsList(songs) {
             </td>
         `;
         tableBody.appendChild(row);
+
+        // *** Directly attach event listener for PLAY button ***
+        const playButton = row.querySelector('.play-song');
+        if (playButton) {
+            playButton.addEventListener('click', function(e) {
+                e.preventDefault(); 
+                e.stopPropagation(); 
+                const songId = this.getAttribute('data-songid');
+                const songUrl = this.getAttribute('data-url');
+                const name = this.getAttribute('data-name') || 'Unknown Song';
+                const singer = this.getAttribute('data-singer') || '-';
+                const pic = this.getAttribute('data-pic') || 'assets/media/image/default-cover.jpg';
+                if (songUrl && songUrl.trim() !== '') { 
+                    console.log(`Direct Play Click: ID=${songId}`);
+                    playSongAudioPlayer(songUrl, name, singer, pic);
+                } else {
+                    console.error('Direct Play button clicked, but data-url missing.', this);
+                    showMessage('Cannot play song: URL missing.', 'warning');
+                }
+            });
+        }
+
+        // *** Directly attach event listener for DETAILS button ***
+        const detailsButton = row.querySelector('.song-details');
+        if (detailsButton) {
+            detailsButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation(); 
+                const songId = this.getAttribute('data-id');
+                if (songId) {
+                    console.log(`Direct Details Click: ID=${songId}`);
+                    showSongDetailsModal(songId);
+                } else {
+                    console.error('Direct Details button clicked, but data-id missing.', this);
+                }
+            });
+        }
+
+        // *** Directly attach event listener for DELETE button ***
+        const deleteButton = row.querySelector('.delete-song');
+        if (deleteButton) {
+            deleteButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const songId = this.getAttribute('data-id');
+                if (songId) {
+                    console.log(`Direct Delete Click: ID=${songId}`);
+                    confirmDeleteSong(songId);
+                } else {
+                    console.error('Direct Delete button clicked, but data-id missing.', this);
+                }
+            });
+        }
     });
     
+    // Re-initialize Feather Icons
     if (window.feather) {
         feather.replace();
     }
+
+    // Re-initialize Bootstrap Dropdowns (Keep this)
+    setTimeout(() => {
+        try {
+            $('[data-toggle="dropdown"]').dropdown('dispose'); 
+            $('[data-toggle="dropdown"]').dropdown(); 
+            console.log('Dropdowns re-initialized after delay.');
+        } catch (err) {
+            console.error('Error re-initializing dropdowns:', err);
+        }
+    }, 50);
+
+    // Optionally, re-initialize tooltips if they are also affected (less likely based on error)
+    // $('[data-toggle="tooltip"]').tooltip(); 
 }
 
 /**
@@ -353,72 +405,43 @@ async function updateStatistics() {
  * Setup event listeners
  */
 function setupEventListeners() {
+    // Declare variables ONCE at the top of the function scope
     const tableBody = document.querySelector('#my-music-table tbody');
     const categoryFilter = document.getElementById('categoryFilter');
     const statusFilter = document.getElementById('statusFilter');
     const searchInput = document.getElementById('searchInput');
     const searchButton = document.getElementById('searchButton');
+    const clearFiltersButton = document.getElementById('clearFiltersButton');
     const uploadButton = document.querySelector('button[data-target="#uploadMusicModal"]');
-    const selectAllCheckbox = document.getElementById('selectAll');
-    const clearFiltersButton = document.getElementById('clearFiltersButton'); // Get the new button
 
-    // Table actions (Play, Delete) using event delegation
-    if (tableBody) {
-        tableBody.addEventListener('click', function(e) {
-            const deleteLink = e.target.closest('.delete-song');
-            const playLink = e.target.closest('.play-song');
-            // No Edit listener needed anymore
-            
-            if (deleteLink) {
-                e.preventDefault();
-                const songId = deleteLink.getAttribute('data-id');
-                confirmDeleteSong(songId);
-            }
-            
-            if (playLink) {
-                e.preventDefault();
-                // ... (play logic remains the same) ...
-                 const songId = playLink.getAttribute('data-id');
-                 const songUrl = playLink.getAttribute('data-url');
-                 const row = playLink.closest('tr');
-                 const name = row?.querySelector('h6 a')?.textContent || 'Unknown Song';
-                 const pic = row?.querySelector('img')?.src || 'assets/media/image/music-thumbnail.jpg';
-                 const singer = row?.querySelector('small')?.textContent || '';
-                 playSongAudioPlayer(songUrl, name, singer, pic);
-            }
-        });
-    }
-    
     // Filter listeners
     if (categoryFilter) {
         categoryFilter.addEventListener('change', function() {
             currentCategoryId = this.value;
-            currentPage = 1; // Reset to first page when filter changes
+            currentPage = 1;
             loadUserSongs();
         });
     }
     if (statusFilter) {
         statusFilter.addEventListener('change', function() {
             currentStatus = this.value;
-            currentPage = 1; // Reset to first page
+            currentPage = 1;
             loadUserSongs();
         });
     }
 
     // Search listeners
-    if (searchInput) {
+    if (searchInput && searchButton) {
         searchInput.addEventListener('keyup', function(e) {
             if (e.key === 'Enter') {
                 currentSearchTerm = this.value;
-                currentPage = 1; // Reset to first page
+                currentPage = 1;
                 loadUserSongs();
             }
         });
-    }
-    if (searchButton) {
         searchButton.addEventListener('click', function() {
             currentSearchTerm = searchInput.value;
-            currentPage = 1; // Reset to first page
+            currentPage = 1;
             loadUserSongs();
         });
     }
@@ -426,43 +449,24 @@ function setupEventListeners() {
     // Clear Filters Button Listener
     if (clearFiltersButton) {
         clearFiltersButton.addEventListener('click', function() {
-            // Reset dropdowns
             if (categoryFilter) categoryFilter.value = 'all';
             if (statusFilter) statusFilter.value = 'all';
-            // Reset search input
             if (searchInput) searchInput.value = '';
-            
-            // Reset JS variables
             currentCategoryId = 'all';
             currentStatus = 'all';
             currentSearchTerm = '';
             currentPage = 1;
-            
-            // Reload songs
             loadUserSongs();
-            
-            // Optionally re-focus the first filter or search input
-            // if (categoryFilter) categoryFilter.focus(); 
         });
     }
 
-    // Upload button redirect
+    // Upload button redirect (If this modal button is still used)
      if (uploadButton) {
          uploadButton.addEventListener('click', function(e) {
              e.preventDefault();
-             window.location.href = 'upload-music.html';
+             window.location.href = 'upload-music.html'; 
          });
      }
-    
-    // Select All Checkbox
-    if (selectAllCheckbox && tableBody) {
-        selectAllCheckbox.addEventListener('change', function() {
-            const checkboxes = tableBody.querySelectorAll('.custom-control-input');
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = this.checked;
-            });
-        });
-    }
 }
 
 /**
@@ -497,6 +501,133 @@ async function deleteSong(songId) {
     } catch (error) {
         console.error('Failed to delete song:', error);
         showMessage(`Deletion failed: ${error.message}`, 'danger');
+    }
+}
+
+/**
+ * Show song details in modal
+ */
+async function showSongDetailsModal(songId) {
+    try {
+        // Select modal elements once
+        const detailSongImage = document.getElementById('detailSongImage');
+        const detailSongName = document.getElementById('detailSongName');
+        const detailSongArtist = document.getElementById('detailSongArtist');
+        const detailSongCategory = document.getElementById('detailSongCategory');
+        const detailSongTags = document.getElementById('detailSongTags');
+        const detailSongDate = document.getElementById('detailSongDate');
+        const detailSongStatus = document.getElementById('detailSongStatus');
+        const detailSongDescription = document.getElementById('detailSongDescription');
+        const detailSongLyrics = document.getElementById('detailSongLyrics');
+        const detailPlayButton = document.getElementById('detailPlayButton');
+        const modalElement = $('#songDetailsModal'); // jQuery object for modal control
+
+        // Check if essential elements exist before proceeding
+        if (!detailSongName || !detailSongArtist || !detailSongCategory || !detailSongTags || 
+            !detailSongDate || !detailSongStatus || !detailSongDescription || !detailSongLyrics || 
+            !detailSongImage || !detailPlayButton) {
+            console.error("One or more modal elements not found!");
+            showMessage("Could not display song details: Missing modal elements.", "danger");
+            return;
+        }
+
+        // Show loading state (use innerHTML for tags/status)
+        detailSongName.textContent = 'Loading...';
+        detailSongArtist.textContent = '';
+        detailSongCategory.textContent = '-';
+        detailSongTags.innerHTML = '-'; // Use innerHTML for tags
+        detailSongDate.textContent = '-';
+        detailSongStatus.innerHTML = '-'; // Use innerHTML for status badge
+        detailSongDescription.textContent = '-';
+        detailSongLyrics.textContent = '-';
+        detailSongImage.src = 'assets/media/image/default-cover.jpg'; // Default image
+        detailPlayButton.onclick = null; // Disable play button initially
+        
+        // Show the modal using jQuery
+        modalElement.modal('show');
+        
+        // Fetch song details from API - Use the correct API path
+        // Assuming the API endpoint returns a SongDTO-like object with the expected fields
+        const response = await api.get(`/song/detail?songId=${songId}`); 
+        
+        if (response.data.code !== '200' || !response.data.data) {
+            throw new Error(response.data.msg || 'Failed to fetch song details');
+        }
+        
+        const song = response.data.data; // Assume this is the song object
+        
+        // ---- Update the modal with fetched song details ----
+        
+        // Basic info
+        detailSongImage.src = song.pic || 'assets/media/image/default-cover.jpg';
+        detailSongName.textContent = song.name || 'Unknown Song';
+        detailSongArtist.textContent = song.singerNames || '-'; // Assuming singerNames is a string
+        detailSongCategory.textContent = song.categoryNames || '-'; // Assuming categoryNames is a string
+        
+        // Process tags (assuming song.tagNames is a comma-separated string or an array)
+        let tagElements = '-';
+        if (song.tagNames) {
+            const tagsArray = Array.isArray(song.tagNames) ? song.tagNames : song.tagNames.split(',').map(t => t.trim()).filter(t => t);
+            if (tagsArray.length > 0) {
+                tagElements = tagsArray.map(tag => 
+                    `<span class="badge badge-light mr-1">${escapeHTML(tag)}</span>`
+                ).join('');
+            }
+        }
+        detailSongTags.innerHTML = tagElements; // Use innerHTML
+        
+        // Format date using the utility function
+        detailSongDate.textContent = formatDate(song.createTime);
+        
+        // Set status using the utility function
+        detailSongStatus.innerHTML = getStatusBadge(song.status); // Use innerHTML
+        
+        // Set description and lyrics (Use escapeHTML for safety)
+        detailSongDescription.textContent = song.introduction || 'No description available';
+        // For lyrics, preserve line breaks by setting textContent on a <pre> tag
+        detailSongLyrics.textContent = song.lyric || 'No lyrics available';
+        
+        // Setup play button event
+        detailPlayButton.onclick = function() {
+            // Close the modal
+            modalElement.modal('hide');
+            
+            // Play the song using the audio player function
+            playSongAudioPlayer(song.url, song.name, song.singerNames || '', song.pic || 'assets/media/image/default-cover.jpg');
+        };
+        
+        // Re-initialize feather icons if they were used inside the modal (Play button icon)
+        if (window.feather) {
+            feather.replace();
+        }
+        
+    } catch (error) {
+        console.error('Error fetching or displaying song details:', error);
+        // Update modal title or a dedicated error area within the modal if available
+        if (document.getElementById('detailSongName')) {
+             document.getElementById('detailSongName').textContent = 'Error loading details';
+        }
+        showMessage(`Error loading song details: ${error.message}`, 'danger');
+        // Optionally hide the modal on error after a delay or keep it open with the error message
+        // $('#songDetailsModal').modal('hide'); 
+    }
+}
+
+/**
+ * Helper function to get status badge HTML
+ */
+function getStatusBadge(status) {
+    const info = getStatusInfo(status);
+    return `<span class="badge badge-${info.class}">${escapeHTML(info.text)}</span>`;
+}
+
+// Refactored getStatusInfo function (used above)
+function getStatusInfo(status) {
+    switch(status) {
+        case 0: return { text: 'Pending', class: 'warning' };
+        case 1: return { text: 'Approved', class: 'success' };
+        case 2: return { text: 'Rejected', class: 'danger' };
+        default: return { text: 'Unknown', class: 'secondary' };
     }
 }
 
@@ -559,7 +690,7 @@ function showMessage(message, type = 'info') {
     messageContainer.appendChild(messageElement);
     setTimeout(() => {
         if (messageElement.parentElement) { 
-            $(messageElement).alert('close'); 
+             $(messageElement).alert('close');
         }
     }, 5000);
 } 

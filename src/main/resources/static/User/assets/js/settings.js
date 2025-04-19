@@ -17,6 +17,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const profileUpdateMessage = document.getElementById('profile-update-message');
     const passwordChangeMessage = document.getElementById('password-change-message');
     const avatarImg = document.getElementById('profile-avatar-img'); // Get avatar img element (Uncommented)
+    const headerAvatarImg = document.getElementById('header-user-avatar'); // Header avatar
+    const changeAvatarButton = document.getElementById('change-avatar-button');
+    const avatarFileInput = document.getElementById('avatar-file-input');
+
+    // --- Add reference for username input ---
+    const usernameInput = document.getElementById('profile-username');
 
     let loadedUserProfile = null; // Variable to store loaded profile data
 
@@ -58,6 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('Checking DOM elements before assignment:');
                 console.log('nameInput element:', nameInput);
                 console.log('emailInput element:', emailInput);
+                console.log('usernameInput element:', usernameInput); // Check usernameInput too
                 console.log('avatarImg element:', avatarImg); // Check avatarImg too
                 // --- End Debugging ---
 
@@ -67,6 +74,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     nameInput.value = loadedUserProfile.name || ''; // Populate new name input
                 } else {
                      console.warn('nameInput element was null or undefined.');
+                }
+
+                if (usernameInput) { // Populate username
+                     console.log('Attempting to set usernameInput.value');
+                    usernameInput.value = loadedUserProfile.username || '';
+                } else {
+                     console.warn('usernameInput element was null or undefined.');
                 }
 
                 if (emailInput) {
@@ -117,6 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const updatedProfile = {
             id: parseInt(currentUserId),
             name: nameInput.value.trim(), // Get value from new name input
+            // username: usernameInput.value.trim(), // Remove username from update payload
             // Only include fields expected by backend /user/update endpoint
         };
 
@@ -126,21 +141,29 @@ document.addEventListener('DOMContentLoaded', () => {
             showMessage(profileUpdateMessage, 'Name cannot be empty.', true);
             return;
         }
+        /* Remove username check
+        if (!updatedProfile.username) {
+             // Changed message to English
+             showMessage(profileUpdateMessage, 'Username cannot be empty.', true);
+             return;
+         }*/
 
         console.log('Submitting profile update:', updatedProfile);
 
         try {
             const response = await api.post('/user/update', updatedProfile);
-            if (response.data && response.data.code === '200') { 
+            if (response.data && response.data.code === '200') {
                 // Changed message to English
                 showMessage(profileUpdateMessage, 'User information updated successfully!', false);
                  const currentUserData = JSON.parse(localStorage.getItem('user'));
                  if(currentUserData){
                     currentUserData.name = updatedProfile.name;
+                    // currentUserData.username = updatedProfile.username; // Remove username update in localStorage
                     localStorage.setItem('user', JSON.stringify(currentUserData));
                  }
                  if (loadedUserProfile) {
                     loadedUserProfile.name = updatedProfile.name;
+                    // loadedUserProfile.username = updatedProfile.username; // Remove username update in loaded profile
                  }
             } else {
                 // Changed message to English
@@ -187,9 +210,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        if (newPassword.length < 6) {
+        // Update minimum password length check to 8
+        if (newPassword.length < 8) { 
              // Changed message to English
-            showMessage(passwordChangeMessage, 'New password must be at least 6 characters long.', true);
+            showMessage(passwordChangeMessage, 'New password must be at least 8 characters long.', true);
             return;
         }
 
@@ -221,10 +245,9 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Submitting password change for username (login ID):', userLoginIdentifier);
 
         try {
-            // Verify success code ('1' or '200'?)
-            // NOTE: Backend currently uses code '1' for successful password change based on analysis
+            // Verify success code ('1' or '200'?) - Change to check for standard '200'
             const response = await api.put('/updatePassword', passwordData);
-            if (response.data && response.data.code === '1') { // Keep checking '1' based on analysis, adjust if backend changes
+            if (response.data && response.data.code === '200') { // Changed check from '1' to '200'
                 // Changed message to English
                 showMessage(passwordChangeMessage, 'Password updated successfully!', false);
                 document.getElementById('current-password').value = '';
@@ -246,12 +269,123 @@ document.addEventListener('DOMContentLoaded', () => {
                  localStorage.removeItem('role');
                  window.location.href = '../login.html'; // Redirect to login page
             } else {
-                 // Show generic error for other issues
-                 // Changed message to English
-                 showMessage(passwordChangeMessage, `An error occurred while updating password: ${error.response?.data?.msg || error.message || 'Please try again later.'}`, true);
+                 // Show specific message for incorrect current password
+                if (error.response.data.msg === "Incorrect current password provided.") {
+                    showMessage(passwordChangeMessage, 'The current password you entered is incorrect.', true);
+                } else {
+                    // Show generic error from backend or default message
+                    showMessage(passwordChangeMessage, `An error occurred while updating password: ${error.response.data.msg || error.message || 'Please try again later.'}`, true);
+                }
             }
         }
     }
+
+    // Function to update avatars on the page
+    function updateDisplayedAvatars(newAvatarUrl) {
+        if (avatarImg) {
+            avatarImg.src = newAvatarUrl;
+        }
+        if (headerAvatarImg) {
+            headerAvatarImg.src = newAvatarUrl;
+        }
+        // Also update avatar in localStorage if it's stored there
+        const currentUserData = JSON.parse(localStorage.getItem('user'));
+        if (currentUserData) {
+            currentUserData.avatar = newAvatarUrl;
+            localStorage.setItem('user', JSON.stringify(currentUserData));
+        }
+    }
+
+    // --- Avatar Upload Logic ---
+    if (changeAvatarButton && avatarFileInput) {
+        changeAvatarButton.addEventListener('click', () => {
+            avatarFileInput.click(); // Trigger hidden file input
+        });
+
+        avatarFileInput.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (!file) {
+                console.log('No file selected.');
+                return; // No file selected
+            }
+
+            console.log('File selected:', file.name);
+            clearMessage(profileUpdateMessage); // Clear previous messages
+
+            // Basic file type validation (client-side)
+            if (!file.type.startsWith('image/')) {
+                showMessage(profileUpdateMessage, 'Please select an image file.', true);
+                avatarFileInput.value = ''; // Clear the input
+                return;
+            }
+
+            // Optional: Basic file size validation (e.g., 5MB)
+            const maxSize = 5 * 1024 * 1024; // 5 MB
+            if (file.size > maxSize) {
+                showMessage(profileUpdateMessage, 'File size cannot exceed 5MB.', true);
+                avatarFileInput.value = ''; // Clear the input
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('avatarFile', file); // Key must match backend @RequestParam
+
+            console.log('Uploading avatar...');
+            try {
+                // 1. Get token from localStorage before making the call
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    console.error('Authentication token not found in localStorage.');
+                    showMessage(profileUpdateMessage, 'Authentication failed. Please log in again.', true);
+                    // Redirect to login might be appropriate here
+                    // window.location.href = '../login.html';
+                    return;
+                }
+
+                // Show some loading indicator if possible (e.g., disable button)
+                changeAvatarButton.disabled = true;
+                changeAvatarButton.textContent = 'Uploading...';
+
+                const response = await api.post('/user/updateAvatar', formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data', // Keep this for file uploads
+                        // 2. Manually add the authorization header (lowercase, no Bearer prefix)
+                        'authorization': token // Use lowercase 'authorization' and just the token
+                    }
+                });
+
+                if (response.data && response.data.code === '200' && response.data.data) {
+                    const newAvatarUrl = response.data.data;
+                    console.log('Avatar updated successfully. New URL:', newAvatarUrl);
+                    updateDisplayedAvatars(newAvatarUrl);
+                    showMessage(profileUpdateMessage, 'Avatar updated successfully!', false);
+                } else {
+                    console.error('Failed to update avatar:', response.data ? response.data.msg : 'Unknown error');
+                    showMessage(profileUpdateMessage, `Failed to update avatar: ${response.data ? response.data.msg : 'Server error.'}`, true);
+                }
+            } catch (error) {
+                console.error('Error uploading avatar:', error);
+                const errorMsg = error.response?.data?.msg || error.message || 'An unknown error occurred.';
+                // Check for specific errors like 401 for token expiry
+                if (error.response && error.response.status === 401) {
+                    console.log('Token expired or invalid during avatar upload. Redirecting to login.');
+                    alert('Your session has expired, please log in again.');
+                    localStorage.removeItem('user');
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('role');
+                    window.location.href = '../login.html'; // Redirect to login page
+                } else {
+                    showMessage(profileUpdateMessage, `Error uploading avatar: ${errorMsg}`, true);
+                }
+            } finally {
+                // Reset button state and file input
+                changeAvatarButton.disabled = false;
+                changeAvatarButton.textContent = 'Change Avatar';
+                avatarFileInput.value = ''; // Clear the file input after upload attempt
+            }
+        });
+    }
+    // --- End Avatar Upload Logic ---
 
     // --- Add Event Listeners ---
     if (profileForm) {

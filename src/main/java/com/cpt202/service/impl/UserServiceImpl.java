@@ -7,6 +7,7 @@ import com.cpt202.common.enums.ResultCodeEnum;
 import com.cpt202.domain.Account;
 import com.cpt202.domain.User;
 import com.cpt202.mapper.UserMapper;
+import com.cpt202.mapper.EmailMapper;
 import com.cpt202.service.UserService;
 import com.cpt202.utils.TokenUtils;
 import com.cpt202.utils.exception.BusinessException;
@@ -30,6 +31,7 @@ import java.io.IOException;
 import com.cpt202.dto.UserStatsDTO;
 import com.cpt202.mapper.SongMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
 /**
  * 用户业务处理
  **/
@@ -42,6 +44,9 @@ public class UserServiceImpl implements UserService {
 
     @Resource
     private UserMapper userMapper;
+
+    @Resource
+    private EmailMapper emailMapper;
 
     @Resource
     private OssUtil ossUtil;
@@ -159,10 +164,20 @@ public class UserServiceImpl implements UserService {
         if (ObjectUtil.isNull(dbUser)) {
             throw new CustomException(ResultCodeEnum.USER_NOT_EXIST_ERROR);
         }
-        if (!account.getPassword().equals(dbUser.getPassword())) {
-            throw new CustomException(ResultCodeEnum.PARAM_PASSWORD_ERROR);
+        
+        // Encrypt the current password provided by the user for comparison
+        String currentPasswordEncrypted = DigestUtils.md5DigestAsHex((SALT + account.getPassword()).getBytes());
+
+        // Compare the encrypted input with the encrypted password from the database
+        if (!currentPasswordEncrypted.equals(dbUser.getPassword())) {
+            // Throw error with specific English message
+            throw new CustomException(ResultCodeEnum.PARAM_PASSWORD_ERROR.name(), "Incorrect current password provided."); 
         }
-        dbUser.setPassword(account.getNewPassword());
+        
+        // Encrypt the new password before saving
+        String newPasswordEncrypted = DigestUtils.md5DigestAsHex((SALT + account.getNewPassword()).getBytes());
+        dbUser.setPassword(newPasswordEncrypted);
+        
         userMapper.updateById(dbUser);
     }
 
@@ -285,18 +300,49 @@ public class UserServiceImpl implements UserService {
         return userMapper.selectByUsername(username);
     }
 
+    /**
+     * 更新用户头像
+     *
+     * @param avatarFile 上传的头像文件
+     * @return 更新后的头像URL
+     * @throws IOException 文件上传或处理时可能发生IO异常
+     */
     @Override
-    public String updateAvatar(MultipartFile file, Integer userId) throws IOException {
-        // 上传文件到OSS，文件存储在avatar目录下
-        String fileUrl = ossUtil.uploadFile(file, "avatar/");
-        
-        // 更新用户头像URL
-        User user = new User();
-        user.setId(userId);
-        user.setAvatar(fileUrl);
-        userMapper.updateById(user);
-        
-        return fileUrl;
+    @Transactional // Add transaction management
+    public String updateAvatar(MultipartFile avatarFile) throws IOException {
+        // 1. Validate the uploaded file
+        if (avatarFile == null || avatarFile.isEmpty()) {
+            throw new CustomException(ResultCodeEnum.PARAM_ERROR.code, "上传的头像文件不能为空");
+        }
+
+        // Optional: Add more validation like file type and size check
+        String contentType = avatarFile.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+             throw new CustomException(ResultCodeEnum.PARAM_ERROR.code, "请上传图片文件");
+        }
+        // Example size check (e.g., 5MB)
+        long maxSize = 5 * 1024 * 1024;
+        if (avatarFile.getSize() > maxSize) {
+            throw new CustomException(ResultCodeEnum.PARAM_ERROR.code, "头像文件大小不能超过5MB");
+        }
+
+        // 2. Get current user ID (Replace with your actual logic)
+        // Example using TokenUtils (assuming it stores user info in thread local)
+        Account currentUser = TokenUtils.getCurrentUser();
+        if (currentUser == null || !(currentUser instanceof User)) {
+            throw new CustomException(ResultCodeEnum.TOKEN_INVALID_ERROR.code, "用户未登录或认证信息无效");
+        }
+        Integer userId = ((User) currentUser).getId();
+
+        // 3. Upload file to OSS
+        String folderPath = "avatar/"; // Define the folder in OSS for avatars
+        String avatarUrl = ossUtil.uploadFile(avatarFile, folderPath);
+
+        // 4. Update avatar URL in the database
+        userMapper.updateUrl(avatarUrl, userId); // Reusing the existing updateUrl method
+
+        // 5. Return the new avatar URL
+        return avatarUrl;
     }
 
     /**
@@ -325,5 +371,45 @@ public class UserServiceImpl implements UserService {
         stats.setPendingSongs(pendingSongs != null ? pendingSongs : 0);
 
         return stats;
+    }
+
+    /**
+     * 根据邮箱查询用户
+     */
+    @Override
+    public Account selectByEmail(String email) {
+        // Need to ensure UserMapper has selectByEmail method
+        return userMapper.selectByEmail(email);
+    }
+
+    /**
+     * 使用验证码重置密码
+     */
+    @Override
+    public boolean resetPasswordWithCode(String email, String code, String newPassword) {
+        // 1. Verify the code
+        String storedCode = emailMapper.selectCodeByEmail(email);
+        if (storedCode == null || !storedCode.equals(code)) {
+            // TODO: Add a specific VERIFICATION_CODE_ERROR enum
+            throw new CustomException(ResultCodeEnum.PARAM_PASSWORD_ERROR); // Using existing error as placeholder
+        }
+
+        // 2. Find the user by email
+        User user = userMapper.selectByEmail(email);
+        if (user == null) {
+            throw new CustomException(ResultCodeEnum.USER_NOT_EXIST_ERROR);
+        }
+
+        // 3. Hash the new password
+        String encryptPassword = DigestUtils.md5DigestAsHex((SALT + newPassword).getBytes());
+
+        // 4. Update the password
+        user.setPassword(encryptPassword);
+        int updatedRows = userMapper.updateById(user);
+
+        // Optionally: Invalidate the code after successful use
+        // emailMapper.updateCodeByEmail(email, null);
+
+        return updatedRows > 0;
     }
 }

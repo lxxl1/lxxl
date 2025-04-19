@@ -112,7 +112,8 @@ async function loadCurrentUserSongs() {
             params: { userId: currentUserId }
         });
         if (response.data && response.data.code === '200' && response.data.data) {
-            currentUserSongsData = response.data.data || [];
+            // Correctly extract the list from the paginated response
+            currentUserSongsData = response.data.data && response.data.data.list ? response.data.data.list : [];
             console.log('Loaded current user songs:', currentUserSongsData);
             // Update stats and render user music section *after* user songs are loaded
             updateStatistics(); 

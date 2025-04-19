@@ -1,5 +1,6 @@
 import api from '../../../Common/js/api.js';
 import { API_URL } from '../../../Common/js/config.js';
+import { playSongAudioPlayer } from './audio-player.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     loadArtistDetails();
@@ -180,7 +181,7 @@ async function loadArtistSongs(singerId) {
                     // Default image if none exists
                     const songImage = song.pic || 'assets/media/image/default-cover.jpg';
                     
-                    // Create song card HTML
+                    // Create song card HTML with improved play button styling
                     songCardCol.innerHTML = `
                         <div class="card song-card">
                             <div class="position-relative">
@@ -188,15 +189,15 @@ async function loadArtistSongs(singerId) {
                                      style="height: 160px; object-fit: cover;">
                                 <div class="position-absolute bottom-0 start-0 end-0 p-2 bg-dark bg-opacity-75 song-actions">
                                     <div class="d-flex justify-content-center">
-                                        <button class="btn btn-sm btn-outline-light mx-1 play-song-btn" data-song-id="${song.id}" data-song-url="${song.url}" data-song-name="${escapeHTML(song.name)}" data-song-pic="${escapeHTML(songImage)}">
-                                            <i class="fas fa-play"></i> Play
+                                        <button class="btn btn-primary mx-1 play-song-btn" data-song-id="${song.id}" data-song-url="${song.url}" data-song-name="${escapeHTML(song.name)}" data-song-pic="${escapeHTML(songImage)}">
+                                            <i class="fas fa-play mr-1"></i> Play
                                         </button>
                                     </div>
                                 </div>
                             </div>
                             <div class="card-body">
                                 <h6 class="card-title mb-0 text-truncate">${escapeHTML(song.name || 'Unknown Song')}</h6>
-                                <p class="card-text small text-muted">Plays: ${song.playCount || 0}</p>
+                                
                             </div>
                         </div>
                     `;
@@ -237,34 +238,8 @@ function setupPlayButtons() {
             const songPic = this.getAttribute('data-song-pic');
             const artistName = document.getElementById('artist-name').textContent;
             
-            // Check if the global audio player interface exists
-            if (window.audioPlayer && typeof window.audioPlayer.playSong === 'function') {
-                window.audioPlayer.playSong({
-                    url: songUrl,
-                    title: songName,
-                    artist: artistName,
-                    cover: songPic
-                });
-            } else {
-                // Fallback if the global audio player is not available
-                const audioPlayer = document.getElementById('audioPlayer');
-                if (audioPlayer) {
-                    audioPlayer.src = songUrl;
-                    audioPlayer.play()
-                        .catch(error => console.error('Error playing song:', error));
-                    
-                    // Update the player UI
-                    document.getElementById('currentSongTitle').textContent = songName;
-                    document.getElementById('currentSongArtist').textContent = artistName;
-                    document.getElementById('currentSongCover').src = songPic;
-                    
-                    // Update play button icon
-                    const playPauseBtn = document.getElementById('playPauseButton');
-                    if (playPauseBtn) {
-                        playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
-                    }
-                }
-            }
+            // Use the playSongAudioPlayer function from audio-player.js
+            playSongAudioPlayer(songUrl, songName, artistName, songPic);
         });
     });
 }

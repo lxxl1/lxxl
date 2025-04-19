@@ -81,6 +81,25 @@ export function formatDate(dateInput) {
 }
 
 /**
+ * Escapes HTML special characters to prevent XSS.
+ * @param {string} str The string to escape.
+ * @returns {string} The escaped string.
+ */
+export function escapeHTML(str) {
+    if (!str) return '';
+    return str.replace(/[&<>\'"/]/g, 
+        tag => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            "'": '&#39;',
+            '"': '&quot;',
+            '/': '&#x2F;' // Escape forward slash for safety
+        }[tag] || tag)
+    );
+}
+
+/**
  * Sets up global event listeners, like logout buttons.
  */
 export function setupGlobalEventListeners() {
@@ -135,20 +154,25 @@ export function setupGlobalEventListeners() {
 export function updateUserHeader(user) {
     if (!user) return;
 
-    console.log('[updateUserHeader] Updating header with user info:', user.name);
+    console.log('[updateUserHeader] Updating header with user info:', user);
 
-    // Update elements by class or ID - adjust selectors as needed
-    const userNameElements = document.querySelectorAll('.user-name');
-    const userAvatarElements = document.querySelectorAll('.user-avatar');
+    // Use ID selectors for the standardized header elements
+    const userNameElement = document.getElementById('header-user-name');
+    const userAvatarElement = document.getElementById('header-user-avatar');
 
-    userNameElements.forEach(el => {
-        el.textContent = user.name || 'User';
-    });
+    if (userNameElement) {
+        // Use user.name, fallback to user.username, then fallback to 'User'
+        userNameElement.textContent = user.name || user.username || 'User'; 
+    } else {
+        console.warn('[updateUserHeader] Element with ID "header-user-name" not found.');
+    }
 
-    userAvatarElements.forEach(el => {
-        el.src = user.avatar || 'assets/media/image/user/default-avatar.png'; // Use a default if no avatar
-        el.alt = user.name || 'User Avatar';
-    });
+    if (userAvatarElement) {
+        userAvatarElement.src = user.avatar || 'assets/media/image/user/default_avatar.png'; // Use a default if no avatar
+        userAvatarElement.alt = user.name || user.username || 'User Avatar'; // Update alt text as well
+    } else {
+         console.warn('[updateUserHeader] Element with ID "header-user-avatar" not found.');
+    }
 
     console.log('[updateUserHeader] Header updated.');
 } 

@@ -82,12 +82,62 @@
     </style>
 </head>
 <body>
-    <!-- Preloader -->
-    <div class="preloader"><div class="preloader-icon"></div></div>
+    <!-- begin::preloader-->
+    <div class="preloader">
+        <div class="preloader-icon"></div>
+    </div>
+    <!-- end::preloader -->
+
+    <!-- begin::header -->
+    <div class="header">
+       
+
+        <div class="header-body">
+            <div class="header-body-left">
+                <div class="page-title">
+                    
+                </div>
+            </div>
+            <div class="header-body-right">
+                <ul class="navbar-nav">
+                 
+
+                    <!-- begin::header fullscreen -->
+                    <li class="nav-item dropdown">
+                        <a href="#" class="nav-link" title="Fullscreen" data-toggle="fullscreen">
+                            <i class="maximize" data-feather="maximize"></i>
+                            <i class="minimize" data-feather="minimize"></i>
+                        </a>
+                    </li>
+                    <!-- end::header fullscreen -->
+
+                    <!-- begin::user menu -->
+                    <li class="nav-item dropdown">
+                        <a href="#" class="nav-link" title="User menu" data-toggle="dropdown">
+                            <span id="header-user-name" class="mr-2 d-sm-inline d-none">User Name</span>
+                            <figure class="avatar avatar-sm">
+                                <img id="header-user-avatar" src="assets/media/image/user/women_avatar1.jpg" class="rounded-circle" alt="avatar">
+                            </figure>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-right">
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" href="../login.html">
+                                <i class="mr-2" data-feather="log-out"></i> Logout
+                            </a>
+                        </div>
+                    </li>
+                    <!-- end::user menu -->
+                </ul>
+            </div>
+        </div>
+    </div>
+    <!-- end::header -->
+
     
     <!-- Main Structure -->
     <div id="main">
-        <!-- Navigation (ensure it's consistent) -->
+
+        <!-- begin::navigation -->
         <div class="navigation">
             <div class="navigation-menu-tab">
                 <div class="flex-grow-1">
@@ -103,12 +153,16 @@
                 </div>
                 <div><ul><li><a href="../login.html" data-toggle="tooltip" data-placement="right" title="Logout"><i data-feather="log-out"></i></a></li></ul></div>
             </div>
+
+            <!-- Standard Secondary Navigation Panel -->
             <div class="navigation-menu-body">
                 <div class="navigation-menu-group">
                     <div id="dashboards">
                         <ul>
                             <li class="navigation-divider">Dashboard</li>
                             <li><a href="index.html">Overview</a></li>
+                            <li><a href="all-songs.html">All song</a></li>
+                            <li><a href="search-results.html">Search Song</a></li>
                         </ul>
                     </div>
                     <div id="my-music">

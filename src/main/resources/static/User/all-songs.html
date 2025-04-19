@@ -35,97 +35,45 @@
 
 <!-- begin::header -->
 <div class="header">
-
-    <div class="header-left">
-        <div class="navigation-toggler">
-            <a href="#" data-action="navigation-toggler">
-                <i data-feather="menu"></i>
-            </a>
-        </div>
-        <div class="header-logo">
-            <a href="index.html">
-                <img class="logo" src="assets/media/image/music-logo.png" alt="Music Resource Management">
-                <img class="logo-light" src="assets/media/image/music-logo-light.png" alt="Music Resource Management">
-            </a>
-        </div>
-    </div>
+   
 
     <div class="header-body">
         <div class="header-body-left">
             <div class="page-title">
-                <h4>Music Streaming Platform</h4>
+                <h4>All Songs</h4>
             </div>
         </div>
         <div class="header-body-right">
+            <!-- Header icons -->
             <ul class="navbar-nav">
-                <!-- begin::header search -->
-                <li class="nav-item">
-                    <a href="#" class="nav-link" title="Search" data-toggle="dropdown">
-                        <i data-feather="search"></i>
-                    </a>
-                    <div class="dropdown-menu p-2 dropdown-menu-right">
-                        <form id="song-search-form">
-                            <div class="input-group">
-                                <input type="text" id="song-search-input" class="form-control" placeholder="Search songs...">
-                                <div class="input-group-append">
-                                    <button class="btn btn-outline-primary" type="submit">
-                                        <i data-feather="search"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </li>
-                <!-- end::header search -->
-
-                <!-- begin::header fullscreen -->
+               <!-- Search (Keep the specific form) -->
+               <li class="nav-item"><a href="#" class="nav-link" title="Search" data-toggle="dropdown"><i data-feather="search"></i></a><div class="dropdown-menu p-2 dropdown-menu-right"><form id="song-search-form-all"><div class="input-group"><input type="text" id="song-search-input-all" class="form-control" placeholder="Search songs..."><div class="input-group-append"><button class="btn btn-outline-primary" type="submit"><i data-feather="search"></i></button></div></div></form></div></li>
+               <!-- Fullscreen -->
+               <li class="nav-item dropdown"><a href="#" class="nav-link" title="Fullscreen" data-toggle="fullscreen"><i class="maximize" data-feather="maximize"></i><i class="minimize" data-feather="minimize"></i></a></li>
+               <!-- User Menu -->
                 <li class="nav-item dropdown">
-                    <a href="#" class="nav-link" title="Fullscreen" data-toggle="fullscreen">
-                        <i class="maximize" data-feather="maximize"></i>
-                        <i class="minimize" data-feather="minimize"></i>
-                    </a>
-                </li>
-                <!-- end::header fullscreen -->
-
-                <!-- begin::user menu -->
-                <li class="nav-item dropdown">
-                    <a href="#" class="nav-link" title="User menu" data-toggle="dropdown">
-                        <span class="mr-2 d-sm-inline d-none">User Name</span>
-                        <figure class="avatar avatar-sm">
-                            <img src="assets/media/image/user/women_avatar1.jpg" class="rounded-circle" alt="avatar">
-                        </figure>
-                    </a>
-                    <div class="dropdown-menu dropdown-menu-right">
-                        <a class="dropdown-item" href="profile.html">
-                            <i class="mr-2" data-feather="user"></i> Personal Info
-                        </a>
-                        <a class="dropdown-item" href="change-password.html">
-                            <i class="mr-2" data-feather="lock"></i> Change Password
-                        </a>
-                        <div class="dropdown-divider"></div>
-                        <a class="dropdown-item" href="../login.html">
-                            <i class="mr-2" data-feather="log-out"></i> Logout
-                        </a>
-                    </div>
-                </li>
-                <!-- end::user menu -->
-
-            </ul>
-
-            <!-- begin::mobile header toggler -->
-            <ul class="navbar-nav d-flex align-items-center">
-                <li class="nav-item header-toggler">
-                    <a href="#" class="nav-link">
-                        <i data-feather="arrow-down"></i>
-                    </a>
-                </li>
-            </ul>
-            <!-- end::mobile header toggler -->
+                   <a href="#" class="nav-link" title="User menu" data-toggle="dropdown">
+                       <span id="header-user-name" class="mr-2 d-sm-inline d-none">User Name</span>
+                       <figure class="avatar avatar-sm">
+                           <img id="header-user-avatar" src="assets/media/image/user/women_avatar1.jpg" class="rounded-circle" alt="avatar">
+                       </figure>
+                   </a>
+                   <div class="dropdown-menu dropdown-menu-right">
+                       <a class="dropdown-item" href="settings.html"><i class="mr-2" data-feather="user"></i> Profile</a>
+                       <div class="dropdown-divider"></div>
+                       <a class="dropdown-item" href="../login.html">
+                           <i class="mr-2" data-feather="log-out"></i> Logout
+                       </a>
+                   </div>
+               </li>
+           </ul>
+           <!-- Mobile toggler -->
+            <ul class="navbar-nav d-flex align-items-center"><li class="nav-item header-toggler"><a href="#" class="nav-link"><i data-feather="arrow-down"></i></a></li></ul>
         </div>
     </div>
-
 </div>
 <!-- end::header -->
+
 
 <!-- begin::main -->
 <div id="main">
@@ -147,13 +95,15 @@
             <div><ul><li><a href="../login.html" data-toggle="tooltip" data-placement="right" title="Logout"><i data-feather="log-out"></i></a></li></ul></div>
         </div>
 
+        <!-- Standard Secondary Navigation Panel -->
         <div class="navigation-menu-body">
             <div class="navigation-menu-group">
                 <div id="dashboards" class="open">
                     <ul>
                         <li class="navigation-divider">Dashboard</li>
                         <li><a href="index.html">Overview</a></li>
-                        <li><a class="active" href="all-songs.html">All song</a></li> 
+                        <li><a class="active" href="all-songs.html">All song</a></li>
+                        <li><a href="search-results.html">Search Song</a></li>
                     </ul>
                 </div>
                 <div id="my-music">
@@ -184,7 +134,7 @@
                     <ul>
                         <li class="navigation-divider">Tags</li>
                         <li><a href="tag-management.html">Manage Tags</a></li>
-                        <li><a href="tag-songs.html">View Songs by Tag</a></li>
+            
                     </ul>
                 </div>
                 <div id="settings">

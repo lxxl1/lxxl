@@ -1,14 +1,17 @@
 package com.cpt202.controller;
 
 import com.cpt202.common.Result;
+import com.cpt202.common.enums.ResultCodeEnum;
 import com.cpt202.dto.UserStatsDTO;
 import com.cpt202.service.UserService;
+import com.cpt202.utils.exception.CustomException;
 import com.github.pagehelper.PageInfo;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import com.cpt202.domain.User;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.List;
 
@@ -137,27 +140,24 @@ public class UserController {
     }
 
     /**
-     * 上传用户头像
+     * 更新用户头像
+     * @param avatarFile 上传的头像文件 (expected form-data key: "avatarFile")
+     * @return Result object containing the new avatar URL or error
      */
-    @PostMapping("/avatar/upload")
-    public Result uploadAvatar(@RequestParam("file") MultipartFile file, 
-                               @RequestParam("userId") Integer userId) {
+    @PostMapping("/updateAvatar")
+    public Result updateAvatar(@RequestParam("avatarFile") MultipartFile avatarFile) {
         try {
-            if (file.isEmpty()) {
-                return Result.failure("上传文件不能为空");
-            }
-            
-            // 验证文件类型
-            String contentType = file.getContentType();
-            if (contentType == null || !(contentType.startsWith("image/"))) {
-                return Result.failure("只能上传图片文件");
-            }
-            
-            // 上传头像
-            String avatarUrl = userService.updateAvatar(file, userId);
-            return Result.success(avatarUrl);
+            String newAvatarUrl = userService.updateAvatar(avatarFile);
+            return Result.success(newAvatarUrl); // Return the new URL in the data field
+        } catch (CustomException e) {
+            // Log the custom exception maybe
+            return Result.error(e.getCode(), e.getMessage());
         } catch (IOException e) {
-            return Result.failure("头像上传失败: " + e.getMessage());
+            // Log the IO exception
+            return Result.error(ResultCodeEnum.SYSTEM_ERROR.code, "文件上传失败");
+        } catch (Exception e) {
+            // Log the generic exception
+            return Result.error(ResultCodeEnum.SYSTEM_ERROR.code, "更新头像时发生未知错误");
         }
     }
 }

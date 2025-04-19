@@ -418,8 +418,21 @@ function initFormSubmit() {
         }
         
         formData.append('name', document.getElementById('songName').value);
-        formData.append('singerId', document.getElementById('singerId').value);
         formData.append('userId', currentUserId);
+        
+        // CORRECTED SINGER ID HANDLING: Use 'singerIds' key and value from multi-select input
+        const selectedIdsValue = document.getElementById('selectedSingerIds').value;
+        if (selectedIdsValue) { // Ensure singers are selected
+            formData.append('singerIds', selectedIdsValue); // Use correct key and value
+        } else {
+            // If your application requires at least one singer, handle the error here
+            showMessage('Please select at least one artist', 'danger');
+            if (submitButton) submitButton.disabled = false;
+            if (progressBar) progressBar.style.display = 'none';
+            return; // Stop the submission
+            // If no singer is acceptable, you might send an empty string or omit the parameter
+            // depending on backend handling. For now, we require a singer.
+        }
         
         if (selectedUploadCategoryIds.size > 0) {
             formData.append('categoryIds', Array.from(selectedUploadCategoryIds).join(','));
