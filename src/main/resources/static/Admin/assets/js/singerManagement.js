@@ -8,7 +8,7 @@ import { API_URL } from '../../../Common/js/config.js';
 import api from '../../../Common/js/api.js';
 
 // Global variables
-let singersTable;
+let singerTable;
 let currentSingerId = null;
 const API_BASE_URL = '/singer'; // Base URL for artist APIs
 const DEFAULT_ARTIST_PIC = 'assets/images/default-artist.png'; // Define default picture path
@@ -16,7 +16,7 @@ const DEFAULT_ARTIST_PIC = 'assets/images/default-artist.png'; // Define default
 document.addEventListener('DOMContentLoaded', function() {
     initializeDataTable();
     setupEventListeners();
-    loadSingers();
+    loadSingers(); // Load singers on page load
 });
 
 /**
@@ -28,22 +28,25 @@ function initializeDataTable() {
         return;
     }
 
-    singersTable = $('#singersTable').DataTable({
+    singerTable = $('#singerTable').DataTable({ // Target #singerTable
         processing: true,
         serverSide: false, // Data loaded client-side after initial fetch
         data: [], // Initialize with empty data
         columns: [
             { data: 'id' },
-            { 
+            {
                 data: 'pic',
                 render: function(data) {
                     const picUrl = data ? data : DEFAULT_ARTIST_PIC;
-                    return `<img src="${picUrl}" alt="Artist" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;">`;
+                    // Ensure picUrl is treated as a relative path if it starts with /
+                    // If your setup requires absolute URLs, adjust logic here or in api.js
+                    const finalUrl = (picUrl && picUrl.startsWith('/')) ? `..${picUrl}` : picUrl;
+                    return `<img src="${finalUrl}" alt="Artist" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;" onerror="this.onerror=null; this.src='${DEFAULT_ARTIST_PIC}';">`; // Added onerror fallback
                 },
                  orderable: false
             },
             { data: 'name' },
-            { 
+            {
                 data: 'sex',
                 render: function(data) {
                     switch(parseInt(data)) {
@@ -54,56 +57,80 @@ function initializeDataTable() {
                     }
                 }
             },
-            { 
+            {
                 data: 'birth',
                 render: function(data) {
                     try {
                         if (!data) return '-';
+                        // Assuming backend returns a standard date format parsable by new Date()
                         const date = new Date(data);
                         // Format date as YYYY-MM-DD
+                        if (isNaN(date.getTime())) { // Check if date is valid
+                           return 'Invalid Date';
+                        }
                         return date.toISOString().split('T')[0];
                     } catch (e) {
+                        console.error("Error parsing birth date:", data, e);
                         return 'Invalid Date';
                     }
                 }
             },
             { data: 'location' },
-            { 
+            {
                 data: 'introduction',
                 render: function(data) {
-                    return data && data.length > 50 ? data.substring(0, 50) + '...' : (data || '-');
+                    const intro = escapeHTML(data || '-'); // Escape HTML
+                    return intro.length > 50 ? intro.substring(0, 50) + '...' : intro;
                 }
             },
             {
                 data: null,
                 orderable: false,
                 render: function(data, type, row) {
+                    // Escape name for data-name attribute
+                    const safeName = escapeHTML(row.name);
                     return `
                         <div class="btn-group" role="group">
                             <button class="btn btn-sm btn-primary edit-btn" data-id="${row.id}" title="Edit Artist Info"><i class="fas fa-edit"></i></button>
-                            <button class="btn btn-sm btn-info update-pic-btn" data-id="${row.id}" data-current-pic="${row.pic || ''}" title="Update Picture"><i class="fas fa-image"></i></button> 
-                            <button class="btn btn-sm btn-danger delete-btn" data-id="${row.id}" data-name="${row.name}" title="Delete Artist"><i class="fas fa-trash"></i></button>
+                            <button class="btn btn-sm btn-info update-pic-btn" data-id="${row.id}" data-current-pic="${row.pic || ''}" title="Update Picture"><i class="fas fa-image"></i></button>
+                            <button class="btn btn-sm btn-danger delete-btn" data-id="${row.id}" data-name="${safeName}" title="Delete Artist"><i class="fas fa-trash"></i></button>
                         </div>
                     `;
                 }
             }
         ],
         responsive: true,
-        order: [[2, 'asc']], // Default sort by name
+        order: [[2, 'asc']], // Default sort by name (index 2)
         language: {
-            search: "Search:",
+            search: "", // Use placeholder if needed via other means or keep empty
+            searchPlaceholder: "Search Artists...",
             lengthMenu: "Show _MENU_ entries",
             zeroRecords: "No matching artists found",
             info: "Showing _START_ to _END_ of _TOTAL_ artists",
             infoEmpty: "Showing 0 artists",
             infoFiltered: "(filtered from _MAX_ total artists)",
-            processing: "Processing...",
+            processing: "<span class='fa-stack fa-lg'><i class='fas fa-spinner fa-spin fa-stack-2x'></i></span> Processing...", // Example processing indicator
             paginate: {
-                first: "First",
-                last: "Last",
-                next: "Next",
-                previous: "Previous"
+                first: "<i class='fas fa-angle-double-left'></i>",
+                last: "<i class='fas fa-angle-double-right'></i>",
+                next: "<i class='fas fa-angle-right'></i>",
+                previous: "<i class='fas fa-angle-left'></i>"
             }
+        },
+        // Add standard Bootstrap styling integration
+        dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' + // Length and Filter
+             '<"row"<"col-sm-12"tr>>' + // Table
+             '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>', // Info and Pagination
+        drawCallback: function() {
+            // Re-initialize tooltips after table draw if using Bootstrap tooltips
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('#singerTable [title]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                 const existingTooltip = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
+                 if (existingTooltip) {
+                     existingTooltip.dispose();
+                 }
+                 return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
         }
     });
 }
@@ -112,60 +139,93 @@ function initializeDataTable() {
  * Set up event listeners for the page
  */
 function setupEventListeners() {
-    // Add Artist form submission
+    // Add Artist button (assuming it uses the standard modal trigger)
+    // We handle the form submission, not the modal opening itself if using data-bs-toggle
+    const addSingerBtn = document.querySelector('[data-bs-target="#addSingerModal"]');
+    if (addSingerBtn) {
+        addSingerBtn.addEventListener('click', () => {
+            // Reset form and preview when Add modal is triggered to open
+            $('#addSingerForm')[0].reset();
+            $('#addSingerModalLabel').text('Add New Artist');
+            // Reset image preview specifically if needed
+            resetImagePreview('addPicPreview', 'addPicPreviewText', 'Add');
+        });
+    }
+
+    // Add Artist form submission in Modal
     $('#submitAddSinger').on('click', handleAddSinger);
-    
-    // Edit Artist form submission
+
+    // Edit Artist form submission in Modal
     $('#submitEditSinger').on('click', handleEditSinger);
-    
-    // Delete artist confirmation
+
+    // Delete artist confirmation in Modal
     $('#confirmDeleteSinger').on('click', handleDeleteSinger);
-    
-    // Edit button click in table
-    $('#singersTable').on('click', '.edit-btn', function() {
-        currentSingerId = $(this).data('id');
-        loadSingerForEdit(currentSingerId);
-    });
-    
-    // Update Picture button click in table
-    $('#singersTable').on('click', '.update-pic-btn', function() {
-        currentSingerId = $(this).data('id');
-        const currentPic = $(this).data('current-pic');
-        openUpdatePicModal(currentSingerId, currentPic);
-    });
-    
-    // Submit picture update
+
+    // Submit picture update in Modal
     $('#submitUpdatePic').on('click', handleUpdatePicture);
-    
-    // Delete button click in table
-    $('#singersTable').on('click', '.delete-btn', function() {
-        currentSingerId = $(this).data('id');
-        const singerName = $(this).data('name');
-        showDeleteModal(currentSingerId, singerName);
-    });
-    
-    // Apply Filters button
-    $('#applyFilters').on('click', handleApplyFilters);
-    
-    // Clear Filters button
-    $('#clearFilters').on('click', () => {
-        $('#nameFilter').val('');
-        $('#sexFilter').val('');
-        loadSingers(); // Reload all singers
-    });
 
-    // Global search button
-    $('#globalSearchBtn').on('click', () => {
-        const searchTerm = $('#globalSearch').val().trim();
-        handleSearch(searchTerm);
-    });
+    // --- Table Button Event Delegation ---
+    $('#singerTable tbody').on('click', 'button', function() {
+        const action = $(this).attr('class'); // Get all classes
+        const singerId = $(this).data('id');
 
-    // Global search input enter key
-    $('#globalSearch').on('keypress', (e) => {
-        if (e.key === 'Enter') {
-            const searchTerm = $('#globalSearch').val().trim();
-            handleSearch(searchTerm);
+        if (action.includes('edit-btn')) {
+            console.log('Edit button clicked for ID:', singerId);
+            loadSingerForEdit(singerId);
+        } else if (action.includes('update-pic-btn')) {
+            console.log('Update pic button clicked for ID:', singerId);
+            const currentPic = $(this).data('current-pic');
+            openUpdatePicModal(singerId, currentPic);
+        } else if (action.includes('delete-btn')) {
+            console.log('Delete button clicked for ID:', singerId);
+            const singerName = $(this).data('name');
+            showDeleteModal(singerId, singerName);
         }
+    });
+
+    // --- Filter Controls Event Listeners ---
+    const applyFilterBtn = document.getElementById('applyFilterBtn');
+    const resetFilterBtn = document.getElementById('resetFilterBtn');
+
+    if (applyFilterBtn) {
+        applyFilterBtn.addEventListener('click', handleApplyFilters);
+    }
+    if (resetFilterBtn) {
+        resetFilterBtn.addEventListener('click', () => {
+            $('#nameFilter').val('');
+            $('#genderFilter').val(''); // Changed from sexFilter
+            $('#locationFilter').val('');
+            loadSingers(); // Reload all singers
+            // Optionally clear any filter indicator UI
+        });
+    }
+
+    // Add Enter key listener to filter inputs for convenience
+    $('#nameFilter, #locationFilter').on('keypress', function(e) {
+        if (e.key === 'Enter') {
+            handleApplyFilters();
+        }
+    });
+    $('#genderFilter').on('change', handleApplyFilters); // Apply immediately on gender change
+
+    // --- Modal Image Previews ---
+    // Image preview for Add Modal (assuming input ID is addPicFile)
+    const addPicInput = document.getElementById('addPicFile'); // Assuming this is the input ID
+    if (addPicInput) {
+        addPicInput.addEventListener('change', function(event) {
+            setImagePreview('addPicPreview', 'addPicPreviewText', event, 'Add');
+        });
+    }
+
+     // Image preview for Update Picture Modal
+     document.getElementById('updatePicFile')?.addEventListener('change', function(event) {
+        setImagePreview('updatePicNewPreview', null, event, 'Update'); // No text element to hide/show
+    });
+
+    // Optional: Reset edit form when edit modal is hidden
+    $('#editSingerModal').on('hidden.bs.modal', function () {
+        // Could reset parts of the edit form if needed
+        // console.log('Edit modal hidden');
     });
 }
 
@@ -179,6 +239,7 @@ async function loadSingers() {
         console.log("Singer API response:", response);
         if (response && response.data && (response.data.code === '200' || response.data.code === 200)) {
              const singers = response.data.data || [];
+             console.log(`Found ${singers.length} singers.`);
             updateSingersTable(singers);
         } else {
             showToast('Failed to load artists: ' + (response?.data?.msg || 'Invalid response'), 'error');
@@ -197,25 +258,42 @@ async function loadSingers() {
  * Update the DataTable with singer data
  */
 function updateSingersTable(singers) {
-    if (!singersTable) return;
-    singersTable.clear();
-    if (Array.isArray(singers)) {
-        singersTable.rows.add(singers);
-    } else {
-         console.error('Invalid singer data received:', singers);
-         showToast('Received invalid artist data format.', 'error');
+    console.log('Attempting to update table with singers:', singers); // 确认数据
+    if (!singerTable) {
+        console.error('singerTable is not initialized!');
+        return;
     }
-    singersTable.draw();
+    try {
+        singerTable.clear();
+        console.log('Table cleared.');
+        if (Array.isArray(singers)) {
+            singerTable.rows.add(singers);
+            console.log('Rows added:', singers.length);
+        } else {
+             console.error('Invalid singer data received:', singers);
+             showToast('Received invalid artist data format.', 'error');
+        }
+        singerTable.draw();
+        console.log('Table drawn.');
+    } catch (e) {
+        console.error('Error during DataTables update:', e);
+        showToast('An error occurred while updating the table.', 'error');
+    }
 }
 
 /**
  * Show/Hide loading indicator on the table
  */
 function showLoading(isLoading) {
+    const tableElement = $('#singerTable');
+    if (!tableElement.length) return;
+
     if (isLoading) {
-        $('#singersTable').addClass('loading');
+        tableElement.addClass('loading');
+        // Optionally add a visual overlay/spinner if the CSS class isn't sufficient
     } else {
-        $('#singersTable').removeClass('loading');
+        tableElement.removeClass('loading');
+        // Remove any added overlay/spinner
     }
 }
 
@@ -224,31 +302,28 @@ function showLoading(isLoading) {
  */
 async function handleAddSinger() {
     const form = $('#addSingerForm')[0];
-    const formData = new FormData(form);
-    // No file input needed for this step
 
-    // Basic form validation (check required fields)
+    // Basic form validation (HTML5)
     if (!form.checkValidity()) {
-        showToast('Please fill all required fields.', 'warning');
-        form.reportValidity(); 
+        showToast('Please fill all required fields correctly.', 'warning');
+        // Optionally trigger Bootstrap validation styles
+        form.classList.add('was-validated');
         return;
     }
-    
-    // Prepare data object (excluding the file input)
-    const singerData = {};
-    formData.forEach((value, key) => {
-        if (key !== 'file') { // Exclude the file input field name if present
-             singerData[key] = value;
-        }
-    });
+    form.classList.remove('was-validated'); // Remove validation class if valid
 
-    // Ensure 'pic' exists, set to empty string if not (backend expects this parameter)
-    if (!singerData.hasOwnProperty('pic') || !singerData.pic) {
-        singerData.pic = ''; // Backend expects 'pic', send empty if no picture yet
-    }
+    // Prepare data object
+    const singerData = {
+        name: $('#addName').val().trim(),
+        sex: $('#addSex').val(),
+        birth: $('#addBirth').val(), // Expects yyyy-MM-dd
+        location: $('#addLocation').val().trim(),
+        introduction: $('#addIntroduction').val().trim(),
+        pic: '' // Backend expects 'pic', send empty initially
+    };
 
     $('#submitAddSinger').prop('disabled', true);
-    showToast('Adding artist details (picture can be added/updated separately)...', 'info');
+    showToast('Adding artist... Picture can be updated separately.', 'info');
 
     // Convert data to x-www-form-urlencoded format
     const params = new URLSearchParams();
@@ -257,42 +332,33 @@ async function handleAddSinger() {
             params.append(key, singerData[key]);
         }
     }
-    console.log("Sending data (form-urlencoded):", params.toString()); // Log data being sent
+    console.log("Sending Add data (form-urlencoded):", params.toString());
 
     try {
-        // Send data as application/x-www-form-urlencoded
         const addResponse = await api.post(
             `${API_BASE_URL}/add`,
-            params, // Send URLSearchParams object
-            {
-                headers: {
-                    // Explicitly set Content-Type
-                    'Content-Type': 'application/x-www-form-urlencoded' 
-                }
-            }
+            params,
+            { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
         );
 
-        console.log("Add artist response:", addResponse); // Log the response
+        console.log("Add artist response:", addResponse);
 
-        if (addResponse && addResponse.data && (addResponse.data.code === '200' || addResponse.data.code === 200)) {
-            showToast('Artist added successfully! Use the Edit/Update Picture buttons to manage the image.', 'success');
+        if (addResponse?.data?.code === '200' || addResponse?.data?.code === 200) {
+            showToast('Artist added successfully! Use the Update Picture button if needed.', 'success');
             $('#addSingerModal').modal('hide');
-            form.reset();
-            $('#addPicPreview').hide();
             loadSingers(); // Reload table
         } else {
-            // Try to get a more specific error message
             const errorMsg = addResponse?.data?.msg || addResponse?.data?.message || 'Unknown error during add';
             showToast('Failed to add artist: ' + errorMsg, 'error');
         }
     } catch (error) {
         console.error('Error adding artist:', error);
-        // Log detailed error information if available
         console.error('Axios error details:', error.response?.data, error.response?.status, error.message);
         const errorMsg = error.response?.data?.msg || error.response?.data?.message || error.message || 'Please try again.';
         showToast('Error adding artist. ' + errorMsg, 'error');
     } finally {
         $('#submitAddSinger').prop('disabled', false);
+        form.classList.remove('was-validated');
     }
 }
 
@@ -303,100 +369,119 @@ async function loadSingerForEdit(singerId) {
     showToast('Loading artist details...', 'info');
     try {
         const response = await api.get(`${API_BASE_URL}/selectByPrimaryKey?id=${singerId}`);
-        if (response && response.data && (response.data.code === '200' || response.data.code === 200)) {
+        console.log("Load for edit response:", response);
+        if (response?.data?.code === '200' || response?.data?.code === 200) {
             const singer = response.data.data;
+            if (!singer) {
+                 showToast('Artist data not found in response.', 'error');
+                 return;
+            }
+
+            $('#editSingerModalLabel').text('Edit Artist Information');
             $('#editId').val(singer.id);
             $('#editName').val(singer.name);
             $('#editSex').val(singer.sex);
+
+            // Format birth date carefully
             try {
                  const birthDate = singer.birth ? new Date(singer.birth).toISOString().split('T')[0] : '';
-                 $('#editBirth').val(birthDate);
+                 if (birthDate && birthDate !== 'Invalid Date') {
+                    $('#editBirth').val(birthDate);
+                 } else {
+                     $('#editBirth').val(''); // Clear if invalid
+                 }
             } catch (e) {
-                 console.error('Invalid birth date format:', singer.birth);
-                 $('#editBirth').val(''); 
+                 console.error('Invalid birth date format received:', singer.birth);
+                 $('#editBirth').val('');
             }
+
             $('#editLocation').val(singer.location);
             $('#editIntroduction').val(singer.introduction);
-            $('#editPic').val(singer.pic || ''); // Store current pic URL or empty string
-            // Use the defined default picture path when setting the current image source
-            const currentPicUrl = singer.pic ? singer.pic : DEFAULT_ARTIST_PIC; 
-            $('#editCurrentPic').attr('src', currentPicUrl).show();
-            $('#editPicPreview').hide().attr('src', '#'); // Hide and clear new preview initially
-            $('#editPicFile').val(''); // Clear file input
-            
+            // Note: The hidden editPic field is not strictly needed anymore
+            // as picture is updated separately, but keep it for now if other code relies on it.
+            $('#editPic').val(singer.pic || '');
+
+            // Clear validation state
+            $('#editSingerForm').removeClass('was-validated');
+
             $('#editSingerModal').modal('show');
         } else {
              showToast('Failed to load artist details: ' + (response?.data?.msg || 'Error'), 'error');
         }
     } catch (error) {
-        console.error('Error fetching singer details:', error);
+        console.error('Error fetching singer details for edit:', error);
         showToast('Error fetching artist details. Please try again.', 'error');
     }
 }
 
 /**
- * Handle edit singer form submission
+ * Handle edit singer form submission (Text details only)
  */
 async function handleEditSinger() {
     const form = $('#editSingerForm')[0];
-    const formData = new FormData(form);
-    const fileInput = document.getElementById('editPicFile');
-    const singerId = formData.get('id');
+    const singerId = $('#editId').val(); // Get ID directly
 
+    // Basic form validation
     if (!form.checkValidity()) {
-        showToast('Please fill all required fields.', 'warning');
-        form.reportValidity();
+        showToast('Please fill all required fields correctly.', 'warning');
+        form.classList.add('was-validated');
+        return;
+    }
+    form.classList.remove('was-validated');
+
+    if (!singerId) {
+        showToast('Error: Missing Artist ID for update.', 'error');
         return;
     }
 
+    // Prepare data object ONLY with text fields for update
+    const singerData = {
+        id: singerId,
+        name: $('#editName').val().trim(),
+        sex: $('#editSex').val(),
+        birth: $('#editBirth').val(), // Expects yyyy-MM-dd format from input type="date"
+        location: $('#editLocation').val().trim(),
+        introduction: $('#editIntroduction').val().trim()
+    };
+
+    // Convert data to x-www-form-urlencoded format
+    const params = new URLSearchParams();
+    for (const key in singerData) {
+        if (Object.hasOwnProperty.call(singerData, key) && singerData[key] !== null && singerData[key] !== undefined) {
+            params.append(key, singerData[key]);
+        }
+    }
+
+    console.log("Sending data to /singer/update (form-urlencoded):", params.toString());
+
     $('#submitEditSinger').prop('disabled', true);
+    showToast('Saving artist details...', 'info');
 
     try {
-        let picUrl = formData.get('pic'); // Get existing URL
+        const updateResponse = await api.post(
+            `${API_BASE_URL}/update`,
+            params,
+            { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+        );
 
-        // If a new picture is selected, upload it first
-        if (fileInput.files && fileInput.files[0]) {
-            showToast('Uploading new picture...', 'info');
-            const picFormData = new FormData();
-            picFormData.append('file', fileInput.files[0]);
-            picFormData.append('id', singerId); // Pass singer ID for potential replacement logic
-            
-            // Use the specific endpoint for updating singer picture
-            const picResponse = await api.post(`${API_BASE_URL}/updateSingerPic`, picFormData); 
+        console.log("Update artist response:", updateResponse);
 
-            if (picResponse && picResponse.data && (picResponse.data.code === '200' || picResponse.data.code === 200)) {
-                picUrl = picResponse.data.data; // Get the new URL from the response
-                showToast('Picture updated successfully.', 'success');
-            } else {
-                showToast('Failed to update picture: ' + (picResponse?.data?.msg || 'Upload error'), 'error');
-                $('#submitEditSinger').prop('disabled', false);
-                return; // Stop if picture update failed
-            }
-        }
-        
-        // Update singer details
-        formData.set('pic', picUrl); // Set final pic URL (either old or new)
-        formData.delete('file'); // Remove file input from main form data
-        
-        const singerData = {};
-        formData.forEach((value, key) => { singerData[key] = value; });
-
-        showToast('Saving artist details...', 'info');
-        const updateResponse = await api.post(`${API_BASE_URL}/update`, singerData);
-
-        if (updateResponse && updateResponse.data && (updateResponse.data.code === '200' || updateResponse.data.code === 200)) {
-            showToast('Artist updated successfully!', 'success');
+        if (updateResponse?.data?.code === '200' || updateResponse?.data?.code === 200) {
+            showToast('Artist details updated successfully! Use the "Update Picture" button to change the image.', 'success');
             $('#editSingerModal').modal('hide');
             loadSingers(); // Reload table
         } else {
-            showToast('Failed to update artist: ' + (updateResponse?.data?.msg || 'Unknown error'), 'error');
+            const errorMsg = updateResponse?.data?.msg || updateResponse?.data?.message || 'Unknown error during update';
+            showToast('Failed to update artist: ' + errorMsg, 'error');
         }
 
     } catch (error) {
-        console.error('Error updating artist:', error);
-        showToast('Error updating artist. ' + (error.response?.data?.msg || error.message || 'Please try again.'), 'error');
+        console.error('Error updating artist details:', error);
+        const errorMsg = error.response?.data?.msg || error.response?.data?.message || error.message || 'Please try again.';
+        showToast('Error updating artist details. ' + errorMsg, 'error');
     } finally {
         $('#submitEditSinger').prop('disabled', false);
+        form.classList.remove('was-validated');
     }
 }
 
@@ -405,8 +490,11 @@ async function handleEditSinger() {
  */
 function showDeleteModal(singerId, singerName) {
     currentSingerId = singerId;
-    $('#deleteSingerName').text(singerName || 'this artist');
-    $('#deleteSingerModal').modal('show');
+    // Escape name for display in modal
+    $('#deleteSingerName').text(escapeHTML(singerName) || 'this artist');
+    // Use Bootstrap 5 modal instance
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteSingerModal'));
+    deleteModal.show();
 }
 
 /**
@@ -415,14 +503,18 @@ function showDeleteModal(singerId, singerName) {
 async function handleDeleteSinger() {
     if (!currentSingerId) return;
 
-    $('#confirmDeleteSinger').prop('disabled', true);
+    const deleteButton = $('#confirmDeleteSinger');
+    deleteButton.prop('disabled', true);
     showToast('Deleting artist...', 'info');
 
     try {
-        const response = await api.get(`${API_BASE_URL}/delete?id=${currentSingerId}`); 
-        if (response && response.data && (response.data.code === '200' || response.data.code === 200)) {
+        const response = await api.get(`${API_BASE_URL}/delete?id=${currentSingerId}`);
+        if (response?.data?.code === '200' || response?.data?.code === 200) {
              showToast('Artist deleted successfully!', 'success');
-             $('#deleteSingerModal').modal('hide');
+             // Hide modal using Bootstrap 5 instance
+             const deleteModalEl = document.getElementById('deleteSingerModal');
+             const modalInstance = bootstrap.Modal.getInstance(deleteModalEl);
+             modalInstance?.hide();
              loadSingers(); // Reload table
         } else {
             showToast('Failed to delete artist: ' + (response?.data?.msg || 'Unknown error'), 'error');
@@ -431,8 +523,8 @@ async function handleDeleteSinger() {
         console.error('Error deleting artist:', error);
          showToast('Error deleting artist. ' + (error.response?.data?.msg || error.message || 'Please try again.'), 'error');
     } finally {
-        $('#confirmDeleteSinger').prop('disabled', false);
-        currentSingerId = null;
+        deleteButton.prop('disabled', false);
+        currentSingerId = null; // Reset current ID
     }
 }
 
@@ -441,23 +533,63 @@ async function handleDeleteSinger() {
  */
 async function handleApplyFilters() {
     const nameFilter = $('#nameFilter').val().trim();
-    const sexFilter = $('#sexFilter').val();
-    let url = `${API_BASE_URL}/allSinger`; // Default
+    const genderFilter = $('#genderFilter').val(); // Use genderFilter ID
+    const locationFilter = $('#locationFilter').val().trim();
+
+    console.log(`Applying filters: Name='${nameFilter}', Gender='${genderFilter}', Location='${locationFilter}'`);
+
+    // --- Filtering Logic --- 
+    // Option 1: Backend filtering (Preferred if backend supports it well)
+    // Construct URL based on which filters are active.
+    // This example assumes separate endpoints. If backend supports combined params, adjust.
+    let url = `${API_BASE_URL}/allSinger`; // Default fetch all
+    const params = new URLSearchParams();
 
     if (nameFilter) {
-        url = `${API_BASE_URL}/singerOfName?name=${encodeURIComponent(nameFilter)}`;
-    } else if (sexFilter !== "") {
-        url = `${API_BASE_URL}/singerOfSex?sex=${encodeURIComponent(sexFilter)}`;
+        params.append('name', nameFilter); // Assuming backend endpoint /singerOfName takes 'name'
+        url = `${API_BASE_URL}/singerOfName`;
+        if (genderFilter) params.append('sex', genderFilter); // Example: If combined search supported
+        if (locationFilter) params.append('location', locationFilter);
+
+    } else if (genderFilter) {
+        params.append('sex', genderFilter); // Assuming backend endpoint /singerOfSex takes 'sex'
+        url = `${API_BASE_URL}/singerOfSex`;
+        if (locationFilter) params.append('location', locationFilter); // If combined
+
+    } else if (locationFilter) {
+        // Assuming no dedicated location endpoint, fetch all and filter client-side (or ask backend for it)
+         params.append('location', locationFilter); // Add for client-side filtering
+        // url = `${API_BASE_URL}/singerOfLocation`; // If endpoint existed
+        console.warn("Location filter applied, but no dedicated backend endpoint assumed. Fetching all and filtering client-side (or implement backend endpoint).");
+        // Keep url as allSinger, filter later
     }
-    // Note: Backend doesn't seem to support combined filters easily based on controller
-    // If both are selected, name takes precedence here.
+    // If multiple filters active but no combined backend endpoint, prioritize or fetch all.
+    // For simplicity, let's fetch based on the *first* active filter found in the order Name > Gender > Location,
+    // or fetch all if only Location is set (and filter client side).
+
+    let queryString = params.toString();
+    if (queryString) {
+        url += `?${queryString}`;
+    }
 
     showLoading(true);
+    showToast('Applying filters...', 'info');
     try {
+        console.log("Fetching filtered data from:", url);
         const response = await api.get(url);
-         if (response && response.data && (response.data.code === '200' || response.data.code === 200)) {
-             const singers = response.data.data || [];
+         if (response?.data?.code === '200' || response?.data?.code === 200) {
+             let singers = response.data.data || [];
+             console.log(`Received ${singers.length} singers from API.`);
+
+             // Client-side filtering (if needed, e.g., for location or combined filters)
+             if (locationFilter && !(nameFilter || genderFilter)) { // Only filter location client-side if it was the primary filter
+                 console.log("Filtering by location client-side...");
+                 singers = singers.filter(s => s.location && s.location.toLowerCase().includes(locationFilter.toLowerCase()));
+             }
+             // Add more client-side filtering here if backend doesn't support combined filters
+
             updateSingersTable(singers);
+            showToast(`${singers.length} artists found matching filters.`, 'success');
         } else {
             showToast('Failed to apply filters: ' + (response?.data?.msg || 'Error'), 'error');
             updateSingersTable([]);
@@ -472,33 +604,10 @@ async function handleApplyFilters() {
 }
 
 /**
- * Handle global search
+ * Handle global search (Adapt if using a single search input)
+ * This function might be redundant if handleApplyFilters covers the name filter.
  */
-async function handleSearch(searchTerm) {
-    let url = `${API_BASE_URL}/allSinger`; // Default
-    if (searchTerm) {
-        url = `${API_BASE_URL}/singerOfName?name=${encodeURIComponent(searchTerm)}`;
-    }
-
-    showLoading(true);
-    try {
-        const response = await api.get(url);
-        if (response && response.data && (response.data.code === '200' || response.data.code === 200)) {
-            const singers = response.data.data || [];
-            updateSingersTable(singers);
-             showToast(singers.length > 0 ? `${singers.length} artists found.` : 'No artists found for your search.', 'info');
-        } else {
-            showToast('Search failed: ' + (response?.data?.msg || 'Error'), 'error');
-            updateSingersTable([]);
-        }
-    } catch (error) {
-        console.error('Error during search:', error);
-        showToast('Search failed. Please try again.', 'error');
-        updateSingersTable([]);
-    } finally {
-        showLoading(false);
-    }
-}
+// async function handleSearch(searchTerm) { ... }
 
 /**
  * Open the update picture modal
@@ -508,19 +617,22 @@ function openUpdatePicModal(singerId, currentPicUrl) {
     $('#updatePicSingerId').val(singerId);
     // Display current picture (or default)
     const displayPic = currentPicUrl ? currentPicUrl : DEFAULT_ARTIST_PIC;
-    $('#updatePicCurrentPreview').attr('src', displayPic).show();
+    // Correctly set image source, potentially prefixing relative paths
+    const finalUrl = (displayPic && displayPic.startsWith('/')) ? `..${displayPic}` : displayPic;
+    $('#updatePicCurrentPreview').attr('src', finalUrl).show().attr('onerror', `this.onerror=null; this.src='${DEFAULT_ARTIST_PIC}';`);
     // Reset file input and new preview
     $('#updatePicFile').val('');
     $('#updatePicNewPreview').hide().attr('src', '#');
-    
-    $('#updatePicModal').modal('show');
+
+    const updateModal = new bootstrap.Modal(document.getElementById('updatePicModal'));
+    updateModal.show();
 }
 
 /**
  * Handle picture update submission
  */
 async function handleUpdatePicture() {
-    const form = $('#updatePicForm')[0];
+    const form = $('#updatePicForm')[0]; // Ensure correct form ID
     const fileInput = document.getElementById('updatePicFile');
     const singerId = $('#updatePicSingerId').val();
 
@@ -528,7 +640,7 @@ async function handleUpdatePicture() {
         showToast('Please select a picture to upload.', 'warning');
         return;
     }
-    
+
      if (!singerId) {
         showToast('Invalid Artist ID.', 'error');
         return;
@@ -536,18 +648,24 @@ async function handleUpdatePicture() {
 
     const picFormData = new FormData();
     picFormData.append('file', fileInput.files[0]);
-    picFormData.append('id', singerId); 
+    picFormData.append('id', singerId);
 
-    $('#submitUpdatePic').prop('disabled', true);
+    const submitButton = $('#submitUpdatePic');
+    submitButton.prop('disabled', true);
     showToast('Uploading picture...', 'info');
 
     try {
-        // Use the specific endpoint for updating singer picture
-        const picResponse = await api.post(`${API_BASE_URL}/updateSingerPic`, picFormData);
+        const picResponse = await api.post(`${API_BASE_URL}/updateSingerPic`, picFormData, {
+            // Ensure Content-Type is set correctly for FormData by Axios
+            // headers: { 'Content-Type': 'multipart/form-data' } // Usually not needed for Axios with FormData
+        });
+        console.log("Update picture response:", picResponse);
 
         if (picResponse?.data?.code === '200' || picResponse?.data?.code === 200) {
             showToast('Picture updated successfully!', 'success');
-            $('#updatePicModal').modal('hide');
+            const updateModalEl = document.getElementById('updatePicModal');
+            const modalInstance = bootstrap.Modal.getInstance(updateModalEl);
+            modalInstance?.hide();
             loadSingers(); // Reload table to show the new picture
         } else {
             showToast('Failed to update picture: ' + (picResponse?.data?.msg || 'Upload error'), 'error');
@@ -556,8 +674,103 @@ async function handleUpdatePicture() {
         console.error('Error updating picture:', error);
         showToast('Error updating picture. ' + (error.response?.data?.msg || error.message), 'error');
     } finally {
-        $('#submitUpdatePic').prop('disabled', false);
+        submitButton.prop('disabled', false);
     }
+}
+
+/**
+ * Set image preview logic (used by Add and Update modals)
+ */
+function setImagePreview(previewElementId, textElementId, eventOrUrl, context = 'Image') {
+    const imagePreview = document.getElementById(previewElementId);
+    const textElement = textElementId ? document.getElementById(textElementId) : null;
+
+    if (!imagePreview) {
+        console.warn(`[${context} Preview] Preview element #${previewElementId} not found.`);
+        return;
+    }
+
+    let file = null;
+    let imageUrl = null;
+
+    if (typeof eventOrUrl === 'string') {
+        imageUrl = eventOrUrl;
+    } else if (eventOrUrl && eventOrUrl.target && eventOrUrl.target.files && eventOrUrl.target.files[0]) {
+        file = eventOrUrl.target.files[0];
+    }
+
+    if (file) {
+        // Validate file type and size (optional but recommended)
+        if (!file.type.startsWith('image/')) {
+            showToast('Please select a valid image file (JPEG, PNG, GIF).', 'warning');
+            resetImagePreview(previewElementId, textElementId, context);
+            // Clear the input
+            if (eventOrUrl.target) eventOrUrl.target.value = '';
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) { // Example 5MB limit
+            showToast('Image file is too large (Max 5MB).', 'warning');
+            resetImagePreview(previewElementId, textElementId, context);
+             if (eventOrUrl.target) eventOrUrl.target.value = '';
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            imagePreview.src = e.target.result;
+            imagePreview.style.display = 'block';
+            if (textElement) textElement.style.display = 'none';
+        }
+        reader.readAsDataURL(file);
+    } else if (imageUrl) {
+        // Handle setting preview from a URL (e.g., when loading for edit)
+         const finalUrl = (imageUrl && imageUrl.startsWith('/')) ? `..${imageUrl}` : imageUrl;
+         imagePreview.src = finalUrl;
+         imagePreview.style.display = 'block';
+         imagePreview.onerror = function() { this.onerror=null; this.src='${DEFAULT_ARTIST_PIC}'; }; // Fallback on error
+         if (textElement) textElement.style.display = 'none';
+    } else {
+        // If neither file nor URL, reset
+        resetImagePreview(previewElementId, textElementId, context);
+        // If triggered by event (e.g., clearing selection), clear input
+        if (eventOrUrl && eventOrUrl.target) eventOrUrl.target.value = '';
+    }
+}
+
+/**
+ * Reset image preview (Helper for setImagePreview)
+ */
+function resetImagePreview(previewElementId, textElementId, context = 'Image') {
+    const imagePreview = document.getElementById(previewElementId);
+    const textElement = textElementId ? document.getElementById(textElementId) : null;
+
+    if (imagePreview) {
+        imagePreview.src = '#';
+        imagePreview.style.display = 'none';
+    }
+    if (textElement) {
+        textElement.textContent = 'No image'; // Or appropriate default text
+        textElement.style.display = 'block';
+    }
+    // Note: Does not clear the file input itself, caller might need to do that.
+}
+
+/**
+ * Utility function to escape HTML characters
+ */
+function escapeHTML(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>"'/]/g, function (s) {
+        const entityMap = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;', // &apos; is not XML safe
+            '/': '&#x2F;' // Forward slash
+        };
+        return entityMap[s];
+    });
 }
 
 /**
@@ -568,25 +781,26 @@ function showToast(message, type = 'info') {
         console.warn('Toastify not loaded. Using console log.');
         const logType = type === 'error' ? 'error' : (type === 'warning' ? 'warn' : 'log');
         console[logType](message);
-        if (type === 'error') alert('Error: ' + message); // Alert only for errors
+        if (type === 'error' || type === 'danger') alert('Error: ' + message);
         return;
     }
 
     let backgroundColor;
     switch(type) {
         case 'success': backgroundColor = '#4caf50'; break;
-        case 'error':   backgroundColor = '#f44336'; break;
+        case 'error':
+        case 'danger':  backgroundColor = '#f44336'; break;
         case 'warning': backgroundColor = '#ff9800'; break;
-        default:        backgroundColor = '#2196f3'; break;
+        default:        backgroundColor = '#2196f3'; break; // info
     }
 
     Toastify({
         text: message,
         duration: 3000,
         close: true,
-        gravity: "top", 
-        position: "right", 
+        gravity: "top",
+        position: "right",
         backgroundColor: backgroundColor,
-        stopOnFocus: true, 
+        stopOnFocus: true,
     }).showToast();
 } 

@@ -192,69 +192,83 @@
                     </div>
                 </div>
                 
-                <!-- Action Buttons -->
-                <div class="card mb-4 fade-in" style="animation-delay: 0.3s;">
-                    <div class="card-body">
-                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addSingerModal">
-                            <i class="fas fa-plus"></i> Add Artist
-                        </button>
-                    </div>
-                </div>
-                
                 <!-- Filter Options -->
-                <div class="card mb-4 fade-in" style="animation-delay: 0.4s;">
+                <div class="card mb-4 fade-in" style="animation-delay: 0.3s;">
                     <div class="card-header">
-                        <h5 class="mb-0">Filter Options</h5>
+                        <h5 class="card-title mb-0">Filter Options</h5>
                     </div>
                     <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="nameFilter" class="form-label">Artist Name</label>
-                                <input type="text" class="form-control" id="nameFilter" placeholder="Enter artist name">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="nameFilter" class="form-label">Name</label>
+                                    <input type="text" class="form-control" id="nameFilter" placeholder="Filter by artist name...">
+                                </div>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="sexFilter" class="form-label">Gender</label>
-                                <select class="form-select" id="sexFilter">
-                                    <option value="">All Genders</option>
-                                    <option value="1">Male</option>
-                                    <option value="0">Female</option>
-                                    <option value="2">Group</option> 
-                                    <option value="3">Other</option> 
-                                </select>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="genderFilter" class="form-label">Gender</label>
+                                    <select class="form-select" id="genderFilter">
+                                        <option value="">All</option>
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="locationFilter" class="form-label">Location</label>
+                                    <input type="text" class="form-control" id="locationFilter" placeholder="Filter by location...">
+                                </div>
                             </div>
                         </div>
-                        <div class="d-flex justify-content-end">
-                            <button class="btn btn-secondary me-2" id="clearFilters">Clear</button>
-                            <button class="btn btn-primary" id="applyFilters">Apply Filters</button>
+                        <div class="d-flex justify-content-end mt-3">
+                            <button class="btn btn-primary me-2" id="applyFilterBtn">
+                                <i class="fas fa-filter"></i> Apply Filters
+                            </button>
+                            <button class="btn btn-outline-secondary" id="resetFilterBtn">
+                                <i class="fas fa-undo"></i> Reset
+                            </button>
                         </div>
                     </div>
                 </div>
                 
                 <!-- Artists Table -->
-                <div class="card fade-in" style="animation-delay: 0.5s;">
+                <div class="card mb-4 fade-in" style="animation-delay: 0.4s;">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">Artist List</h5>
+                        <h5 class="card-title mb-0">Artist Management</h5>
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSingerModal">
+                            <i class="fas fa-plus"></i> Add Artist
+                        </button>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
-                            <table class="table table-striped table-hover" id="singersTable">
-                                <thead>
+                            <table class="table table-striped table-hover align-middle" id="singerTable">
+                                <thead class="table-light">
                                     <tr>
                                         <th>ID</th>
-                                        <th>Picture</th>
+                                        <th>Image</th>
                                         <th>Name</th>
                                         <th>Gender</th>
-                                        <th>Birth Date</th>
+                                        <th>Birth</th>
                                         <th>Location</th>
                                         <th>Introduction</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <!-- Data loaded dynamically by DataTables -->
+                                    <!-- Data will be loaded here by JavaScript -->
                                 </tbody>
                             </table>
                         </div>
+                        
+                        <!-- Pagination control -->
+                        <nav aria-label="Page navigation" class="mt-4">
+                            <ul class="pagination justify-content-center" id="pagination">
+                                <!-- Pagination controls will be added by JavaScript -->
+                            </ul>
+                        </nav>
                     </div>
                 </div>
             </div>

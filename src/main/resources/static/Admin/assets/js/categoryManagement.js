@@ -19,6 +19,7 @@ let currentSearchTerm = '';
 let isEditMode = false;
 let currentEditCategoryId = null;
 const selectedCategoryIds = new Set();
+let categoriesTable; // Variable for DataTable instance
 
 // --- Utility Functions ---
 
@@ -61,20 +62,14 @@ function showToast(message, type = 'info') {
 async function fetchCategories(pageNum = 1, searchTerm = '') {
     currentPage = pageNum;
     currentSearchTerm = searchTerm.trim();
-    const tableBody = document.getElementById('categoryTableBody');
-    const paginationContainer = document.getElementById('pagination');
-
-    if (!tableBody || !paginationContainer) {
-        console.error('Table body or pagination container not found.');
+    // Ensure DataTable is initialized
+    if (!categoriesTable) {
+        console.error('DataTable not initialized yet.');
         return;
     }
 
-    tableBody.innerHTML = `<tr><td colspan="4" class="text-center">
-                           <div class="spinner-border spinner-border-sm" role="status">
-                             <span class="visually-hidden">Loading...</span>
-                           </div> Loading categories...
-                         </td></tr>`;
-    paginationContainer.innerHTML = ''; // Clear pagination
+    // Show processing indicator (DataTables might have its own)
+    // categoriesTable.processing(true);
 
     try {
         const params = {
@@ -89,88 +84,34 @@ async function fetchCategories(pageNum = 1, searchTerm = '') {
         if (response.data && (response.data.code === '200' || response.data.code === 200) && response.data.data) {
             const pageInfo = response.data.data;
             // console.log("PageInfo:", pageInfo); // Debugging
-            renderTable(pageInfo.list || []);
-            renderPagination(pageInfo);
+            renderTable(pageInfo.list || []); // Update DataTable
             updateSelectAllCheckboxState(); // Ensure header checkbox reflects current page state
             updateBatchDeleteButtonVisibility(); // Update based on selections
         } else {
             console.error('Failed to fetch categories or unexpected data format:', response.data);
-            tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-danger">Failed to load categories.</td></tr>';
+            // Show error in table (DataTables might handle this)
+            categoriesTable.clear().draw(); // Clear table on error
+            // Optionally add a row indicating error
             showToast(response.data?.msg || 'Failed to load categories.', 'error');
         }
     } catch (error) {
         console.error('Error fetching categories:', error);
-        tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-danger">Error loading categories. Please check connection.</td></tr>';
+        categoriesTable.clear().draw(); // Clear table on error
         showToast('Error connecting to the server.', 'error');
+    } finally {
+        // categoriesTable.processing(false); // Hide processing indicator
     }
 }
 
 /**
- * Render the category table with the provided data.
+ * Render the category table using DataTables API.
  * @param {Array} categories - Array of category objects.
  */
 function renderTable(categories) {
-    const tableBody = document.getElementById('categoryTableBody');
-    tableBody.innerHTML = ''; // Clear previous content or loading state
-
-    if (!categories || categories.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="4" class="text-center">No categories found.</td></tr>';
-        return;
-    }
-
-    categories.forEach(category => {
-        const isSelected = selectedCategoryIds.has(category.id);
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td><input type="checkbox" class="form-check-input row-checkbox" value="${category.id}" ${isSelected ? 'checked' : ''}></td>
-            <td>${category.id}</td>
-            <td>${escapeHTML(category.name)}</td>
-            <td>
-                <button class="btn btn-sm btn-primary edit-btn" data-id="${category.id}" title="Edit">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button class="btn btn-sm btn-danger delete-btn" data-id="${category.id}" data-name="${escapeHTML(category.name)}" title="Delete">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </td>
-        `;
-        tableBody.appendChild(row);
-    });
-}
-
-/**
- * Render pagination controls based on PageInfo from the API.
- * @param {object} pageInfo - PageInfo object from the backend.
- */
-function renderPagination(pageInfo) {
-    const paginationContainer = document.getElementById('pagination');
-    paginationContainer.innerHTML = ''; // Clear existing pagination
-
-    if (!pageInfo || pageInfo.pages <= 1) {
-        return; // No pagination needed for 0 or 1 page
-    }
-
-    const { pageNum, pages, hasPreviousPage, hasNextPage, prePage, nextPage } = pageInfo;
-
-    // Previous button
-    const prevLi = document.createElement('li');
-    prevLi.className = `page-item ${!hasPreviousPage ? 'disabled' : ''}`;
-    prevLi.innerHTML = `<a class="page-link" href="#" data-page="${prePage}">&laquo;</a>`;
-    paginationContainer.appendChild(prevLi);
-
-    // Page number buttons (simplified version)
-    for (let i = 1; i <= pages; i++) {
-        const pageLi = document.createElement('li');
-        pageLi.className = `page-item ${i === pageNum ? 'active' : ''}`;
-        pageLi.innerHTML = `<a class="page-link" href="#" data-page="${i}">${i}</a>`;
-        paginationContainer.appendChild(pageLi);
-    }
-
-    // Next button
-    const nextLi = document.createElement('li');
-    nextLi.className = `page-item ${!hasNextPage ? 'disabled' : ''}`;
-    nextLi.innerHTML = `<a class="page-link" href="#" data-page="${nextPage}">&raquo;</a>`;
-    paginationContainer.appendChild(nextLi);
+    if (!categoriesTable) return;
+    categoriesTable.clear();
+    categoriesTable.rows.add(categories);
+    categoriesTable.draw();
 }
 
 /**
@@ -431,6 +372,75 @@ function updateSelectAllCheckboxState() {
     selectAllCheckbox.indeterminate = !allChecked && someChecked;
 }
 
+/**
+ * Initialize the DataTable
+ */
+function initializeDataTable() {
+    categoriesTable = $('#categoriesTable').DataTable({
+        // Server-side processing is likely needed if data volume is large
+        // For now, assuming client-side data rendering after fetch
+        // processing: true, 
+        // serverSide: true, 
+        // ajax: function (data, callback, settings) { ... }, // Requires backend changes
+        columns: [
+            { 
+                data: null,
+                render: function(data, type, row) {
+                    const isSelected = selectedCategoryIds.has(row.id);
+                    return `<input type="checkbox" class="form-check-input row-checkbox" value="${row.id}" ${isSelected ? 'checked' : ''}>`;
+                },
+                orderable: false,
+                className: 'text-center dt-body-center'
+            },
+            { data: 'id', className: 'dt-body-left' },
+            { data: 'name', render: escapeHTML },
+            { 
+                data: null,
+                render: function(data, type, row) {
+                    return `
+                        <button class="btn btn-sm btn-primary edit-btn me-1" data-id="${row.id}" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger delete-btn" data-id="${row.id}" data-name="${escapeHTML(row.name)}" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    `;
+                },
+                orderable: false,
+                className: 'text-center dt-body-center'
+            }
+        ],
+        responsive: true,
+        order: [[1, 'asc']], // Default sort by ID
+        language: {
+            search: "", // Use placeholder
+            searchPlaceholder: "Search categories...",
+            emptyTable: "No categories found",
+            info: "Showing _START_ to _END_ of _TOTAL_ categories",
+            infoEmpty: "No categories available",
+            infoFiltered: "(filtered from _MAX_ total categories)",
+            lengthMenu: "Show _MENU_ categories",
+            zeroRecords: "No matching categories found",
+            paginate: { // Use Bootstrap 5 classes if needed 
+               first:    "&laquo;",
+               last:     "&raquo;",
+               next:     "&rsaquo;",
+               previous: "&lsaquo;"
+             }
+        },
+        pagingType: "full_numbers", // Example pagination type
+        // Adjust DOM structure if needed, e.g., remove default search box if using custom one
+        dom: '<"row"<"col-sm-12"tr>>' + 
+             '<"row mt-3"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+        drawCallback: function(settings) {
+            // Re-initialize tooltips after table draw if needed
+            $('[data-bs-toggle="tooltip"]').tooltip('dispose').tooltip();
+            // Update select all checkbox state after draw
+            updateSelectAllCheckboxState();
+            // Re-attach listeners might be needed if using complex selectors not handled by delegation
+        }
+    });
+}
 
 // --- Event Listeners ---
 
@@ -438,10 +448,9 @@ function setupEventListeners() {
     const addCategoryBtn = document.getElementById('addCategoryBtn');
     const saveCategoryBtn = document.getElementById('saveCategoryBtn');
     const categoryModalElement = document.getElementById('categoryModal');
-    const categoryTableBody = document.getElementById('categoryTableBody');
+    const categoriesTableElement = $('#categoriesTable'); // Use jQuery selector for DataTable events
     const categorySearchBtn = document.getElementById('categorySearchBtn');
     const categorySearchInput = document.getElementById('categorySearchInput');
-    const paginationContainer = document.getElementById('pagination');
     const categoryTypeSelect = document.getElementById('categoryTypeSelect');
     const selectAllCheckbox = document.getElementById('selectAllCheckbox');
     const batchDeleteBtn = document.getElementById('batchDeleteBtn');
@@ -459,25 +468,26 @@ function setupEventListeners() {
     // Modal Hidden Event - Reset form when modal closes
     categoryModalElement?.addEventListener('hidden.bs.modal', resetCategoryModal);
 
-    // Table Event Delegation (Edit/Delete/Checkbox)
-    categoryTableBody?.addEventListener('click', (event) => {
+    // DataTable Event Delegation (Edit/Delete/Checkbox)
+    categoriesTableElement.on('click', 'button.edit-btn, button.delete-btn, input.row-checkbox', function(event) {
         const target = event.target;
-        const id = target.closest('button')?.dataset.id || target.closest('tr')?.querySelector('.row-checkbox')?.value;
 
-        if (target.closest('.edit-btn')) {
+        if ($(this).hasClass('edit-btn')) {
+            const id = $(this).data('id');
             populateEditModal(id);
-        } else if (target.closest('.delete-btn')) {
-            const name = target.closest('button').dataset.name;
+        } else if ($(this).hasClass('delete-btn')) {
+            const id = $(this).data('id');
+            const name = $(this).data('name');
             handleDeleteCategory(id, name);
-        } else if (target.classList.contains('row-checkbox')) {
-             const categoryId = parseInt(target.value, 10);
-             if (target.checked) {
-                 selectedCategoryIds.add(categoryId);
-             } else {
-                 selectedCategoryIds.delete(categoryId);
-             }
-             updateBatchDeleteButtonVisibility();
-             updateSelectAllCheckboxState();
+        } else if ($(this).hasClass('row-checkbox')) {
+            const categoryId = parseInt($(this).val(), 10);
+            if (this.checked) {
+                selectedCategoryIds.add(categoryId);
+            } else {
+                selectedCategoryIds.delete(categoryId);
+            }
+            updateBatchDeleteButtonVisibility();
+            updateSelectAllCheckboxState();
         }
     });
 
@@ -490,18 +500,6 @@ function setupEventListeners() {
     categorySearchInput?.addEventListener('keypress', (event) => {
         if (event.key === 'Enter') {
             fetchCategories(1, categorySearchInput.value);
-        }
-    });
-
-    // Pagination Click
-    paginationContainer?.addEventListener('click', (event) => {
-        event.preventDefault();
-        const target = event.target;
-        if (target.tagName === 'A' && target.dataset.page) {
-            const pageNum = parseInt(target.dataset.page, 10);
-            if (!isNaN(pageNum)) {
-                fetchCategories(pageNum, currentSearchTerm);
-            }
         }
     });
 
@@ -533,6 +531,8 @@ function setupEventListeners() {
 
      // Batch Delete Button
      batchDeleteBtn?.addEventListener('click', handleBatchDelete);
+
+    initializeDataTable(); // Initialize DataTable on DOM ready
 }
 
 // --- Initialization ---
