@@ -123,7 +123,7 @@ async function sendVerificationCode(email) {
         });
         return response.data;
     } catch (error) {
-        console.error('Send verification code error:', error);
+        // console.error('Send verification code error:', error);
         if (error.response && error.response.data) {
             return error.response.data;
         }

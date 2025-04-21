@@ -88,213 +88,207 @@ document.addEventListener('DOMContentLoaded', async () => {
  * Note: Original function name had Chinese comment.
  */
 function setCurrentUserId() {
-    try {
-        const userData = JSON.parse(localStorage.getItem('user')) || {};
-        if (userData.id) {
-            // Example: Set a hidden input field if it exists
-            const userIdField = document.getElementById('userId'); // Assuming an element with id="userId"
-            if (userIdField) {
-                userIdField.value = userData.id;
-                console.log('User ID set:', userData.id);
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+        try {
+            const user = JSON.parse(storedUser);
+            currentUserId = user.id;
+            // console.log("Current Admin User ID set to:", currentUserId);
+        } catch (error) {
+            // console.error("Error parsing user data from localStorage:", error);
+            showToast("Failed to load user session.", "error");
             }
         } else {
-            console.warn('Could not get user ID from localStorage');
-        }
-    } catch (error) {
-        console.error('Error setting user ID:', error);
+        // console.warn("User data not found in localStorage.");
+        showToast("User session not found. Please log in.", "warning");
+        // Potentially redirect to login page
+        // window.location.href = 'login.html'; 
     }
 }
 
 /**
- * Fetch all songs data specifically for updating statistics.
- * This avoids updating the table if only stats are needed.
+ * Fetch all songs data (no pagination) to calculate stats.
+ * @returns {Promise<Array>} A promise that resolves with the list of all songs, or empty array on failure.
  */
 async function fetchAllSongsDataForStats() {
-    console.log("Fetching all songs data for statistics update...");
+    // console.log("Fetching all songs data for statistics...");
     try {
-        const response = await api.get(`${API_BASE_URL}/allSong`);
-        if (response && response.data && (response.data.code === '200' || response.data.code === 200) && Array.isArray(response.data.data)) {
-            allSongsData = response.data.data || []; // Store all data
-            updateSongStatsUI(allSongsData); // Update stats UI
-            // Also update localStorage for the main dashboard
-            if (window.musicAdminApp && typeof window.musicAdminApp.fetchAndCountSongs === 'function') {
-                // Call the global function which handles localStorage update
-                window.musicAdminApp.fetchAndCountSongs(); 
-            }
+        const response = await api.get(`${API_BASE_URL}/selectAll`);
+        if (response.data && (response.data.code === '200' || response.data.code === 200) && Array.isArray(response.data.data)) {
+            // console.log(`Fetched ${response.data.data.length} total songs for stats.`);
+            return response.data.data || [];
         } else {
-            console.error('Failed to fetch songs for stats or unexpected data format:', response?.data);
-            allSongsData = []; // Reset stored data on failure
-            updateSongStatsUI([]); // Update UI with zeros
+            // console.error('Failed to fetch all songs for stats:', response.data?.msg);
+            showToast('Error fetching song statistics data (server response).', 'error');
+            return [];
         }
     } catch (error) {
-        console.error('Error fetching all songs data for stats:', error);
-        allSongsData = []; // Reset stored data on failure
-        updateSongStatsUI([]); // Update UI with zeros
-        // musicAdminApp.handleApiError(error, 'fetchAllSongsDataForStats'); // Optionally show error
+        // console.error('Network or other error fetching all songs for stats:', error);
+        showToast('Error fetching song statistics data (network error).', 'error');
+        return [];
     }
 }
 
 /**
- * Fetch and display songs in the table based on filters or initial load.
- * @param {boolean} initialLoad - If true, fetches only pending songs by default.
+ * Fetch and display songs based on current filters and status.
+ * Also updates statistics.
+ * @param {boolean} initialLoad - Flag indicating if it's the initial page load.
  */
 async function fetchAndDisplaySongs(initialLoad = false) {
-    let url = `${API_BASE_URL}/allSong`; // Default to fetching all for filtering
-    let fetchPendingDirectly = initialLoad; // Flag to fetch only pending initially
-    
-    const filters = getAppliedFilters();
-    
-    // If it's not initial load, and filters are applied, we still fetch all and filter client-side.
-    // If it IS initial load, we fetch only pending directly for faster initial view.
-    if (fetchPendingDirectly) {
-        // This endpoint needs to exist in AdminController or be adapted.
-        // Let's assume we filter client-side even on initial load for consistency for now.
-        // url = '/admin/song/pending'; // Or fetch all and filter client-side
-        console.log("Initial load, fetching all and filtering for pending...");
-    } else {
-        console.log("Fetching all songs to apply filters...");
-    }
-
-    try {
-        $('#songsTable').addClass('loading');
-        showToast('Loading songs...', 'info');
-        const response = await api.get(url); // Fetch all songs
-        
-        let songs = [];
-        if (response && response.data && (response.data.code === '200' || response.data.code === 200) && Array.isArray(response.data.data)) {
-            allSongsData = response.data.data || []; // Update the global store of all songs
-            songs = filterSongs(allSongsData, initialLoad ? { status: '0' } : filters); // Apply filters
-            console.log(`Fetched ${allSongsData.length} total songs, displaying ${songs.length} after filtering.`);
-        } else {
-            console.error('Failed to load songs or unexpected data format:', response?.data);
-            showToast('Failed to load songs data. Unexpected response format.', 'error');
-            allSongsData = []; // Reset stored data
-            songs = [];
+    showLoadingIndicator(true);
+    if (initialLoad) {
+        // console.log("Initial load: Fetching singers and categories first.");
+        // Fetch supporting data only on initial load or when necessary
+        const singersLoaded = await loadSingers();
+        const categoriesLoaded = await loadCategories();
+        if (!singersLoaded || !categoriesLoaded) {
+            showToast("Failed to load necessary filters data. Song list may be incomplete.", "warning");
+            // Decide if you want to proceed without filters or stop
         }
-
-        updateSongsTable(songs); // Update table with filtered data
-        updateSongStatsUI(allSongsData); // Update stats with ALL songs data
-
-    } catch (error) {
-        console.error('Error loading songs data:', error);
-        showToast('Failed to connect to the server. Please check your network connection.', 'error');
-        allSongsData = []; // Reset stored data
-        updateSongsTable([]); // Clear table on error
-        updateSongStatsUI([]); // Update stats with zeros
-    } finally {
-        $('#songsTable').removeClass('loading');
+        // console.log("Singers and Categories loaded for initial display.");
     }
+
+    // 1. Fetch All Songs Data for Stats (always fetch all for accurate stats)
+    allSongs = await fetchAllSongsDataForStats();
+    // console.log("Total songs fetched for stats:", allSongs.length);
+
+    // 2. Update Statistics UI based on *all* songs
+    updateSongStatsUI(allSongs);
+
+    // 3. Get Applied Filters
+    const filters = getAppliedFilters();
+    // console.log("Applied Filters:", filters);
+
+    // 4. Filter the songs based on the current view (All, Pending, Approved, Rejected) and filters
+    let filteredSongs = filterSongs(allSongs, filters);
+    // console.log(`Filtered songs for current view '${currentFilterStatus || 'All'}':`, filteredSongs.length);
+
+
+    // 5. Update the DataTable with the filtered songs
+    updateSongsTable(filteredSongs);
+
+    // 6. Update UI elements like filter counts (optional)
+    // updateFilterCounts(allSongs); // Example: update counts next to filter buttons
+
+    showLoadingIndicator(false);
 }
 
 /**
- * Gets the currently applied filter values.
+ * Get the currently applied filters from the UI elements.
+ * @returns {object} An object containing the applied filters.
  */
 function getAppliedFilters() {
-    const singerId = $('#singerFilter').val()?.trim();
-    const userId = $('#userIdFilter').val()?.trim(); // Get User ID filter
-    const songName = $('#nameFilter').val()?.trim();
-    const status = $('#statusFilter').val(); // Status is number as string or empty
-    // const sortBy = $('#sortByPlays').val(); // Add back if needed
-
-    return { singerId, userId, songName, status };
+    const filters = {
+        status: currentFilterStatus || 'All', // 'All', 'Pending', 'Approved', 'Rejected'
+        search: document.getElementById('searchInput')?.value.trim().toLowerCase() || '',
+        singerId: document.getElementById('singerFilter')?.value || '',
+        categoryId: document.getElementById('categoryFilter')?.value || ''
+    };
+    // console.log("Retrieving filters from UI:", filters);
+    return filters;
 }
 
 /**
- * Filters the song list based on the provided criteria.
+ * Filter songs based on the applied filters.
  * @param {Array} songs - The array of all songs.
- * @param {object} filters - The filter criteria.
- * @returns {Array} - The filtered array of songs.
+ * @param {object} filters - The filters object from getAppliedFilters.
+ * @returns {Array} The filtered array of songs.
  */
 function filterSongs(songs, filters) {
-    if (!songs || songs.length === 0) return [];
-
-    const { singerId, userId, songName, status } = filters;
-
+    // console.log("Filtering songs with filters:", filters);
     return songs.filter(song => {
         let match = true;
         
-        // Filter by ONE selected singer ID (if singerId filter exists and is used)
-        // Assumes DTO has singerIds list. Modify if filter should check multiple singers.
-        if (singerId && (!song.singerIds || !song.singerIds.includes(parseInt(singerId)))) { 
-            match = false;
+        // Filter by Status (0=Pending, 1=Approved, 2=Rejected)
+        if (filters.status !== 'All') {
+            const statusMap = { 'Pending': 0, 'Approved': 1, 'Rejected': 2 };
+            match = match && (song.status === statusMap[filters.status]);
         }
-        
-        if (userId && (!song.userId || song.userId.toString() !== userId)) { 
-            match = false;
+
+        // Filter by Search Term (name or introduction)
+        if (filters.search) {
+            const searchTerm = filters.search;
+            match = match && (
+                (song.name && song.name.toLowerCase().includes(searchTerm)) ||
+                (song.introduction && song.introduction.toLowerCase().includes(searchTerm)) ||
+                // Optional: Search by singer names as well
+                 (song.singerNames && song.singerNames.toLowerCase().includes(searchTerm))
+            );
         }
-        if (songName && !song.name?.toLowerCase().includes(songName.toLowerCase())) {
-            match = false;
+
+        // Filter by Singer ID
+        if (filters.singerId) {
+            // Check if the song's singerIds array contains the filtered singerId
+            match = match && song.singerIds && song.singerIds.includes(parseInt(filters.singerId, 10));
         }
-        if (status !== '' && song.status?.toString() !== status) { 
-            match = false;
+
+        // Filter by Category ID
+        if (filters.categoryId) {
+             match = match && song.categoryId && (song.categoryId === parseInt(filters.categoryId, 10));
         }
+
         return match;
     });
 }
 
 /**
- * Update the song statistics cards UI
+ * Update the statistics UI elements (counts and progress bars).
+ * @param {Array} songs - Array of all songs.
  */
 function updateSongStatsUI(songs) {
-    // Ensure songs is an array
-    if (!Array.isArray(songs)) {
-        console.error("Cannot update stats UI, invalid songs data provided.");
-        songs = []; // Default to empty array to avoid errors
-    }
+    const total = songs.length;
+    const pending = songs.filter(s => s.status === 0).length;
+    const approved = songs.filter(s => s.status === 1).length;
+    const rejected = songs.filter(s => s.status === 2).length;
 
-    const totalSongs = songs.length;
-    const pendingSongs = songs.filter(song => song.status === 0).length;
-    const approvedSongs = songs.filter(song => song.status === 1).length;
-    const rejectedSongs = songs.filter(song => song.status === 2).length;
-    
-    // Find the elements for the stats cards
-    const totalElement = document.getElementById('songsTotalCount');
-    const pendingElement = document.getElementById('songsPendingCount');
-    const approvedElement = document.getElementById('songsApprovedCount'); // Get new element
-    const rejectedElement = document.getElementById('songsRejectedCount'); // Get new element
-    
-    if (totalElement) totalElement.textContent = totalSongs;
-    if (pendingElement) pendingElement.textContent = pendingSongs;
-    if (approvedElement) approvedElement.textContent = approvedSongs;
-    if (rejectedElement) rejectedElement.textContent = rejectedSongs;
-    
-    console.log(`Updated song stats UI: Total=${totalSongs}, Pending=${pendingSongs}, Approved=${approvedSongs}, Rejected=${rejectedSongs}`);
+    // console.log(`Updating stats: Total=${total}, Pending=${pending}, Approved=${approved}, Rejected=${rejected}`);
+
+    $('#totalSongsCount').text(total);
+    $('#pendingSongsCount').text(pending);
+    $('#approvedSongsCount').text(approved);
+    $('#rejectedSongsCount').text(rejected);
+
+    // Update progress bars
+    const safeTotal = total || 1; // Avoid division by zero
+    $('#pendingProgress').css('width', `${(pending / safeTotal) * 100}%`);
+    $('#approvedProgress').css('width', `${(approved / safeTotal) * 100}%`);
+    $('#rejectedProgress').css('width', `${(rejected / safeTotal) * 100}%`);
+
+    // Update filter button counts (optional, if you have elements like #pendingFilterCount)
+    $('#allFilterCount').text(total);
+    $('#pendingFilterCount').text(pending);
+    $('#approvedFilterCount').text(approved);
+    $('#rejectedFilterCount').text(rejected);
 }
 
+
 /**
- * Update the DataTable with song data
+ * Update the DataTable with the provided songs data.
+ * @param {Array} songs - The array of songs to display.
  */
 function updateSongsTable(songs) {
-    if (songsTable) {
-        songsTable.clear();
-        if (Array.isArray(songs)) {
-            songsTable.rows.add(songs);
-        } else {
-            console.error('Songs data is not an array:', songs);
-            showToast('Invalid song data format received from server', 'error');
-        }
-        songsTable.draw();
-    } else {
-        console.error('Songs table is not initialized.');
+    if (!songsTable) {
+        // console.error("DataTable is not initialized!");
+        return;
     }
+    // console.log(`Updating DataTable with ${songs.length} songs.`);
+        songsTable.clear();
+            songsTable.rows.add(songs);
+        songsTable.draw();
+    // console.log("DataTable redraw complete.");
 }
 
+
 /**
- * Initialize DataTable to display song data
+ * Initialize the DataTable instance.
  */
 function initializeDataTable() {
-    // Check if jQuery and DataTable are loaded before initializing
-    if (typeof jQuery === 'undefined') {
-        console.error('jQuery is not loaded, cannot initialize DataTable');
+    // console.log("Initializing DataTable...");
+    if (!$.fn.DataTable) {
+        // console.error("DataTable plugin is not loaded.");
+        showToast("Error initializing table: DataTable plugin not found.", "error");
         return;
     }
-
-    if (typeof jQuery.fn.DataTable === 'undefined') {
-        console.error('DataTable plugin is not loaded, cannot initialize table');
-        return;
-    }
-
-    const $ = jQuery;
 
     songsTable = $('#songsTable').DataTable({
         processing: true,
@@ -360,6 +354,7 @@ function initializeDataTable() {
                             badgeClass = 'bg-secondary';
                             icon = 'question-circle';
                     }
+                    // console.log(`Song ID: ${row.id}, Status: ${data} => ${statusText}`);
                     return `<span class="badge ${badgeClass}"><i class="fas fa-${icon} me-1"></i>${statusText}</span>`;
                 },
                 className: 'text-center'
@@ -368,58 +363,34 @@ function initializeDataTable() {
                 data: null,
                 orderable: false,
                 render: function(data, type, row) {
-                    // Pass necessary data directly to the preview button
-                    const songUrl = row.url || '';
-                    const songName = row.name || 'Unknown Song';
-                    const singerId = row.singerId || 'N/A'; // Or fetch singer name if needed elsewhere
-                    const coverPic = row.pic || '';
-                    const intro = row.introduction || '';
-                    const mvUrl = row.mvurl || '';
-                    const lyric = row.lyric || '';
+                    // Store full row data in the button for easy access later
+                    const safeRowData = escapeHTML(JSON.stringify(row));
+                    // Escape name for data-name attribute in delete button
+                    const safeSongName = escapeHTML(row.name);
+                    // console.log(`Rendering buttons for Song ID: ${row.id}, Status: ${row.status}`);
 
-                    // Disable preview if URL is missing
-                    const disabled = songUrl ? '' : 'disabled';
-                    const title = songUrl ? 'Preview Song' : 'Preview unavailable (No URL)';
-                    
-                    return `<button class="btn btn-sm btn-info preview-btn" 
-                                data-id="${row.id}" 
-                                data-url="${songUrl}" 
-                                data-name="${songName}"
-                                data-singerid="${singerId}"
-                                data-pic="${coverPic}"
-                                data-introduction="${intro}"
-                                data-mvurl="${mvUrl}"
-                                data-lyric="${lyric}"
-                                title="${title}" ${disabled}>
-                                <i class="fas fa-play me-1"></i>Preview
-                            </button>`;
-                }
-            },
-            {
-                data: null,
-                 orderable: false,
-                render: function(data, type, row) {
-                    // Conditional Action Buttons based on status
-                    if (row.status === 0) { // Pending Review
-                        return `
-                            <div class="btn-group" role="group">
+                    let actionButtons = `
+                        <button class="btn btn-sm btn-info preview-btn" data-song='${safeRowData}' title="Preview Song"><i class="fas fa-play"></i></button>
+                    `;
+
+                    if (row.status === 0) {
+                        actionButtons += `
                                 <button class="btn btn-sm btn-success approve-btn" data-id="${row.id}" title="Approve Song">
                                     <i class="fas fa-check me-1"></i> Approve
                                 </button>
                                 <button class="btn btn-sm btn-danger reject-btn" data-id="${row.id}" title="Reject Song">
                                     <i class="fas fa-times me-1"></i> Reject
                                 </button>
-                            </div>
                         `;
-                    } else { // Approved or Rejected - Show standard buttons
-                        return `
-                            <div class="btn-group" role="group">
+                    } else {
+                        actionButtons += `
                                 <button class="btn btn-sm btn-primary edit-btn" data-id="${row.id}" title="Edit Song"><i class="fas fa-edit me-1"></i></button>
                                 <button class="btn btn-sm btn-warning update-files-btn" data-id="${row.id}" title="Update Files"><i class="fas fa-file-upload me-1"></i></button>
-                                <button class="btn btn-sm btn-danger delete-btn" data-id="${row.id}" data-name="${row.name}" title="Delete Song"><i class="fas fa-trash me-1"></i></button>
-                            </div>
+                            <button class="btn btn-sm btn-danger delete-btn" data-id="${row.id}" data-name="${safeSongName}" title="Delete Song"><i class="fas fa-trash me-1"></i></button>
                         `;
                     }
+
+                    return actionButtons;
                 }
             }
         ],
@@ -439,564 +410,662 @@ function initializeDataTable() {
                 previous: "Previous"
             },
             processing: "Processing..." // Added processing message
+        },
+        drawCallback: function(settings) {
+            // Re-initialize Bootstrap tooltips on each draw
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('#songsTable [title]'));
+            tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+                // Dispose existing tooltips to prevent duplicates
+                const existingTooltip = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
+                if (existingTooltip) {
+                    existingTooltip.dispose();
+                }
+                new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+            // console.log("DataTable draw callback finished, tooltips reinitialized.");
         }
     });
+    // console.log("DataTable initialized successfully.");
 }
 
 /**
- * Set up all event listeners for the page
+ * Setup event listeners for buttons, filters, and modals.
  */
 function setupEventListeners() {
-    // Add Song form submission
-    const submitAddSongBtn = document.getElementById('submitAddSong');
-    if(submitAddSongBtn) submitAddSongBtn.addEventListener('click', handleAddSong);
-    
-    // Edit Song form submission
-    const submitEditSongBtn = document.getElementById('submitEditSong');
-     if(submitEditSongBtn) submitEditSongBtn.addEventListener('click', handleEditSong);
-    
-    // Update Song file
-    const submitUpdateSongBtn = document.getElementById('submitUpdateSong');
-    if(submitUpdateSongBtn) submitUpdateSongBtn.addEventListener('click', () => handleUpdateFile('song'));
-    
-    // Update MV file
-    const submitUpdateMvBtn = document.getElementById('submitUpdateMV');
-    if(submitUpdateMvBtn) submitUpdateMvBtn.addEventListener('click', () => handleUpdateFile('mv'));
-    
-    // Update Cover Image
-    const submitUpdatePicBtn = document.getElementById('submitUpdatePic');
-    if(submitUpdatePicBtn) submitUpdatePicBtn.addEventListener('click', () => handleUpdateFile('pic'));
+    // console.log("Setting up event listeners...");
 
-    // Delete song confirmation
-    const confirmDeleteBtn = document.getElementById('confirmDelete');
-    if(confirmDeleteBtn) confirmDeleteBtn.addEventListener('click', handleDeleteSong);
+    // Filter buttons (All, Pending, Approved, Rejected)
+    $('#allFilterBtn, #pendingFilterBtn, #approvedFilterBtn, #rejectedFilterBtn').on('click', function() {
+        const newStatus = $(this).data('status');
+        currentFilterStatus = newStatus;
 
-    // DataTable event delegation for buttons
-    const songsTableBody = document.querySelector('#songsTable tbody');
-    if(songsTableBody) {
-        songsTableBody.addEventListener('click', function(event) {
-            const target = event.target.closest('button');
-            if (!target) return;
+        // Highlight active button
+        $('.filter-btn').removeClass('active btn-primary').addClass('btn-outline-primary');
+        $(this).removeClass('btn-outline-primary').addClass('active btn-primary');
 
-            const row = target.closest('tr');
-            if (!row || !songsTable) return; // Check if songsTable is initialized
+        // console.log(`Filter status changed to: ${currentFilterStatus}`);
+        fetchAndDisplaySongs(); // Refetch and filter data based on the new status
+    });
 
-            const data = songsTable.row(row).data();
-            if (!data) return;
+    // Search Input & Button
+    $('#searchButton').on('click', function() {
+        // console.log("Search button clicked.");
+        fetchAndDisplaySongs();
+    });
+    $('#searchInput').on('keypress', function(e) {
+        if (e.key === 'Enter') {
+            // console.log("Search input Enter key pressed.");
+            fetchAndDisplaySongs();
+        }
+    });
 
-            if (target.classList.contains('edit-btn')) {
-                editSong(data.id);
-            } else if (target.classList.contains('update-files-btn')) {
-                showUpdateFilesModal(data.id);
-            } else if (target.classList.contains('preview-btn')) {
-                 if (data.url) {
-                     previewSong(data); // Pass the whole data object
+    // Filter Dropdowns (Singer, Category)
+    $('#singerFilter, #categoryFilter').on('change', function() {
+        // console.log("Filter dropdown changed.");
+        fetchAndDisplaySongs();
+    });
+
+    // Reset Filters Button
+    $('#resetFiltersBtn').on('click', function() {
+        // console.log("Reset filters button clicked.");
+        $('#searchInput').val('');
+        $('#singerFilter').val('');
+        $('#categoryFilter').val('');
+        // Optionally reset status filter to 'All' or keep current status filter?
+        // Let's keep the status filter active unless explicitly changed
+        // currentFilterStatus = 'All'; // Uncomment to reset status filter too
+        // $('.filter-btn').removeClass('active btn-primary').addClass('btn-outline-primary');
+        // $('#allFilterBtn').addClass('active btn-primary'); // Highlight 'All'
+        fetchAndDisplaySongs();
+    });
+
+    // Add Song Button -> Opens Modal
+    $('#addSongBtn').on('click', function() {
+        // console.log("Add Song button clicked.");
+        // Reset the add form completely
+        $('#addSongForm')[0].reset();
+        // Reset custom multi-selects for categories and singers
+        selectedAddCategories.clear();
+        selectedAddSingers.clear();
+        updateAddSelectedCategoriesDisplay();
+        updateAddSelectedSingersDisplay();
+        // Reset image preview
+        resetAddImagePreview();
+        // Ensure the correct modal title is set
+        $('#addSongModalLabel').text('Add New Song');
+        // Clear any previous validation states
+        $('#addSongForm').removeClass('was-validated');
+        // Clear progress bar if it exists in add modal
+        $('#addProgressContainer').hide();
+        $('#addProgressBar').css('width', '0%').attr('aria-valuenow', 0);
+        $('#addProgressText').text('');
+
+        // Pre-populate modals if data is available
+        populateAddCategoryModalList(allCategoriesData); // Use globally stored data
+        populateAddSingerModalList(allSingersData); // Use globally stored data
+
+        // Show the modal
+        var addModal = new bootstrap.Modal(document.getElementById('addSongModal'));
+        addModal.show();
+    });
+
+    // --- DataTable Button Event Delegation ---
+    $('#songsTable tbody').on('click', 'button', function() {
+        const action = $(this).attr('class'); // Get all classes to check substrings
+        const songDataString = $(this).data('song');
+        let songData = null;
+        let songId = $(this).data('id'); // Fallback if song data isn't attached directly
+
+        try {
+            if (songDataString) {
+                // Need to decode the HTML entities first before parsing JSON
+                 const decodedString = $('<div>').html(songDataString).text();
+                songData = JSON.parse(decodedString);
+                songId = songData.id; // Get ID from the parsed data
+                // console.log(`Action '${action}' triggered for song ID: ${songId}`, songData);
+            } else if (songId) {
+                 // console.log(`Action '${action}' triggered for song ID: ${songId} (data might be missing)`);
+                 // Attempt to find song data from the global list if needed, though risky
+                 // songData = allSongs.find(s => s.id === songId);
+            } else {
+                // console.warn("Action triggered but no song ID or data found on button:", this);
+                showToast("Could not identify the song for this action.", "error");
+                return;
+            }
+        } catch (e) {
+            // console.error("Error parsing song data from button:", e, "Raw data:", songDataString);
+            showToast("Error processing song data for action.", "error");
+            return;
+        }
+
+        if (action.includes('preview-btn')) {
+            // console.log("Preview button clicked");
+            if (songData) {
+                previewSong(songData);
+            } else {
+                showToast("Cannot preview: Song data missing.", "error");
+            }
+        } else if (action.includes('edit-btn')) {
+             // console.log("Edit button clicked");
+            if (songId) {
+                editSong(songId); // Function to open edit modal and load data
+            }
+        } else if (action.includes('files-btn')) {
+            // console.log("Update Files button clicked");
+            if (songId) {
+                showUpdateFilesModal(songId); // Function to open the file update modal
+            }
+        } else if (action.includes('delete-btn')) {
+             // console.log("Delete button clicked");
+            const songName = $(this).data('name') || (songData ? songData.name : `ID ${songId}`);
+            if (songId) {
+                showDeleteModal(songId, songName);
+            }
+        } else if (action.includes('approve-btn')) {
+            // console.log("Approve button clicked");
+             if (songId) {
+                handleAuditSong(songId, 1); // 1 for Approve
+            }
+        } else if (action.includes('reject-btn')) {
+            // console.log("Reject button clicked");
+            if (songId) {
+                handleAuditSong(songId, 2); // 2 for Reject
+            }
         } else {
-            showToast("Preview is unavailable because the song URL is missing.", "warning");
-        }
-            } else if (target.classList.contains('delete-btn')) {
-        showDeleteModal(data.id, data.name);
-            } else if (target.classList.contains('approve-btn')) {
-                handleAuditSong(data.id, 1); // 1 for Approved
-            } else if (target.classList.contains('reject-btn')) {
-                handleAuditSong(data.id, 2); // 2 for Rejected
-            }
-    });
-    }
-    
-    // Apply filters button
-    const applyFiltersBtn = document.getElementById('applyFilters');
-    if(applyFiltersBtn) applyFiltersBtn.addEventListener('click', () => fetchAndDisplaySongs(false));
-    
-    // Clear filters button
-    const clearFiltersBtn = document.getElementById('clearFilters');
-    if(clearFiltersBtn) clearFiltersBtn.addEventListener('click', function() {
-        const singerFilter = document.getElementById('singerFilter');
-        const userIdFilter = document.getElementById('userIdFilter');
-        const nameFilter = document.getElementById('nameFilter');
-        const statusFilter = document.getElementById('statusFilter');
-        if(singerFilter) singerFilter.value = '';
-        if(userIdFilter) userIdFilter.value = '';
-        if(nameFilter) nameFilter.value = '';
-        if(statusFilter) statusFilter.value = '';
-        fetchAndDisplaySongs(true);
-    });
-    
-    // Global search button
-    const globalSearchBtn = document.getElementById('globalSearchBtn');
-    if(globalSearchBtn) globalSearchBtn.addEventListener('click', function() {
-        const searchTerm = document.getElementById('globalSearch')?.value.trim();
-        const nameFilter = document.getElementById('nameFilter');
-        const singerFilter = document.getElementById('singerFilter');
-        const userIdFilter = document.getElementById('userIdFilter');
-        const statusFilter = document.getElementById('statusFilter');
-        if(nameFilter) nameFilter.value = searchTerm || '';
-        if(singerFilter) singerFilter.value = '';
-        if(userIdFilter) userIdFilter.value = '';
-        if(statusFilter) statusFilter.value = '';
-        fetchAndDisplaySongs(false);
-    });
-    
-    // Keyboard event for global search
-    const globalSearchInput = document.getElementById('globalSearch');
-    if(globalSearchInput) globalSearchInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') { // Use e.key for modern browsers
-            if(globalSearchBtn) globalSearchBtn.click();
+            // console.log("Unhandled button action:", action);
         }
     });
+    // --- End DataTable Button Event Delegation ---
 
-    // --- Add Song Modal Specific Listeners ---
+    // Add Song Modal - Category Selection
+    $('#addSelectCategoryBtn').on('click', function() {
+        // console.log("Select Category button clicked (Add Modal)");
+        // Populate the modal list just before showing, ensure latest data
+        populateAddCategoryModalList(allCategoriesData);
+        const categoryModal = new bootstrap.Modal(document.getElementById('addCategorySelectModal'));
+        categoryModal.show();
+    });
 
-    // --- Category Selection Listeners ---
-    const addSelectCategoriesBtn = document.getElementById('addSelectCategoriesBtn');
-    if (addSelectCategoriesBtn) {
-        addSelectCategoriesBtn.addEventListener('click', function() {
-            console.log("[Add Song] Select Categories button clicked (manual trigger)");
-            // Populate the list first
-            if (!allCategoriesData || allCategoriesData.length === 0) {
-                console.warn("Category data not ready or empty.");
-                const container = document.getElementById('addCategoryListContainer');
-                if(container) container.innerHTML = '<p class="text-center text-danger">Category list is not loaded yet.</p>';
-                // Do not show modal if data isn't ready
+    // Add Song Modal - Singer Selection
+    $('#addSelectSingerBtn').on('click', function() {
+        // console.log("Select Singer button clicked (Add Modal)");
+        // Populate the modal list just before showing
+        populateAddSingerModalList(allSingersData);
+        const singerModal = new bootstrap.Modal(document.getElementById('addSingerSelectModal'));
+        singerModal.show();
+    });
+
+    // Add Song Modal - Category Modal - Search Input
+    $('#addCategorySearchInput').on('input', function() {
+        const searchTerm = $(this).val().toLowerCase();
+        // console.log("Searching categories (Add Modal):", searchTerm);
+        const filtered = allCategoriesData.filter(cat => cat.name.toLowerCase().includes(searchTerm));
+        populateAddCategoryModalList(filtered);
+    });
+
+    // Add Song Modal - Singer Modal - Search Input
+    $('#addSingerSearchInput').on('input', function() {
+        const searchTerm = $(this).val().toLowerCase();
+        // console.log("Searching singers (Add Modal):", searchTerm);
+        const filtered = allSingersData.filter(singer => singer.name.toLowerCase().includes(searchTerm));
+        populateAddSingerModalList(filtered);
+    });
+
+     // Add Song Modal - Category Modal - Checkbox Change (Event Delegation)
+     $('#addCategoryListContainer').on('change', '.add-category-checkbox', function() {
+        const categoryId = $(this).val();
+        const categoryName = $(this).closest('.form-check').find('label').text().trim();
+        // console.log(`Category checkbox changed: ID=${categoryId}, Name=${categoryName}, Checked=${this.checked}`);
+        if (this.checked) {
+            selectedAddCategories.set(categoryId, categoryName);
             } else {
-                 populateAddCategoryModalList(allCategoriesData);
-            }
+            selectedAddCategories.delete(categoryId);
+        }
+        // console.log("Current selected categories (Add Modal):", selectedAddCategories);
+    });
 
-            // Manually get the modal instance and show it
-            const categoryModalElement = document.getElementById('addCategoryModal');
-            if (categoryModalElement) {
-                 const categoryModal = bootstrap.Modal.getOrCreateInstance(categoryModalElement);
-                 categoryModal.show();
-                 console.log("[Add Song] Manually showing category modal.");
+    // Add Song Modal - Singer Modal - Checkbox Change (Event Delegation)
+    $('#addSingerListContainer').on('change', '.add-singer-checkbox', function() {
+        const singerId = $(this).val();
+        const singerName = $(this).closest('.form-check').find('label').text().trim();
+        // console.log(`Singer checkbox changed: ID=${singerId}, Name=${singerName}, Checked=${this.checked}`);
+        if (this.checked) {
+            selectedAddSingers.set(singerId, singerName);
             } else {
-                console.error("Category modal element #addCategoryModal not found!");
-            }
-        });
-    } else { console.error("Button #addSelectCategoriesBtn not found"); }
+            selectedAddSingers.delete(singerId);
+        }
+         // console.log("Current selected singers (Add Modal):", selectedAddSingers);
+    });
 
-    const addCategorySearchInput = document.getElementById('addCategorySearchInput');
-    if (addCategorySearchInput) {
-        addCategorySearchInput.addEventListener('input', function() {
-            const searchText = this.value.toLowerCase();
-            const filteredCategories = allCategoriesData.filter(cat => cat && cat.name && cat.name.toLowerCase().includes(searchText));
-            populateAddCategoryModalList(filteredCategories);
-        });
-    } else { console.error("Input #addCategorySearchInput not found"); }
 
-    const confirmAddCategoryBtn = document.getElementById('confirmAddCategorySelection');
-    if (confirmAddCategoryBtn) {
-        confirmAddCategoryBtn.addEventListener('click', function(event) {
-            event.stopPropagation();
-            console.log("[Add Song] Confirm category selection button clicked");
-            const checkedBoxes = document.querySelectorAll('#addCategoryListContainer input.add-category-checkbox:checked');
-            selectedAddCategories.clear();
+    // Add Song Modal - Category Modal - Confirm Button
+    $('#confirmAddCategorySelection').on('click', function() {
+        // console.log("Confirming category selection (Add Modal)");
+        updateAddSelectedCategoriesDisplay();
+        const categoryModal = bootstrap.Modal.getInstance(document.getElementById('addCategorySelectModal'));
+        categoryModal?.hide();
+    });
 
-            checkedBoxes.forEach(checkbox => {
-                const id = checkbox.value;
-                const category = allCategoriesData.find(c => String(c.id) === id);
-                selectedAddCategories.set(id, category ? category.name : `ID ${id}`);
-            });
-            console.log("[Add Song] Selected categories Map:", selectedAddCategories);
-
-            updateAddSelectedCategoriesDisplay();
-
-            const addCategoryModalEl = document.getElementById('addCategoryModal');
-            const modalInstance = bootstrap.Modal.getInstance(addCategoryModalEl);
-            modalInstance?.hide();
-        });
-    } else { console.error("Button #confirmAddCategorySelection not found"); }
-    // --- End Category Selection Listeners ---
-
-    // --- Singer Selection Listeners ---
-    const addSelectSingersBtn = document.getElementById('addSelectSingersBtn');
-    if (addSelectSingersBtn) {
-        addSelectSingersBtn.addEventListener('click', function() {
-            console.log("[Add Song] Select Singers button clicked");
-            // Populate the list first
-            if (!allSingersData || allSingersData.length === 0) {
-                console.warn("Singer data not ready or empty.");
-                const container = document.getElementById('addSingerListContainer');
-                if(container) container.innerHTML = '<p class="text-center text-danger">Artist list is not loaded yet.</p>';
-                // Do not show modal if data isn't ready
-            } else {
-                populateAddSingerModalList(allSingersData);
-            }
-
-            // Manually get the modal instance and show it
-            const singerModalElement = document.getElementById('addSingerModal');
-            if (singerModalElement) {
-                const singerModal = bootstrap.Modal.getOrCreateInstance(singerModalElement);
-                singerModal.show();
-                console.log("[Add Song] Manually showing singer modal.");
-            } else {
-                console.error("Singer modal element #addSingerModal not found!");
-            }
-        });
-    } else { console.error("Button #addSelectSingersBtn not found"); }
-
-    const addSingerSearchInput = document.getElementById('addSingerSearchInput');
-    if (addSingerSearchInput) {
-        addSingerSearchInput.addEventListener('input', function() {
-            const searchText = this.value.toLowerCase();
-            const filteredSingers = allSingersData.filter(singer => singer && singer.name && singer.name.toLowerCase().includes(searchText));
-            populateAddSingerModalList(filteredSingers);
-        });
-    } else { console.error("Input #addSingerSearchInput not found"); }
-
-    const confirmAddSingerBtn = document.getElementById('confirmAddSingerSelection');
-    if (confirmAddSingerBtn) {
-        confirmAddSingerBtn.addEventListener('click', function(event) {
-            event.stopPropagation();
-            console.log("[Add Song] Confirm singer selection");
-            const checkedBoxes = document.querySelectorAll('#addSingerListContainer input.add-singer-checkbox:checked');
-            selectedAddSingers.clear();
-            checkedBoxes.forEach(checkbox => {
-                const id = checkbox.value;
-                const singer = allSingersData.find(s => String(s.id) === id);
-                selectedAddSingers.set(id, singer ? singer.name : `ID ${id}`);
-            });
-            console.log("[Add Song] Selected singers Map:", selectedAddSingers);
-
+    // Add Song Modal - Singer Modal - Confirm Button
+    $('#confirmAddSingerSelection').on('click', function() {
+        // console.log("Confirming singer selection (Add Modal)");
             updateAddSelectedSingersDisplay();
+        const singerModal = bootstrap.Modal.getInstance(document.getElementById('addSingerSelectModal'));
+        singerModal?.hide();
+    });
 
-            const addSingerModalEl = document.getElementById('addSingerModal');
-            const modalInstance = bootstrap.Modal.getInstance(addSingerModalEl);
-            modalInstance?.hide();
-        });
-    } else { console.error("Button #confirmAddSingerSelection not found"); }
-    // --- End Singer Selection Listeners ---
 
-    // Reset Add Song selections when the main Add Song modal is hidden
-    // This listener should only be defined ONCE
-    const addSongModalElement = document.getElementById('addSongModal');
-    if (addSongModalElement && !addSongModalElement.dataset.listenerAttached) {
-        addSongModalElement.addEventListener('hidden.bs.modal', function () {
-            console.log("Add Song modal hidden, resetting form and selections.");
-            resetAddImagePreview();
-            const addForm = document.getElementById('addSongForm');
-            if (addForm) {
-                 addForm.reset();
-                 addForm.classList.remove('was-validated');
-            }
-            selectedAddSingers.clear();
-            updateAddSelectedSingersDisplay();
-            selectedAddCategories.clear();
-            updateAddSelectedCategoriesDisplay();
-        });
-        addSongModalElement.dataset.listenerAttached = 'true'; // Mark as attached
-    }
-    // --- End Add Song Modal Specific Listeners ---
+    // Add Song Form Submission
+    $('#addSongForm').on('submit', function(e) {
+        e.preventDefault(); // Prevent default form submission
+        // console.log("Add Song form submitted.");
+        handleAddSong();
+    });
 
+    // Edit Song Form Submission
+    $('#editSongForm').on('submit', function(e) {
+        e.preventDefault();
+        // console.log("Edit Song form submitted.");
+        handleEditSong();
+    });
+
+    // Update Files Form Submission (handles individual file updates)
+    // We don't submit the whole form, but trigger uploads via buttons
+    $('#updateSongFileBtn').on('click', () => handleUpdateFile('song'));
+    $('#updateMVFileBtn').on('click', () => handleUpdateFile('mv'));
+    $('#updatePicFileBtn').on('click', () => handleUpdateFile('pic'));
+
+
+    // Delete Modal - Confirm Button
+    $('#confirmDelete').on('click', function() {
+        // console.log("Confirm Delete button clicked.");
+        handleDeleteSong();
+    });
+
+    // Initialize image preview for Add Song modal
+    initAddImageUploadPreview();
+
+    // console.log("Event listeners setup complete.");
 }
 
 /**
- * Handle Add Song form submission
+ * Handle the Add Song form submission.
  */
 async function handleAddSong() {
+    // console.log("Handling Add Song submission...");
     const form = document.getElementById('addSongForm');
-    const submitButton = document.getElementById('submitAddSong');
-    const progressBar = document.getElementById('uploadProgress');
-    const progressDiv = progressBar ? progressBar.querySelector('.progress-bar') : null;
+    const submitButton = document.getElementById('submitAddSong'); // Assuming button ID
+    const progressBar = $('#addProgressBar');
+    const progressContainer = $('#addProgressContainer');
+    const progressText = $('#addProgressText');
 
-    // --- Validation ---
-    const name = document.getElementById('name').value.trim();
-    const introduction = document.getElementById('introduction').value.trim();
-    const fileInput = document.getElementById('file');
-    const selectedCategoryIdsValue = document.getElementById('addSelectedCategoryIds').value;
-    const selectedSingerIdsValue = document.getElementById('addSelectedSingerIds').value;
+    // Basic validation
+    if (!validateSongForm(form)) {
+        // console.log("Add Song form validation failed.");
+        return; // Validation messages shown by validateSongForm
+    }
+    // console.log("Add Song form validation passed.");
 
-    if (!name) {
-        showToast('Please enter a Song Name.', 'warning'); return;
-    }
-    if (!selectedCategoryIdsValue) {
-        showToast('Please select at least one Category.', 'warning'); return;
-    }
-    if (!selectedSingerIdsValue) {
-        showToast('Please select at least one Artist.', 'warning'); return;
-    }
-    if (!introduction) {
-        showToast('Please enter an Introduction.', 'warning'); return;
-    }
-    if (!fileInput || !fileInput.files[0]) {
-        showToast('Please select a Song File.', 'warning'); return;
-    }
-    const imageInput = document.getElementById('addImageFileInput');
-    if (imageInput && imageInput.files[0] && imageInput.files[0].size > 5 * 1024 * 1024) {
-         showToast('Image file is too large (Max 5MB).', 'danger'); return;
-    }
-    // --- End Validation ---
-
-    const formData = new FormData();
-
-    formData.append('name', name);
-    formData.append('introduction', introduction);
-    formData.append('userId', '0');
-    formData.append('file', fileInput.files[0]);
-    formData.append('singerIds', selectedSingerIdsValue);
-    formData.append('categoryIds', selectedCategoryIdsValue);
-
-    const lyric = document.getElementById('lyric').value.trim();
-    if (lyric) {
-        formData.append('lyric', lyric);
-    }
-    if (imageInput && imageInput.files[0]) {
-        formData.append('imageFile', imageInput.files[0]);
-    }
-
+    // Disable button, show progress
     submitButton.disabled = true;
-    submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Uploading...';
-    if(progressBar) progressBar.style.display = 'block';
-    if(progressDiv) {
-    progressDiv.style.width = '0%';
-    progressDiv.textContent = '0%';
+    submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Adding...';
+    progressContainer.show();
+    progressBar.css('width', '0%').attr('aria-valuenow', 0).removeClass('bg-danger bg-success').addClass('bg-primary progress-bar-striped progress-bar-animated');
+    progressText.text('Preparing...');
+
+    // Gather form data
+    const formData = new FormData(form);
+
+    // Append manually managed fields (multi-select singers/categories)
+    const singerIds = Array.from(selectedAddSingers.keys());
+    // formData.append('singerIds', singerIds.join(',')); // Send as CSV
+    // OR append multiple times if backend expects array parameter
+     singerIds.forEach(id => formData.append('singerIds', id));
+    // console.log("Appended singerIds:", singerIds);
+
+    const categoryIds = Array.from(selectedAddCategories.keys());
+    // formData.append('categoryIds', categoryIds.join(',')); // Send as CSV
+    // OR append multiple times
+    categoryIds.forEach(id => formData.append('categoryIds', id));
+    // console.log("Appended categoryIds:", categoryIds);
+
+    // Add current user ID (assuming admin adds songs)
+    if (currentUserId) {
+        formData.append('userId', currentUserId);
+        // console.log("Appended userId:", currentUserId);
+    } else {
+        // console.warn("Cannot append userId, it's not set.");
+        showToast("User session error. Cannot add song.", "error");
+        submitButton.disabled = false;
+        submitButton.innerHTML = 'Add Song';
+        progressContainer.hide();
+        return;
     }
 
-    console.log("Submitting add song request...");
+    // Log FormData contents (for debugging)
+    // console.log("FormData prepared for add:");
+    // for (let [key, value] of formData.entries()) {
+    //     console.log(`${key}: ${value}`);
+    // }
 
     try {
+        // Use api utility with progress tracking
         const response = await api.post(`${API_BASE_URL}/add`, formData, {
-            headers: { /* Axios handles FormData header */ },
-            onUploadProgress: (progressEvent) => {
-                if (progressDiv && progressEvent.total) {
+            headers: {
+                'Content-Type': 'multipart/form-data' // Important for file uploads
+            },
+            onUploadProgress: function(progressEvent) {
                 const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-                progressDiv.style.width = percentCompleted + '%';
-                progressDiv.textContent = percentCompleted + '%';
-                }
+                progressBar.css('width', percentCompleted + '%').attr('aria-valuenow', percentCompleted);
+                progressText.text(`${percentCompleted}% Uploaded`);
+                // console.log(`Upload Progress: ${percentCompleted}%`);
             }
         });
 
+        // console.log("Add song API response:", response);
+
         if (response.data && (response.data.code === '200' || response.data.code === 200)) {
+            // Success
             showToast('Song added successfully!', 'success');
-            const addModalEl = document.getElementById('addSongModal');
-            if (addModalEl) {
-                const addModal = bootstrap.Modal.getInstance(addModalEl);
-                if (addModal) addModal.hide();
-            }
-            fetchAndDisplaySongs(true);
-            fetchAllSongsDataForStats();
+            progressBar.removeClass('bg-primary progress-bar-animated').addClass('bg-success');
+            progressText.text('Upload Complete!');
+            $('#addSongModal').modal('hide');
+            fetchAndDisplaySongs(true); // Refresh table and stats (true might reload filters)
         } else {
-            console.error('Add song failed:', response.data);
-            showToast(`Failed to add song: ${response.data?.msg || 'Server error'}`, 'error');
+            // Failure from backend
+            const errorMsg = response.data?.msg || response.data?.message || 'Unknown server error';
+            // console.error("Failed to add song:", errorMsg);
+            showToast(`Failed to add song: ${errorMsg}`, 'error');
+            progressBar.removeClass('bg-primary progress-bar-animated').addClass('bg-danger');
+            progressText.text('Upload Failed!');
         }
     } catch (error) {
-        console.error('Error adding song:', error);
-        const errorMsg = error.response?.data?.msg || error.message || 'An unknown network error occurred.';
+        // Network or other errors
+        // console.error('Error adding song:', error);
+        const errorMsg = error.response?.data?.msg || error.response?.data?.message || error.message || 'Network error';
         showToast(`Error adding song: ${errorMsg}`, 'error');
+        progressBar.removeClass('bg-primary progress-bar-animated').addClass('bg-danger');
+        progressText.text('Upload Error!');
     } finally {
+        // Re-enable button
         submitButton.disabled = false;
-        submitButton.innerHTML = 'Upload';
-       if(progressBar) progressBar.style.display = 'none';
+        submitButton.innerHTML = 'Add Song';
+        // Keep progress bar visible shortly for feedback, then hide? Or hide immediately?
+         setTimeout(() => { progressContainer.hide(); }, 3000); // Hide after 3 seconds
     }
 }
 
+
 /**
- * Load song data for editing
+ * Load song data for editing and populate the modal.
  */
 async function loadSongForEdit(songId) {
-    currentSongId = songId;
+    // console.log(`Loading song data for edit, ID: ${songId}`);
+    showToast('Loading song details...', 'info');
     try {
-        // Fetch SongDetailDTO
-        const response = await api.get(`${API_BASE_URL}/detail`, { params: { songId } });
+        const response = await api.get(`${API_BASE_URL}/detail?songId=${songId}`);
+        // console.log("Load for edit response:", response);
+
         if (response.data && (response.data.code === '200' || response.data.code === 200) && response.data.data) {
-            const song = response.data.data; // This is SongDetailDTO
+            const song = response.data.data;
             
-            // Populate basic fields
+            // --- Populate Basic Info ---
             $('#editSongId').val(song.id);
             $('#editName').val(song.name);
             $('#editIntroduction').val(song.introduction);
             $('#editLyric').val(song.lyric);
             
-            // Set MULTIPLE selected singers
-            const editSingersSelect = $('#editSingers');
-            if (song.singerIds && song.singerIds.length > 0) {
-                editSingersSelect.val(song.singerIds);
-            } else {
-                editSingersSelect.val([]);
+            // --- Populate Singers ---
+            // Ensure the singer dropdown exists and is populated
+            if (allSingersData.length === 0) {
+                // console.warn("Singers not loaded yet, attempting to load now for edit modal.");
+                await loadSingers(); // Ensure singers are loaded before populating
             }
-            // Refresh multi-select plugin if used (e.g., Select2)
-            // editSingersSelect.trigger('change'); 
-            
-            // Set MULTIPLE selected categories
-            const editCategorySelect = $('#editCategory');
-             if (song.categoryIds && song.categoryIds.length > 0) {
-                 editCategorySelect.val(song.categoryIds);
-             } else {
-                  editCategorySelect.val([]);
-             }
-             // Refresh multi-select plugin if needed
-             // editCategorySelect.trigger('change');
+            const editSingerSelect = $('#editSingers');
+            if (editSingerSelect.length > 0) {
+                 editSingerSelect.val(song.singerIds || []); // Set selected singers
+                 editSingerSelect.trigger('change'); // Trigger update for select2 if used
+                 // console.log("Set selected singers:", song.singerIds);
+            } else {
+                 // console.warn("Edit singers dropdown (#editSingers) not found during population.");
+            }
 
-            $('#editSongModal').modal('show');
+            // --- Populate Categories ---
+            // Similar check for categories
+            if (allCategoriesData.length === 0) {
+                 // console.warn("Categories not loaded yet, attempting to load now for edit modal.");
+                await loadCategories();
+            }
+            const editCategorySelect = $('#editCategory'); // Assuming single select for category in edit modal based on HTML structure?
+            if (editCategorySelect.length > 0) {
+                 editCategorySelect.val(song.categoryId || ''); // Set selected category
+                 // console.log("Set selected category:", song.categoryId);
+             } else {
+                 // console.warn("Edit category dropdown (#editCategory) not found during population.");
+            }
+
+            // Clear previous validation
+            $('#editSongForm').removeClass('was-validated');
+
+            // Show the modal
+            const editModal = new bootstrap.Modal(document.getElementById('editSongModal'));
+            editModal.show();
+            showToast('Song details loaded.', 'success');
+
         } else {
-            showToast(response.data?.message || 'Could not load song details for editing.', 'error');
+            // console.error('Failed to load song details for edit:', response.data?.msg);
+            showToast(`Failed to load song details: ${response.data?.msg || 'Not found'}`, 'error');
         }
     } catch (error) {
-        console.error(`Error loading song ${songId} for edit:`, error);
-        showToast('Error loading song details. ' + (error.response?.data?.message || error.message), 'error');
+        // console.error('Error fetching song details for edit:', error);
+        showToast('Error fetching song details. Please try again.', 'error');
     }
 }
 
 /**
- * Handle edit song form submission
+ * Handle the Edit Song form submission (updates text details only).
  */
-function handleEditSong() {
-    const form = $('#editSongForm')[0];
-    if (!validateSongForm(form)) { return; } 
-    
+async function handleEditSong() {
+    // console.log("Handling Edit Song submission...");
+    const form = document.getElementById('editSongForm');
+    const submitButton = document.getElementById('submitEditSong'); // Assuming button ID
     const songId = $('#editSongId').val();
+
     if (!songId) {
-        showToast('Cannot save changes, song ID is missing.', 'error');
+        // console.error("Cannot edit song: ID missing.");
+        showToast("Error: Song ID is missing. Cannot save.", "error");
         return;
     }
 
-    // Construct data object directly from form values
+    // Basic validation (similar to add form, but maybe simpler as files aren't handled here)
+    if (!validateSongForm(form)) { // Reuse validation, it skips file checks for edit form
+        // console.log("Edit Song form validation failed.");
+        return;
+    }
+     // console.log("Edit Song form validation passed.");
+
+    submitButton.disabled = true;
+    submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+
+    // Prepare data object for update (only text fields)
     const songData = {
         id: songId,
-        name: $('#editName').val(),
-        introduction: $('#editIntroduction').val(),
-        lyric: $('#editLyric').val(),
-        singerIds: $('#editSingers').val()?.join(',') || '', // Matches HTML name='singerIds'
-        categoryIds: $('#editCategory').val()?.join(',') || '' // Matches HTML name='categoryIds'
+        name: $('#editName').val().trim(),
+        introduction: $('#editIntroduction').val().trim(),
+        lyric: $('#editLyric').val().trim(),
+        // Get selected singers (assuming multi-select)
+        singerIds: $('#editSingers').val() || [],
+        // Get selected category (assuming single select)
+        categoryId: $('#editCategory').val() || null,
+         // IMPORTANT: Include userId to link the update action to the admin if required by backend
+         userId: currentUserId // Assuming currentUserId holds the logged-in admin's ID
     };
-    
-    // Include tag IDs if tag input exists
-    const tagInput = document.getElementById('editTags'); // Assuming ID is editTags
-    if (tagInput && tagInput.value) {
-        songData.tagIds = tagInput.value; // Assuming tag input handles comma-separated IDs
-    }
-    
-    console.log("Data being sent for update:", songData);
 
-    showToast('Saving changes...', 'info');
-    // Use the correct update endpoint and method (POST)
-    api.post(`${API_BASE_URL}/update`, new URLSearchParams(songData).toString(), { // Send as form data
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-    })
-    .then(response => {
+     if (!songData.userId) {
+         // console.warn("Admin User ID not set. Update might fail if required by backend.");
+         // Decide if this is critical - maybe show warning or block?
+         // showToast("Session error: Cannot determine user performing the update.", "warning");
+         // submitButton.disabled = false;
+         // submitButton.innerHTML = 'Save Changes';
+         // return; // Uncomment to block if userId is mandatory
+     }
+
+    // Convert to x-www-form-urlencoded or send as JSON, depending on backend expectation
+    // Assuming backend expects JSON for update:
+    // console.log("Prepared data for update (JSON):", songData);
+
+    try {
+        // Using POST with JSON payload as per typical REST update patterns
+        // Adjust method (PUT) and Content-Type if backend differs
+        const response = await api.post(`${API_BASE_URL}/update`, songData, {
+             headers: {
+                 'Content-Type': 'application/json'
+            }
+        });
+
+        // console.log("Update song API response:", response);
+
         if (response.data && (response.data.code === '200' || response.data.code === 200)) {
-            showToast('Song updated successfully!', 'success');
+            showToast('Song details updated successfully!', 'success');
             $('#editSongModal').modal('hide');
             fetchAndDisplaySongs(); // Refresh table
         } else {
-            showToast(response.data?.message || 'Failed to update song.', 'error');
+            const errorMsg = response.data?.msg || response.data?.message || 'Unknown server error';
+            // console.error("Failed to update song:", errorMsg);
+            showToast(`Failed to update song: ${errorMsg}`, 'error');
         }
-    })
-    .catch(error => {
-        console.error('Error updating song:', error);
-        showToast('Error updating song. ' + (error.response?.data?.message || error.message), 'error');
-    });
+    } catch (error) {
+        // console.error('Error updating song:', error);
+        const errorMsg = error.response?.data?.msg || error.response?.data?.message || error.message || 'Network error';
+        showToast(`Error updating song: ${errorMsg}`, 'error');
+    } finally {
+        submitButton.disabled = false;
+        submitButton.innerHTML = 'Save Changes';
+    }
 }
 
+
 /**
- * Handle file updates (song, MV, cover)
+ * Handle updating a specific file (Song, MV, Picture) for a song.
+ * @param {string} fileType - 'song', 'mv', or 'pic'.
  */
-function handleUpdateFile(fileType) {
+async function handleUpdateFile(fileType) {
     const songId = $('#updateSongId').val();
-    
-    if (!songId) {
-        showToast("Invalid song ID", "error");
-        return;
-    }
-    
-    let fileInput, url;
+    let fileInputId, buttonId, endpointSuffix, progressBarId, progressTextId, progressContainerId;
     
     switch (fileType) {
         case 'song':
-            fileInput = document.getElementById('updateSongFile');
-            url = `${API_BASE_URL}/updateSongUrl`;
+            fileInputId = '#updateSongFile';
+            buttonId = '#updateSongFileBtn';
+            endpointSuffix = 'updateSongUrl'; // API endpoint suffix for song file
+            progressBarId = '#updateSongProgress';
+            progressTextId = '#updateSongProgressText';
+             progressContainerId = '#updateSongProgressContainer';
             break;
         case 'mv':
-            fileInput = document.getElementById('updateMVFile');
-            url = `${API_BASE_URL}/updateMVUrl`;
+            fileInputId = '#updateMVFile';
+            buttonId = '#updateMVFileBtn';
+            endpointSuffix = 'updateSongMV'; // API endpoint suffix for MV file
+            progressBarId = '#updateMVProgress';
+            progressTextId = '#updateMVProgressText';
+            progressContainerId = '#updateMVProgressContainer';
             break;
         case 'pic':
-            fileInput = document.getElementById('updatePicFile');
-            url = `${API_BASE_URL}/updateSongPic`;
+            fileInputId = '#updatePicFile';
+            buttonId = '#updatePicFileBtn';
+            endpointSuffix = 'updateSongPic'; // API endpoint suffix for picture file
+             progressBarId = '#updatePicProgress';
+             progressTextId = '#updatePicProgressText';
+            progressContainerId = '#updatePicProgressContainer';
             break;
         default:
+            // console.error("Invalid file type for update:", fileType);
+            showToast("Invalid file type specified for update.", "error");
             return;
     }
     
-    if (!fileInput.files || fileInput.files.length === 0) {
-        showToast("Please select a file to upload", "warning");
+    const fileInput = $(fileInputId)[0];
+    const submitButton = $(buttonId);
+    const progressBar = $(progressBarId);
+    const progressText = $(progressTextId);
+    const progressContainer = $(progressContainerId);
+
+
+    if (!songId) {
+        // console.error(`Cannot update ${fileType}: Song ID missing.`);
+        showToast(`Error: Song ID missing. Cannot update ${fileType}.`, "error");
         return;
     }
     
+    if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+        // console.log(`No file selected for ${fileType}.`);
+        showToast(`Please select a file to update the ${fileType}.`, 'warning');
+        return;
+    }
+
+    const file = fileInput.files[0];
+    // Optional: Add file size validation specific to type
+    // if (fileType === 'song' && file.size > MAX_SONG_SIZE) ...
+
+    // console.log(`Updating ${fileType} for song ID: ${songId} with file: ${file.name}`);
+
+    submitButton.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Uploading...');
+    progressContainer.show();
+    progressBar.css('width', '0%').attr('aria-valuenow', 0).removeClass('bg-danger bg-success').addClass('bg-primary progress-bar-striped progress-bar-animated');
+    progressText.text('Preparing...');
+
+
     const formData = new FormData();
-    formData.append('id', songId);
-    formData.append('file', fileInput.files[0]);
-    
-    // Show progress bar
-    const progressBar = $('#updateProgress');
-    const progressIndicator = progressBar.find('.progress-bar');
-    progressBar.show();
-    progressIndicator.width('0%');
-    
-    // Disable submit button
-    const buttonId = `#submitUpdate${fileType.charAt(0).toUpperCase() + fileType.slice(1)}`;
-    $(buttonId).prop('disabled', true);
-    
-    // Use fetch API for upload to display upload progress
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', url, true);
-    
-    // Add progress event listener
-    xhr.upload.onprogress = function(event) {
-        if (event.lengthComputable) {
-            const percentCompleted = Math.round((event.loaded * 100) / event.total);
-            progressIndicator.width(percentCompleted + '%');
-            progressIndicator.text(percentCompleted + '%');
-        }
-    };
-    
-    xhr.onload = function() {
-        $(buttonId).prop('disabled', false);
-        progressBar.hide();
-        
-        if (xhr.status === 200) {
-            try {
-                const response = JSON.parse(xhr.responseText);
-                if (response.code === '200' || response.code === 200) {
-                    showToast("File updated successfully!", "success");
-                    
-                    // Clear file input
-                    fileInput.value = '';
-                    
-                    // Reload song list
-                    fetchAndDisplaySongs(true);
-                } else if (response.code === 1) {
-                    showToast("File updated successfully! (Legacy code)", "success");
-                    
-                    // Clear file input
-                    fileInput.value = '';
-                    
-                    // Reload song list
-                    fetchAndDisplaySongs(true);
-                } else {
-                    showToast(response.msg || "Failed to update file", "error");
-                }
-            } catch (e) {
-                console.error('Failed to parse file update response:', e);
-                showToast("File update failed, server returned an invalid response", "error");
+    formData.append('file', file); // Backend likely expects 'file'
+    formData.append('id', songId); // Send song ID
+
+    try {
+        const response = await api.post(`${API_BASE_URL}/${endpointSuffix}`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-urlencoded'
+            },
+            onUploadProgress: function(progressEvent) {
+                const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                 progressBar.css('width', percentCompleted + '%').attr('aria-valuenow', percentCompleted);
+                 progressText.text(`${percentCompleted}% Uploaded`);
+                // console.log(`Upload Progress (${fileType}): ${percentCompleted}%`);
             }
-        } else {
-            console.error('File update failed:', xhr.status, xhr.statusText);
-            showToast("File update failed, server returned an error status", "error");
+        });
+
+        // console.log(`Update ${fileType} API response:`, response);
+
+        if (response.data && (response.data.code === '200' || response.data.code === 200)) {
+            showToast(`${capitalizeFirstLetter(fileType)} updated successfully!`, 'success');
+             progressBar.removeClass('bg-primary progress-bar-animated').addClass('bg-success');
+             progressText.text('Upload Complete!');
+            // Optionally close the modal after successful upload? Or allow more uploads?
+            // $('#updateFilesModal').modal('hide');
+            fetchAndDisplaySongs(); // Refresh table to potentially show new pic/data
+                } else {
+            const errorMsg = response.data?.msg || response.data?.message || `Failed to update ${fileType}`;
+            // console.error(`Failed to update ${fileType}:`, errorMsg);
+            showToast(`Failed to update ${fileType}: ${errorMsg}`, 'error');
+            progressBar.removeClass('bg-primary progress-bar-animated').addClass('bg-danger');
+            progressText.text('Upload Failed!');
         }
-    };
-    
-    xhr.onerror = function() {
-        console.error('File update request failed');
-        $(buttonId).prop('disabled', false);
-        progressBar.hide();
-        
-        showToast("File update request failed, please check your network connection", "error");
-    };
-    
-    // Send request
-    xhr.send(formData);
+    } catch (error) {
+        // console.error(`Error updating ${fileType}:`, error);
+        const errorMsg = error.response?.data?.msg || error.response?.data?.message || error.message || 'Network error';
+        showToast(`Error updating ${fileType}: ${errorMsg}`, 'error');
+        progressBar.removeClass('bg-primary progress-bar-animated').addClass('bg-danger');
+        progressText.text('Upload Error!');
+    } finally {
+        submitButton.prop('disabled', false).html(`Update ${capitalizeFirstLetter(fileType)}`);
+        fileInput.value = ''; // Clear the file input
+        // Hide progress bar after a delay
+        setTimeout(() => { progressContainer.hide(); }, 3000);
+    }
 }
 
+// Helper to capitalize first letter
+function capitalizeFirstLetter(string) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+}
 /**
  * Preview song using data passed from the button
  */
@@ -1004,7 +1073,7 @@ function previewSong(songData) {
     // Assume songData is now a SongDTO
     // Increment play count (optional)
     api.get(`${API_BASE_URL}/addNums?songId=${songData.id}`)
-       .catch(error => console.error("Failed to increment play count:", error));
+       .catch(error => {}/*console.error("Failed to increment play count:", error)*/);
 
     // Populate the preview modal
     $('#previewTitle').text(songData.name || 'Song Preview');
@@ -1087,7 +1156,7 @@ function handleDeleteSong() {
             }
         })
         .catch(error => {
-            console.error('Error deleting song:', error);
+            // console.error('Error deleting song:', error);
             showToast('Error deleting song: ' + (error.message || 'Unknown error'), 'error');
         })
         .finally(() => {
@@ -1130,7 +1199,7 @@ async function handleAuditSong(songId, status) {
              showToast(`Failed to ${action.toLowerCase()} song. ${errorMsg}`, 'error');
         }
     } catch (error) {
-        console.error(`Error ${action.toLowerCase()}ing song:`, error);
+        // console.error(`Error ${action.toLowerCase()}ing song:`, error);
         const errorMsg = error.response?.data?.msg || error.response?.data?.message || error.message || 'Unknown error';
         showToast(`Error ${action.toLowerCase()}ing song: ${errorMsg}`, 'error');
     }
@@ -1175,7 +1244,7 @@ function showToast(message, type = 'info') {
     } 
     // Fallback to alert if Toastify is not available
     else {
-        console.log(`${type.toUpperCase()}: ${message}`);
+        // console.log(`${type.toUpperCase()}: ${message}`);
         // Only show alert for errors to avoid too many popups
         if (type === 'error') {
             alert(message);
@@ -1285,24 +1354,24 @@ function showDeleteModal(songId, songName) {
  * @returns {Promise<boolean>} True if successful, false otherwise.
  */
 async function loadSingers() {
-    console.log("Attempting to load singers...");
+    // console.log("Attempting to load singers...");
     try {
         const response = await api.get('/singer/allSinger');
         if (response.data && (response.data.code === '200' || response.data.code === 200) && Array.isArray(response.data.data)) {
             allSingersData = response.data.data || [];
-            console.log(`Successfully loaded ${allSingersData.length} singers globally.`);
+            // console.log(`Successfully loaded ${allSingersData.length} singers globally.`);
             // Populate Edit modal and Filter dropdowns here if needed, AFTER data is confirmed
             populateSingerDropdowns(); // Call helper to populate relevant selects
             return true; // Indicate success
         } else {
-            console.error("Failed to load singers or unexpected format:", response.data);
+            // console.error("Failed to load singers or unexpected format:", response.data);
             showToast("Error loading artists list (server response).", "error");
             allSingersData = []; // Clear data on failure
             populateSingerDropdowns(); // Populate with empty/error state
             return false; // Indicate failure
         }
     } catch (error) {
-        console.error('Network or other error fetching singers:', error);
+        // console.error('Network or other error fetching singers:', error);
         showToast("Could not fetch artists list (network error).", "error");
         allSingersData = []; // Clear data on failure
         populateSingerDropdowns(); // Populate with empty/error state
@@ -1329,7 +1398,7 @@ function populateSingerDropdowns() {
             editSelect.innerHTML = '<option value="" disabled>No artists available</option>';
                 }
             } else {
-        console.warn("Edit singers dropdown (#editSingers) not found.");
+        // console.warn("Edit singers dropdown (#editSingers) not found.");
     }
 
     // Populate filter dropdown (assuming single select)
@@ -1348,9 +1417,9 @@ function populateSingerDropdowns() {
              filterSelect.innerHTML += '<option value="" disabled>No artists loaded</option>';
         }
     } else {
-        console.warn("Singer filter dropdown (#singerFilter) not found.");
+        // console.warn("Singer filter dropdown (#singerFilter) not found.");
     }
-    console.log("Finished populating singer dropdowns.");
+    // console.log("Finished populating singer dropdowns.");
 }
 
 /**
@@ -1358,14 +1427,14 @@ function populateSingerDropdowns() {
  * @returns {Promise<boolean>} True if successful, false otherwise.
  */
 async function loadCategories() {
-    console.log("Attempting to load categories...");
+    // console.log("Attempting to load categories...");
     const filterSelect = document.getElementById('categoryFilter');
 
     try {
         const response = await api.get('/category/selectAll');
         if (response.data.code === '200' || response.data.code === 200) {
             allCategoriesData = response.data.data || [];
-            console.log(`Successfully loaded ${allCategoriesData.length} categories globally.`);
+            // console.log(`Successfully loaded ${allCategoriesData.length} categories globally.`);
 
             // Populate filter dropdown (if it exists)
             if (filterSelect) {
@@ -1377,23 +1446,26 @@ async function loadCategories() {
                         option.textContent = escapeHTML(category.name);
                         filterSelect.appendChild(option);
                     });
-                    console.log("Populated category filter dropdown.");
+                    // console.log("Populated category filter dropdown.");
             } else {
                     filterSelect.innerHTML = '<option value="" disabled>No categories found</option>';
             }
         } else {
-                console.log("Category filter dropdown not found, skipping population.");
+                    filterSelect.innerHTML = '<option value="" disabled>No categories found</option>';
+            }
+        } else {
+                // console.log("Category filter dropdown not found, skipping population.");
             }
             return true; // Indicate success
         } else {
-            console.error('Failed to load categories:', response.data?.msg);
+            // console.error('Failed to load categories:', response.data?.msg);
             allCategoriesData = [];
             if (filterSelect) filterSelect.innerHTML = '<option value="" disabled>Error loading</option>';
             showToast('Failed to load categories (server response).', 'error');
             return false; // Indicate failure
         }
     } catch (error) {
-        console.error('Network or other error fetching categories:', error);
+        // console.error('Network or other error fetching categories:', error);
         allCategoriesData = [];
          if (filterSelect) filterSelect.innerHTML = '<option value="" disabled>Error loading</option>';
         showToast('Failed to load categories (network error).', 'error');
@@ -1407,19 +1479,19 @@ async function loadCategories() {
 function populateAddCategoryModalList(filteredCategories) {
     const container = document.getElementById('addCategoryListContainer');
     if (!container) {
-        console.error('[populateAddCategoryModalList] Add category list container not found');
+        // console.error('[populateAddCategoryModalList] Add category list container not found');
         return;
     }
-    console.log('[populateAddCategoryModalList] Attempting to populate with:', filteredCategories);
+    // console.log('[populateAddCategoryModalList] Attempting to populate with:', filteredCategories);
     container.innerHTML = ''; // Clear previous content
 
     if (!filteredCategories || !Array.isArray(filteredCategories)) {
-        console.warn('[populateAddCategoryModalList] Invalid or null filteredCategories data provided.');
+        // console.warn('[populateAddCategoryModalList] Invalid or null filteredCategories data provided.');
         container.innerHTML = '<p class="text-center text-danger">Error: Could not load categories data.</p>';
         return;
     }
     if (filteredCategories.length === 0) {
-        console.warn('[populateAddCategoryModalList] No categories found to display.');
+        // console.warn('[populateAddCategoryModalList] No categories found to display.');
         container.innerHTML = '<p class="text-center text-muted">No categories found.</p>';
         return;
     }
@@ -1429,7 +1501,7 @@ function populateAddCategoryModalList(filteredCategories) {
 
     filteredCategories.forEach((category) => {
         if (!category || typeof category.id === 'undefined' || typeof category.name === 'undefined') {
-            console.warn(`[populateAddCategoryModalList] Skipping invalid category object:`, category);
+            // console.warn(`[populateAddCategoryModalList] Skipping invalid category object:`, category);
             return;
         }
         const categoryIdStr = String(category.id);
@@ -1447,19 +1519,19 @@ function populateAddCategoryModalList(filteredCategories) {
         listGroup.appendChild(listItem);
     });
     container.appendChild(listGroup);
-    console.log('[populateAddCategoryModalList] Finished populating add category list.');
+    // console.log('[populateAddCategoryModalList] Finished populating add category list.');
 }
 
 /**
  * Update the display of selected categories in the Add Song Modal
  */
 function updateAddSelectedCategoriesDisplay() {
-    console.log('Updating add selected categories display');
+    // console.log('Updating add selected categories display');
     const container = document.getElementById('addSelectedCategoriesContainer');
     const hiddenInput = document.getElementById('addSelectedCategoryIds');
 
     if (!container || !hiddenInput) {
-        console.error('Add selected categories container or hidden input not found');
+        // console.error('Add selected categories container or hidden input not found');
         return;
     }
 
@@ -1476,7 +1548,7 @@ function updateAddSelectedCategoriesDisplay() {
     }
     const ids = Array.from(selectedAddCategories.keys());
     hiddenInput.value = ids.join(',');
-    console.log('Updated hidden #addSelectedCategoryIds:', hiddenInput.value);
+    // console.log('Updated hidden #addSelectedCategoryIds:', hiddenInput.value);
 }
 
 /**
@@ -1485,19 +1557,19 @@ function updateAddSelectedCategoriesDisplay() {
 function populateAddSingerModalList(filteredSingers) {
     const container = document.getElementById('addSingerListContainer');
     if (!container) {
-        console.error('[populateAddSingerModalList] Add singer list container not found');
+        // console.error('[populateAddSingerModalList] Add singer list container not found');
         return;
     }
-    console.log('[populateAddSingerModalList] Attempting to populate with:', filteredSingers);
+    // console.log('[populateAddSingerModalList] Attempting to populate with:', filteredSingers);
     container.innerHTML = '';
 
     if (!filteredSingers || !Array.isArray(filteredSingers)) {
-        console.warn('[populateAddSingerModalList] Invalid or null filteredSingers data provided.');
+        // console.warn('[populateAddSingerModalList] Invalid or null filteredSingers data provided.');
         container.innerHTML = '<p class="text-center text-danger">Error: Could not load artists data.</p>';
         return;
     }
     if (filteredSingers.length === 0) {
-        console.warn('[populateAddSingerModalList] No singers found to display.');
+        // console.warn('[populateAddSingerModalList] No singers found to display.');
         container.innerHTML = '<p class="text-center text-muted">No artists found.</p>';
         return;
     }
@@ -1507,7 +1579,7 @@ function populateAddSingerModalList(filteredSingers) {
 
     filteredSingers.forEach((singer) => {
         if (!singer || typeof singer.id === 'undefined' || typeof singer.name === 'undefined') {
-            console.warn(`[populateAddSingerModalList] Skipping invalid singer object:`, singer);
+            // console.warn(`[populateAddSingerModalList] Skipping invalid singer object:`, singer);
             return;
         }
         const singerIdStr = String(singer.id);
@@ -1525,19 +1597,19 @@ function populateAddSingerModalList(filteredSingers) {
         listGroup.appendChild(listItem);
     });
     container.appendChild(listGroup);
-    console.log('[populateAddSingerModalList] Finished populating add singer list.');
+    // console.log('[populateAddSingerModalList] Finished populating add singer list.');
 }
 
 /**
  * Update the display of selected singers in the Add Song Modal
  */
 function updateAddSelectedSingersDisplay() {
-    console.log('Updating add selected singers display');
+    // console.log('Updating add selected singers display');
     const container = document.getElementById('addSelectedSingersContainer');
     const hiddenInput = document.getElementById('addSelectedSingerIds');
 
     if (!container || !hiddenInput) {
-        console.error('Add selected singers container or hidden input not found');
+        // console.error('Add selected singers container or hidden input not found');
         return;
     }
     container.innerHTML = '';
@@ -1553,7 +1625,7 @@ function updateAddSelectedSingersDisplay() {
     }
     const ids = Array.from(selectedAddSingers.keys());
     hiddenInput.value = ids.join(',');
-    console.log('Updated hidden #addSelectedSingerIds:', hiddenInput.value);
+    // console.log('Updated hidden #addSelectedSingerIds:', hiddenInput.value);
 }
 
 /**
@@ -1566,7 +1638,7 @@ function initAddImageUploadPreview() {
     const imagePreviewText = document.getElementById('addImagePreviewText');
 
     if (!imageInput || !browseImageBtn || !imagePreview || !imagePreviewText) {
-        console.warn("Add Song modal image upload elements not found.");
+        // console.warn("Add Song modal image upload elements not found.");
         return;
     }
 

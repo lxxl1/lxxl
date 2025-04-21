@@ -2,4 +2,4 @@
 export const API_URL = 'http://localhost:8080';
 
 // For development debugging
-console.log('API URL configured as:', API_URL); 
+// console.log('API URL configured as:', API_URL); 

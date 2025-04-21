@@ -8,7 +8,7 @@ let allUserSongs = []; // Cache for user songs
 let currentEditingSongTags = new Set(); // Temp storage for modal tag selection
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('Tag Songs page loaded.');
+    // console.log('Tag Songs page loaded.');
 
     // Get user ID
     try {
@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    console.log(`Initializing page for Tag ID: ${currentTagId}, Name: ${currentTagName}`);
+    // console.log(`Initializing page for Tag ID: ${currentTagId}, Name: ${currentTagName}`);
     initializeTagSongsPage();
 });
 
@@ -85,7 +85,7 @@ function setupEventListeners() {
 
 async function preloadUserSongs() {
     if (!currentUserId) return [];
-    console.log("Loading user songs...");
+    // console.log("Loading user songs...");
     try {
         const response = await api.get('/song/selectbyuser', { params: { userId: currentUserId } });
         
@@ -95,12 +95,12 @@ async function preloadUserSongs() {
             
             // Check the returned data structure, prioritize list property (handle paginated object)
             if (responseData && Array.isArray(responseData.list)) {
-                 console.log(`Loaded ${responseData.list.length} user songs (from paginated list).`);
+                 // console.log(`Loaded ${responseData.list.length} user songs (from paginated list).`);
                  return responseData.list; // Return the list array
             } 
             // Handle direct array return compatibility
             else if (Array.isArray(responseData)) {
-                 console.log(`Loaded ${responseData.length} user songs (from direct array).`);
+                 // console.log(`Loaded ${responseData.length} user songs (from direct array).`);
                  return responseData; // Return the array directly
             } 
             // Handle empty data or unexpected format
@@ -160,7 +160,7 @@ function filterAndDisplaySongs(searchTerm = '') {
         );
     }
 
-    console.log(`Displaying ${filteredSongs.length} songs for tag ${currentTagId} (Search: "${searchTerm}")`);
+    // console.log(`Displaying ${filteredSongs.length} songs for tag ${currentTagId} (Search: "${searchTerm}")`);
     displayTagSongs(filteredSongs, songsContainer, noSongsMessage, songCountBadge, songCountStat);
 }
 
@@ -268,7 +268,7 @@ function setupEditTagsListeners() {
 }
 
 async function handleEditTagsClick(songId, songName) {
-    console.log(`Editing tags for song ID: ${songId}, Name: ${songName}`);
+    // console.log(`Editing tags for song ID: ${songId}, Name: ${songName}`);
     document.getElementById('modalSongTitle').textContent = songName; // Use the correct modal title span ID
     document.getElementById('modalSongId').value = songId; // Use the correct modal hidden input ID
     
@@ -341,7 +341,7 @@ function populateTagModal(allTags, currentSongTagIds, container) {
                 pill.classList.add('btn-primary');
                 currentEditingSongTags.add(currentTagIdInt);
             }
-            console.log('Updated currentEditingSongTags:', currentEditingSongTags);
+            // console.log('Updated currentEditingSongTags:', currentEditingSongTags);
         });
         container.appendChild(pill);
     });
@@ -354,7 +354,7 @@ async function handleSaveTags() {
     modalAlerts.innerHTML = '';
 
     const selectedTagIds = Array.from(currentEditingSongTags);
-    console.log(`Saving tags for song ${songId}:`, selectedTagIds);
+    // console.log(`Saving tags for song ${songId}:`, selectedTagIds);
 
     saveButton.disabled = true;
     saveButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
@@ -379,10 +379,10 @@ async function handleSaveTags() {
             if (songIndex !== -1) {
                 allUserSongs[songIndex].tagIds = selectedTagIds; // Update local cache
                 // Optionally update tagNames too if available/needed
-                 console.log(`Local cache updated for song ${songId}`);
+                 // console.log(`Local cache updated for song ${songId}`);
                  // Check if the current tag was removed, if so, remove card from view
                  if (!selectedTagIds.includes(parseInt(currentTagId))) {
-                     console.log(`Song ${songId} no longer has tag ${currentTagId}. Removing from view.`);
+                     // console.log(`Song ${songId} no longer has tag ${currentTagId}. Removing from view.`);
                      filterAndDisplaySongs(document.getElementById('searchInput').value.trim()); // Re-render the list
                  }
             }

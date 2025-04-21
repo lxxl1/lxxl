@@ -1,7 +1,7 @@
 import api from '../../../Common/js/api.js'; // Corrected import path
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("Admin dashboard script loaded.");
+    // console.log("Admin dashboard script loaded.");
 
     // --- Update Admin Name --- 
     const adminNameElement = document.getElementById('adminName');
@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (welcomeAdminNameElement) { // Update welcome message too
             welcomeAdminNameElement.textContent = name;
         }
-        console.log(`Admin display name set to: ${name}`);
+        // console.log(`Admin display name set to: ${name}`);
     }
     
     const storedUser = localStorage.getItem('user');
@@ -24,11 +24,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const displayName = user.name || user.username || 'Admin';
             updateAdminDisplay(displayName);
         } catch (error) {
-            console.error("Error parsing user data from localStorage:", error);
+            // console.error("Error parsing user data from localStorage:", error);
             updateAdminDisplay('Admin'); // Fallback on error
         }
     } else {
-        console.warn("User data not found in localStorage for sidebar name.");
+        // console.warn("User data not found in localStorage for sidebar name.");
         updateAdminDisplay('Admin'); // Fallback if user data is missing
     }
 
@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return; // Exit if not on dashboard
         }
         
-        console.log("Loading dashboard stats from localStorage...");
+        // console.log("Loading dashboard stats from localStorage...");
         
         const totalSongsElement = document.getElementById('totalSongsCount');
         const pendingReviewsElement = document.getElementById('pendingReviewsCount');
@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', function() {
                  pendingReviewsElement.nextElementSibling.innerHTML = `<small>Resources awaiting review</small>`;
             }
         }
-        console.log(`Stats loaded: Users=${usersCount}, Songs=${songsCount}, Pending=${pendingCount}`);
+        // console.log(`Stats loaded: Users=${usersCount}, Songs=${songsCount}, Pending=${pendingCount}`);
     }
     
     // Call the function to load stats when the DOM is ready
@@ -77,17 +77,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- Functions to Fetch and Count Data --- 
     async function fetchAndCountUsers() {
-        console.log("Fetching all users for counting...");
+        // console.log("Fetching all users for counting...");
         try {
             // Use the correct endpoint from UserController
             const response = await api.get('/user/select/all'); // Use imported api 
             if (response.data && (response.data.code === 200 || response.data.code === '200') && Array.isArray(response.data.data)) { // Check for number or string 200
                 const usersCount = response.data.data.length;
                 localStorage.setItem('totalUsersCount', usersCount);
-                console.log(`Total users count (${usersCount}) saved to localStorage.`);
+                // console.log(`Total users count (${usersCount}) saved to localStorage.`);
                 loadDashboardStatsFromStorage(); // Update dashboard if currently visible
             } else {
-                console.error('Failed to fetch users or unexpected data format:', response.data);
+                // console.error('Failed to fetch users or unexpected data format:', response.data);
                  // Optionally show an error toast, but avoid flooding if called often
                  // showToast('Could not update user count.', 'error'); // Use local showToast
                  // Keep the old value in localStorage or set to 0?
@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function fetchAndCountSongs() {
-        console.log("Fetching all songs for counting...");
+        // console.log("Fetching all songs for counting...");
         try {
             // Use the correct endpoint from SongController
             const response = await api.get('/song/allSong'); // Use imported api
@@ -115,11 +115,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 localStorage.setItem('totalSongsCount', totalSongs);
                 localStorage.setItem('pendingReviewsCount', pendingSongs);
                 
-                console.log(`Total songs count (${totalSongs}) saved to localStorage.`);
-                console.log(`Pending reviews count (${pendingSongs}) saved to localStorage.`);
+                // console.log(`Total songs count (${totalSongs}) saved to localStorage.`);
+                // console.log(`Pending reviews count (${pendingSongs}) saved to localStorage.`);
                 loadDashboardStatsFromStorage(); // Update dashboard if currently visible
             } else {
-                console.error('Failed to fetch songs or unexpected data format:', response.data);
+                // console.error('Failed to fetch songs or unexpected data format:', response.data);
                 // showToast('Could not update song counts.', 'error'); // Use local showToast
                 // localStorage.setItem('totalSongsCount', '0');
                 // localStorage.setItem('pendingReviewsCount', '0');
@@ -134,7 +134,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- Initialize Dashboard Stats Fetching --- 
     // If we are on the dashboard, trigger fresh data fetching
     if (document.getElementById('totalUsersCount')) { // Check if dashboard elements exist
-        console.log("Dashboard detected, initiating fetch for latest stats...");
+        // console.log("Dashboard detected, initiating fetch for latest stats...");
         fetchAndCountUsers(); // Fetch latest user count
         fetchAndCountSongs(); // Fetch latest song counts
     }
@@ -205,7 +205,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 stopOnFocus: true,
             }).showToast();
         } catch (e) {
-            console.error("Toastify library not found or failed to show toast:", e);
+            // console.error("Toastify library not found or failed to show toast:", e);
             // Fallback to alert
             alert(`${type.toUpperCase()}: ${message}`);
         }
@@ -213,11 +213,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Reusable API error handler
     function handleApiError(error, context = 'API call') {
-        console.error(`${context} failed:`, error);
+        // console.error(`${context} failed:`, error);
         let message = `Error in ${context}. Please try again.`;
         if (error.response) {
-            console.error('Error response data:', error.response.data);
-            console.error('Error response status:', error.response.status);
+            // console.error('Error response data:', error.response.data);
+            // console.error('Error response status:', error.response.status);
              // Use detailed message from backend if available
              message = `Error: ${error.response.data.message || error.response.data.error || error.response.statusText || 'Server error'} (Status: ${error.response.status})`;
              // Avoid redirecting again if the interceptor already handled it
@@ -225,11 +225,11 @@ document.addEventListener('DOMContentLoaded', function() {
                  showToast(message, 'error');
              }
         } else if (error.request) {
-            console.error('Error request:', error.request);
+            // console.error('Error request:', error.request);
             message = 'Network error or server did not respond.';
             showToast(message, 'error');
         } else if (message !== "Axios not available") { // Avoid showing toast if axios just wasn't loaded
-            console.error('Error message:', error.message || error);
+            // console.error('Error message:', error.message || error);
             message = `Request setup error: ${error.message || error}`;
             showToast(message, 'error');
         }
@@ -239,12 +239,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- Sidebar Toggle --- 
     const sidebarToggle = document.getElementById('sidebarToggle');
     const sidebar = document.getElementById('sidebar');
-    if (sidebarToggle && sidebar) {
+    const content = document.getElementById('content'); // Get the content element
+
+    if (sidebarToggle && sidebar && content) { // Check if all elements exist
         sidebarToggle.addEventListener('click', function() {
             sidebar.classList.toggle('active');
+            content.classList.toggle('active'); // Also toggle active class on content
         });
     } else {
-         console.warn("Sidebar toggle button or sidebar element not found.");
+         // console.warn("Sidebar toggle button, sidebar, or content element not found.");
     }
 
     // --- Logout Logic --- 
@@ -252,7 +255,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (logoutBtn) {
         logoutBtn.addEventListener('click', function(e) {
             e.preventDefault(); // Prevent default link behavior if it's an <a> tag
-            console.log("Logout button clicked.");
+            // console.log("Logout button clicked.");
             // Add confirmation dialog
             if (confirm("Are you sure you want to logout?")) {
                 // Clear local storage
@@ -265,7 +268,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 localStorage.removeItem('totalSongsCount');
                 localStorage.removeItem('pendingReviewsCount');
                 
-                console.log("Local storage cleared.");
+                // console.log("Local storage cleared.");
                 
                 // Redirect to login page
                 showToast("Logging out...", 'info'); // Use local showToast
@@ -273,11 +276,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     window.location.href = '../login.html'; // Relative path from Admin folder
                 }, 1000); // Short delay for toast visibility
             } else {
-                console.log("Logout cancelled by user.");
+                // console.log("Logout cancelled by user.");
             }
         });
     } else {
-        console.warn("Logout button (#logoutBtn) not found.");
+        // console.warn("Logout button (#logoutBtn) not found.");
     }
 
     // --- Export functions for potential use by other admin scripts ---

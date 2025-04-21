@@ -11,7 +11,7 @@ export function checkAuthentication() {
     
     // If no user info or token, redirect to login page
     if (!user || !token) {
-        console.log('Authentication failed: No user or token found');
+        // console.log('Authentication failed: No user or token found');
         redirectToLogin();
         return false;
     }
@@ -29,7 +29,7 @@ export function checkAuthenticationNoRedirect() {
     
     // If no user info or token, just return false without redirect
     if (!user || !token) {
-        console.log('Authentication failed: No user or token found (no redirect)');
+        // console.log('Authentication failed: No user or token found (no redirect)');
         return false;
     }
     
@@ -41,7 +41,7 @@ export function checkAuthenticationNoRedirect() {
  */
 export function checkAdminRole() {
     // Simplified, removed all permission validation, always returns true
-    console.log('Admin role check bypassed');
+    // console.log('Admin role check bypassed');
     return true;
 }
 
@@ -50,7 +50,7 @@ export function checkAdminRole() {
  */
 export function checkAdminRoleNoRedirect() {
     // Simplified, removed all permission validation, always returns true
-    console.log('Admin role check bypassed (no redirect)');
+    // console.log('Admin role check bypassed (no redirect)');
     return true;
 }
 
@@ -62,7 +62,7 @@ export function checkUserRole() {
     
     // Simplified user role check logic
     if (!user) {
-        console.log('No user found, redirecting to login');
+        // console.log('No user found, redirecting to login');
         redirectToLogin();
         return false;
     }
@@ -75,10 +75,10 @@ export function checkUserRole() {
  */
 async function verifyToken() {
     try {
-        console.log('Verifying token...');
+        // console.log('Verifying token...');
         // Use apiService to verify token
         const response = await apiService.verifyToken();
-        console.log('Token verification response:', response);
+        // console.log('Token verification response:', response);
         
         if (response.code !== '200') {
             throw new Error('Token verification failed');
@@ -86,7 +86,7 @@ async function verifyToken() {
         
         return true;
     } catch (error) {
-        console.error('Token verification error:', error);
+        // console.error('Token verification error:', error);
         throw error;
     }
 }

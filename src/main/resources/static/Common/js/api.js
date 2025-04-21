@@ -85,7 +85,7 @@ api.interceptors.response.use((response) => {
 
     // Handle unauthorized/token expired error for BOTH user and admin pages
     if (isUnauthorized) {
-        console.warn(`Unauthorized (401) or token error detected. Redirecting to login. Error: ${error.message}`);
+        // console.warn(`Unauthorized (401) or token error detected. Redirecting to login. Error: ${error.message}`);
         // Clear stored credentials
         localStorage.removeItem('user');
         localStorage.removeItem('token');
@@ -109,7 +109,7 @@ api.interceptors.response.use((response) => {
 
     // For non-401 errors on admin pages, log them but don't redirect
     if (isAdminPage()) {
-        console.error('Admin page API error captured (non-401), continuing execution:', error);
+        // console.error('Admin page API error captured (non-401), continuing execution:', error);
     }
 
     // For other errors, just reject the promise
@@ -207,7 +207,7 @@ export const apiService = {
             });
             return response.data;
         } catch (error) {
-            console.error('Login error:', error);
+            // console.error('Login error:', error);
             throw error;
         }
     },
@@ -218,7 +218,7 @@ export const apiService = {
             const response = await api.post('/register', userData);
             return response.data;
         } catch (error) {
-            console.error('Registration error:', error);
+            // console.error('Registration error:', error);
             throw error;
         }
     },
@@ -229,7 +229,7 @@ export const apiService = {
             const response = await api.put('/updatePassword', userData);
             return response.data;
         } catch (error) {
-            console.error('Update password error:', error);
+            // console.error('Update password error:', error);
             throw error;
         }
     },
@@ -238,7 +238,7 @@ export const apiService = {
     verifyToken: async () => {
         // 管理员页面不验证令牌，直接返回成功
         if (isAdminPage()) {
-            console.log('Admin page skipping token verification');
+            // console.log('Admin page skipping token verification');
             return { code: '200', message: 'Token verification bypassed for admin', data: true };
         }
         
@@ -247,7 +247,7 @@ export const apiService = {
             const response = await api.get('/verifyToken');
             return response.data;
         } catch (error) {
-            console.error('Token verification error:', error);
+            // console.error('Token verification error:', error);
             throw error;
         }
     },

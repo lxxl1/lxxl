@@ -452,7 +452,7 @@ async function handleEditSinger() {
         }
     }
 
-    console.log("Sending data to /singer/update (form-urlencoded):", params.toString());
+    // console.log("Sending data to /singer/update (form-urlencoded):", params.toString());
 
     $('#submitEditSinger').prop('disabled', true);
     showToast('Saving artist details...', 'info');
@@ -464,7 +464,7 @@ async function handleEditSinger() {
             { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
         );
 
-        console.log("Update artist response:", updateResponse);
+        // console.log("Update artist response:", updateResponse);
 
         if (updateResponse?.data?.code === '200' || updateResponse?.data?.code === 200) {
             showToast('Artist details updated successfully! Use the "Update Picture" button to change the image.', 'success');
@@ -476,7 +476,7 @@ async function handleEditSinger() {
         }
 
     } catch (error) {
-        console.error('Error updating artist details:', error);
+        // console.error('Error updating artist details:', error);
         const errorMsg = error.response?.data?.msg || error.response?.data?.message || error.message || 'Please try again.';
         showToast('Error updating artist details. ' + errorMsg, 'error');
     } finally {
@@ -520,7 +520,7 @@ async function handleDeleteSinger() {
             showToast('Failed to delete artist: ' + (response?.data?.msg || 'Unknown error'), 'error');
         }
     } catch (error) {
-        console.error('Error deleting artist:', error);
+        // console.error('Error deleting artist:', error);
          showToast('Error deleting artist. ' + (error.response?.data?.msg || error.message || 'Please try again.'), 'error');
     } finally {
         deleteButton.prop('disabled', false);
@@ -536,7 +536,7 @@ async function handleApplyFilters() {
     const genderFilter = $('#genderFilter').val(); // Use genderFilter ID
     const locationFilter = $('#locationFilter').val().trim();
 
-    console.log(`Applying filters: Name='${nameFilter}', Gender='${genderFilter}', Location='${locationFilter}'`);
+    // console.log(`Applying filters: Name='${nameFilter}', Gender='${genderFilter}', Location='${locationFilter}'`);
 
     // --- Filtering Logic --- 
     // Option 1: Backend filtering (Preferred if backend supports it well)
@@ -560,7 +560,7 @@ async function handleApplyFilters() {
         // Assuming no dedicated location endpoint, fetch all and filter client-side (or ask backend for it)
          params.append('location', locationFilter); // Add for client-side filtering
         // url = `${API_BASE_URL}/singerOfLocation`; // If endpoint existed
-        console.warn("Location filter applied, but no dedicated backend endpoint assumed. Fetching all and filtering client-side (or implement backend endpoint).");
+        // console.warn("Location filter applied, but no dedicated backend endpoint assumed. Fetching all and filtering client-side (or implement backend endpoint).");
         // Keep url as allSinger, filter later
     }
     // If multiple filters active but no combined backend endpoint, prioritize or fetch all.
@@ -575,11 +575,11 @@ async function handleApplyFilters() {
     showLoading(true);
     showToast('Applying filters...', 'info');
     try {
-        console.log("Fetching filtered data from:", url);
+        // console.log("Fetching filtered data from:", url);
         const response = await api.get(url);
          if (response?.data?.code === '200' || response?.data?.code === 200) {
              let singers = response.data.data || [];
-             console.log(`Received ${singers.length} singers from API.`);
+             // console.log(`Received ${singers.length} singers from API.`);
 
              // Client-side filtering (if needed, e.g., for location or combined filters)
              if (locationFilter && !(nameFilter || genderFilter)) { // Only filter location client-side if it was the primary filter
@@ -659,7 +659,7 @@ async function handleUpdatePicture() {
             // Ensure Content-Type is set correctly for FormData by Axios
             // headers: { 'Content-Type': 'multipart/form-data' } // Usually not needed for Axios with FormData
         });
-        console.log("Update picture response:", picResponse);
+        // console.log("Update picture response:", picResponse);
 
         if (picResponse?.data?.code === '200' || picResponse?.data?.code === 200) {
             showToast('Picture updated successfully!', 'success');
@@ -671,7 +671,7 @@ async function handleUpdatePicture() {
             showToast('Failed to update picture: ' + (picResponse?.data?.msg || 'Upload error'), 'error');
         }
     } catch (error) {
-        console.error('Error updating picture:', error);
+        // console.error('Error updating picture:', error);
         showToast('Error updating picture. ' + (error.response?.data?.msg || error.message), 'error');
     } finally {
         submitButton.prop('disabled', false);
@@ -686,7 +686,7 @@ function setImagePreview(previewElementId, textElementId, eventOrUrl, context = 
     const textElement = textElementId ? document.getElementById(textElementId) : null;
 
     if (!imagePreview) {
-        console.warn(`[${context} Preview] Preview element #${previewElementId} not found.`);
+        // console.warn(`[${context} Preview] Preview element #${previewElementId} not found.`);
         return;
     }
 
@@ -778,9 +778,9 @@ function escapeHTML(str) {
  */
 function showToast(message, type = 'info') {
     if (typeof Toastify !== 'function') {
-        console.warn('Toastify not loaded. Using console log.');
+        // console.warn('Toastify not loaded. Using console log.');
         const logType = type === 'error' ? 'error' : (type === 'warning' ? 'warn' : 'log');
-        console[logType](message);
+        // console[logType](message);
         if (type === 'error' || type === 'danger') alert('Error: ' + message);
         return;
     }

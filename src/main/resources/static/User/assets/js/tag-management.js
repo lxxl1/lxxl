@@ -4,14 +4,14 @@ import api from '../../../Common/js/api.js';
 let currentUserId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('Tag Management page loaded.');
+    // console.log('Tag Management page loaded.');
     
     // Check login and get user ID
     try {
         const user = JSON.parse(localStorage.getItem('user'));
         if (user && user.id) {
             currentUserId = user.id;
-            console.log('User ID:', currentUserId);
+            // console.log('User ID:', currentUserId);
             initializeTagManagement();
         } else {
             console.error('User not logged in or ID not found.');

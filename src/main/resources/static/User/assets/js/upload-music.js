@@ -21,7 +21,7 @@ let selectedTags = [];
 
 // Initialize everything when the document is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("DOMContentLoaded event fired");
+    // console.log("DOMContentLoaded event fired");
     
     // Get User ID first, as it's needed for loading tags/categories
     currentUserId = getCurrentUserId();
@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // window.location.href = '/login.html'; 
         // return; // Stop further execution if redirecting
     }
-    console.log("Current User ID obtained:", currentUserId);
+    // console.log("Current User ID obtained:", currentUserId);
 
     // Initialize form elements
     initializeFormElements();
@@ -74,7 +74,7 @@ function getCurrentUserId() {
         const user = JSON.parse(localStorage.getItem('user'));
         if (user && user.id) {
             currentUserId = user.id;
-            console.log("Current User ID:", currentUserId);
+            // console.log("Current User ID:", currentUserId);
             return currentUserId;
         } else {
             console.error('User not logged in or ID missing.');
@@ -121,7 +121,7 @@ async function loadCategories() {
                             pill.classList.add('btn-primary');
                             selectedUploadCategoryIds.add(categoryId);
                         }
-                        console.log('Selected category IDs (Upload):', selectedUploadCategoryIds);
+                        // console.log('Selected category IDs (Upload):', selectedUploadCategoryIds);
                     });
 
                     categoryPillsContainer.appendChild(pill);
@@ -184,7 +184,7 @@ async function loadUserTags() {
                             pill.classList.add('btn-primary');
                             selectedUploadTagIds.add(tagId);
                         }
-                        console.log('Selected tag IDs (Upload):', selectedUploadTagIds);
+                        // console.log('Selected tag IDs (Upload):', selectedUploadTagIds);
                     });
 
                     tagPillsContainer.appendChild(pill);
@@ -212,7 +212,7 @@ async function loadSingers() {
         if (response.data && (response.data.code === '200' || response.data.code === 200)) {
             allSingers = response.data.data || [];
             // Don't populate modal immediately, wait for button click
-            console.log("Singers loaded:", allSingers.length);
+            // console.log("Singers loaded:", allSingers.length);
              $('#singerListContainer').html(''); // Clear loading message once loaded
         } else {
             console.error("Failed to load singers or unexpected format:", response.data);
@@ -696,7 +696,7 @@ function showMessage(message, type) {
 */ 
 
 function populateSingerModalList(filteredSingers) {
-    console.log('[populateSingerModalList] Populating singer modal with', filteredSingers?.length || 0, 'singers'); // Log start
+    // console.log('[populateSingerModalList] Populating singer modal with', filteredSingers?.length || 0, 'singers'); // Log start
     const container = document.getElementById('singerListContainer');
     if (!container) {
         console.error('[populateSingerModalList] Singer list container not found');
@@ -715,7 +715,7 @@ function populateSingerModalList(filteredSingers) {
 
     filteredSingers.forEach((singer, index) => {
         // Log each singer object being processed
-        console.log(`[populateSingerModalList] Processing singer ${index}:`, singer);
+        // console.log(`[populateSingerModalList] Processing singer ${index}:`, singer);
         
         // Validate singer object structure (basic check)
         if (!singer || typeof singer.id === 'undefined' || typeof singer.name === 'undefined') {
@@ -739,11 +739,11 @@ function populateSingerModalList(filteredSingers) {
         listGroup.appendChild(listItem);
     });
     container.appendChild(listGroup);
-    console.log('[populateSingerModalList] Finished populating list.'); // Log end
+    // console.log('[populateSingerModalList] Finished populating list.'); // Log end
 }
 
 function updateSelectedSingersDisplay() {
-    console.log('Updating selected singers display');
+    // console.log('Updating selected singers display');
     const container = document.getElementById('selectedSingersContainer');
     if (!container) {
         console.error('Selected singers container not found');
@@ -772,21 +772,21 @@ function updateSelectedSingersDisplay() {
 }
 
 function setupEventListeners() {
-    console.log("[setupEventListeners] Setting up event listeners");
+    // console.log("[setupEventListeners] Setting up event listeners");
     
     // Setup Select Singers button
     const selectSingersBtn = document.getElementById('selectSingersBtn');
     if (selectSingersBtn) {
-        console.log("[setupEventListeners] Found selectSingersBtn:", selectSingersBtn);
+        // console.log("[setupEventListeners] Found selectSingersBtn:", selectSingersBtn);
         selectSingersBtn.addEventListener('click', function() {
-            console.log("[setupEventListeners] Select Singers button clicked");
+            // console.log("[setupEventListeners] Select Singers button clicked");
             // Use Bootstrap 5 modal initialization
             const singerModalElement = document.getElementById('singerModal');
             if (singerModalElement) {
                 // Get or create the modal instance
                 const modalInstance = bootstrap.Modal.getOrCreateInstance(singerModalElement);
                 // Log the data right before populating
-                console.log("[setupEventListeners] Attempting to populate modal with allSingers:", JSON.stringify(allSingers)); 
+                // console.log("[setupEventListeners] Attempting to populate modal with allSingers:", JSON.stringify(allSingers)); 
                 populateSingerModalList(allSingers); // Populate the modal with all singers
                 modalInstance.show(); // Show the modal
             } else {
@@ -802,11 +802,11 @@ function setupEventListeners() {
     if (singerSearchInput) {
         singerSearchInput.addEventListener('input', function() {
             const searchText = this.value.toLowerCase();
-            console.log("[setupEventListeners] Filtering singers by:", searchText);
+            // console.log("[setupEventListeners] Filtering singers by:", searchText);
             const filteredSingers = allSingers.filter(singer => 
                 singer && singer.name && singer.name.toLowerCase().includes(searchText)
             );
-            console.log("[setupEventListeners] Filtered singers count:", filteredSingers.length);
+            // console.log("[setupEventListeners] Filtered singers count:", filteredSingers.length);
             populateSingerModalList(filteredSingers);
         });
     }
@@ -815,9 +815,9 @@ function setupEventListeners() {
     const confirmSingerSelectionBtn = document.getElementById('confirmSingerSelection');
     if (confirmSingerSelectionBtn) {
         confirmSingerSelectionBtn.addEventListener('click', function() {
-            console.log("[setupEventListeners] Confirm selection button clicked"); 
+            // console.log("[setupEventListeners] Confirm selection button clicked"); 
             const checkedBoxes = document.querySelectorAll('#singerListContainer input.singer-checkbox:checked');
-            console.log("[setupEventListeners] Checked boxes found:", checkedBoxes.length);
+            // console.log("[setupEventListeners] Checked boxes found:", checkedBoxes.length);
             selectedSingers.clear(); // Clear previous selections
             
             checkedBoxes.forEach(checkbox => {
@@ -827,7 +827,7 @@ function setupEventListeners() {
                  const name = singer ? singer.name : `Artist ID ${id}`; // Use the name from the fetched data, provide fallback
                 selectedSingers.set(id, name); // Store string ID and Name
             });
-            console.log("[setupEventListeners] Selected singers Map:", selectedSingers);
+            // console.log("[setupEventListeners] Selected singers Map:", selectedSingers);
             
             updateSelectedSingersDisplay();
             
@@ -837,10 +837,10 @@ function setupEventListeners() {
                 if (selectedSingers.size > 0) {
                     // Set the value to the ID of the first selected singer (if needed)
                     singleSingerIdInput.value = Array.from(selectedSingers.keys())[0];
-                    console.log("[setupEventListeners] Updated hidden singerId:", singleSingerIdInput.value);
+                    // console.log("[setupEventListeners] Updated hidden singerId:", singleSingerIdInput.value);
                 } else {
                      singleSingerIdInput.value = ''; // Clear if no selection
-                     console.log("[setupEventListeners] Cleared hidden singerId as no singers selected.");
+                     // console.log("[setupEventListeners] Cleared hidden singerId as no singers selected.");
                 }
             } else {
                  console.warn("[setupEventListeners] Hidden input #singerId not found.");
@@ -850,7 +850,7 @@ function setupEventListeners() {
             const multiSingerIdsInput = document.getElementById('selectedSingerIds');
             if (multiSingerIdsInput) {
                 multiSingerIdsInput.value = Array.from(selectedSingers.keys()).join(',');
-                console.log("[setupEventListeners] Updated hidden selectedSingerIds:", multiSingerIdsInput.value);
+                // console.log("[setupEventListeners] Updated hidden selectedSingerIds:", multiSingerIdsInput.value);
             } else {
                  console.warn("[setupEventListeners] Hidden input #selectedSingerIds not found.");
             }
@@ -859,7 +859,7 @@ function setupEventListeners() {
             const singerModalElement = document.getElementById('singerModal');
             const modalInstance = bootstrap.Modal.getInstance(singerModalElement);
             if (modalInstance) {
-                console.log("[setupEventListeners] Hiding modal");
+                // console.log("[setupEventListeners] Hiding modal");
                 modalInstance.hide();
             }
         });

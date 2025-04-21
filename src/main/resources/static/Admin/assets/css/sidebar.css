@@ -115,21 +115,24 @@ ul ul a {
     margin-right: 8px;
 }
 
-/* Content Area Styling (already in main.css, but good for reference) */
-/* 
+/* Content Area Styling (should ideally be consistent with main.css) */
+
 #content {
+    /* Default state: leave space for the sidebar */
+    margin-left: 250px; /* Should match #sidebar width */
     width: calc(100% - 250px);
     padding: 20px;
     min-height: 100vh;
     transition: all 0.3s;
-    position: absolute;
-    top: 0;
-    right: 0;
+    position: relative; /* Use relative or static typically unless needed otherwise */
+    /* Removed absolute positioning top/right as it might conflict */
 }
+
 #content.active {
+    /* Active state: sidebar hidden, content expands */
+    margin-left: 0;
     width: 100%;
 }
-*/
 
 /* Media Queries */
 @media (max-width: 768px) {

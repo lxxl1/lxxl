@@ -18,41 +18,41 @@ export const login = async (username, password, role) => {
     };
   }
 
-  console.log('Login attempt with:', { username, role }); // Log login attempt
+  // console.log('Login attempt with:', { username, role }); // Log login attempt
   
   try {
     // Use apiService for login
     const response = await apiService.login(username, password, role);
     
-    console.log('Backend response data:', response);
+    // console.log('Backend response data:', response);
     
     // Store user data if login successful
     if (response && response.code === '200') {
-      console.log('Login successful, storing user data');
+      // console.log('Login successful, storing user data');
       const userData = response.data;
       
       // Ensure role is set in the user object
       userData.role = role; // Explicitly set role from the login form
       
       // Log what we're storing
-      console.log('User data to store with added role:', userData);
+      // console.log('User data to store with added role:', userData);
       
       try {
         localStorage.setItem('user', JSON.stringify(userData));
         localStorage.setItem('token', userData.token);
         localStorage.setItem('role', role); // Store role separately too
-        console.log('User data stored successfully');
+        // console.log('User data stored successfully');
       } catch (storageError) {
-        console.error('Error storing user data:', storageError);
+        // console.error('Error storing user data:', storageError);
       }
     } else {
-      console.log('Login failed, server returned:', response);
+      // console.log('Login failed, server returned:', response);
     }
     
     // Return consistent response format to the caller
     return response;
   } catch (error) {
-    console.error('Login request error:', error);
+    // console.error('Login request error:', error);
     if (error.response && error.response.data) {
       return error.response.data;
     }
@@ -81,7 +81,7 @@ export const register = async (username, password, name, role) => {
       role
     });
   } catch (error) {
-    console.error('Registration error:', error);
+    // console.error('Registration error:', error);
     if (error.response && error.response.data) {
       return error.response.data;
     }
@@ -110,7 +110,7 @@ export const updatePassword = async (username, password, newPassword, role) => {
       role
     });
   } catch (error) {
-    console.error('Password update error:', error);
+    // console.error('Password update error:', error);
     if (error.response && error.response.data) {
       return error.response.data;
     }

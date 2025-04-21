@@ -5,12 +5,12 @@
  * @param {number} duration How long the message should stay visible in milliseconds. Defaults to 3000.
  */
 export function showMessage(message, type = 'info', duration = 3000) {
-    console.log(`[showMessage] Type: ${type}, Duration: ${duration}, Message: ${message}`);
+    // console.log(`[showMessage] Type: ${type}, Duration: ${duration}, Message: ${message}`);
 
     // Find or create the message container
     let messageContainer = document.getElementById('message-container');
     if (!messageContainer) {
-        console.log('[showMessage] Creating message container.');
+        // console.log('[showMessage] Creating message container.');
         messageContainer = document.createElement('div');
         messageContainer.id = 'message-container';
         // Apply some basic styling to position it
@@ -46,7 +46,7 @@ export function showMessage(message, type = 'info', duration = 3000) {
     // Ensure timer is cleared if closed manually
     $(messageElement).on('closed.bs.alert', function () {
         clearTimeout(timer);
-        console.log('[showMessage] Alert closed and removed.');
+        // console.log('[showMessage] Alert closed and removed.');
     });
 
      // Allow manual close via the button (Bootstrap handles this)
@@ -75,7 +75,7 @@ export function formatDate(dateInput) {
         const day = date.getDate().toString().padStart(2, '0');
         return `${year}-${month}-${day}`;
     } catch (e) {
-        console.error(`[formatDate] Error formatting date input ${dateInput}:`, e);
+        // console.error(`[formatDate] Error formatting date input ${dateInput}:`, e);
         return 'Format Error'; // Return original or error indication
     }
 }
@@ -103,11 +103,11 @@ export function escapeHTML(str) {
  * Sets up global event listeners, like logout buttons.
  */
 export function setupGlobalEventListeners() {
-    console.log('[setupGlobalEventListeners] Setting up global listeners...');
+    // console.log('[setupGlobalEventListeners] Setting up global listeners...');
 
     // --- Logout Logic --- 
     const handleLogout = () => {
-        console.log('[Logout] Logging out user...');
+        // console.log('[Logout] Logging out user...');
         localStorage.removeItem('user'); // Clear user data
         localStorage.removeItem('token'); // Clear token if used separately
         showMessage('You have been logged out.', 'info');
@@ -126,9 +126,9 @@ export function setupGlobalEventListeners() {
             e.preventDefault();
             handleLogout();
         });
-        console.log('[setupGlobalEventListeners] Logout button listener attached (header).');
+        // console.log('[setupGlobalEventListeners] Logout button listener attached (header).');
     } else {
-        console.warn('[setupGlobalEventListeners] Logout button (header) not found.');
+        // console.warn('[setupGlobalEventListeners] Logout button (header) not found.');
     }
 
     if (logoutLinkNav) {
@@ -136,14 +136,14 @@ export function setupGlobalEventListeners() {
             e.preventDefault();
             handleLogout();
         });
-        console.log('[setupGlobalEventListeners] Logout link listener attached (nav).');
+        // console.log('[setupGlobalEventListeners] Logout link listener attached (nav).');
     } else {
-        console.warn('[setupGlobalEventListeners] Logout link (nav) not found.');
+        // console.warn('[setupGlobalEventListeners] Logout link (nav) not found.');
     }
 
     // --- Add other global listeners here if needed ---
 
-    console.log('[setupGlobalEventListeners] Global listeners set up complete.');
+    // console.log('[setupGlobalEventListeners] Global listeners set up complete.');
 }
 
 /**
@@ -154,7 +154,7 @@ export function setupGlobalEventListeners() {
 export function updateUserHeader(user) {
     if (!user) return;
 
-    console.log('[updateUserHeader] Updating header with user info:', user);
+    // console.log('[updateUserHeader] Updating header with user info:', user);
 
     // Use ID selectors for the standardized header elements
     const userNameElement = document.getElementById('header-user-name');
@@ -164,15 +164,15 @@ export function updateUserHeader(user) {
         // Use user.name, fallback to user.username, then fallback to 'User'
         userNameElement.textContent = user.name || user.username || 'User'; 
     } else {
-        console.warn('[updateUserHeader] Element with ID "header-user-name" not found.');
+        // console.warn('[updateUserHeader] Element with ID "header-user-name" not found.');
     }
 
     if (userAvatarElement) {
         userAvatarElement.src = user.avatar || 'assets/media/image/user/default_avatar.png'; // Use a default if no avatar
         userAvatarElement.alt = user.name || user.username || 'User Avatar'; // Update alt text as well
     } else {
-         console.warn('[updateUserHeader] Element with ID "header-user-avatar" not found.');
+         // console.warn('[updateUserHeader] Element with ID "header-user-avatar" not found.');
     }
 
-    console.log('[updateUserHeader] Header updated.');
+    // console.log('[updateUserHeader] Header updated.');
 } 

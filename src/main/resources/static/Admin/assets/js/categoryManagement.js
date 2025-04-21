@@ -47,7 +47,7 @@ function showToast(message, type = 'info') {
             backgroundColor: backgroundColor, stopOnFocus: true
         }).showToast();
     } else {
-        console.log(`${type.toUpperCase()}: ${message}`);
+        // console.log(`${type.toUpperCase()}: ${message}`);
         if (type === 'error') alert(message); // Fallback for errors
     }
 }
@@ -64,7 +64,7 @@ async function fetchCategories(pageNum = 1, searchTerm = '') {
     currentSearchTerm = searchTerm.trim();
     // Ensure DataTable is initialized
     if (!categoriesTable) {
-        console.error('DataTable not initialized yet.');
+        // console.error('DataTable not initialized yet.');
         return;
     }
 
@@ -88,14 +88,14 @@ async function fetchCategories(pageNum = 1, searchTerm = '') {
             updateSelectAllCheckboxState(); // Ensure header checkbox reflects current page state
             updateBatchDeleteButtonVisibility(); // Update based on selections
         } else {
-            console.error('Failed to fetch categories or unexpected data format:', response.data);
+            // console.error('Failed to fetch categories or unexpected data format:', response.data);
             // Show error in table (DataTables might handle this)
             categoriesTable.clear().draw(); // Clear table on error
             // Optionally add a row indicating error
             showToast(response.data?.msg || 'Failed to load categories.', 'error');
         }
     } catch (error) {
-        console.error('Error fetching categories:', error);
+        // console.error('Error fetching categories:', error);
         categoriesTable.clear().draw(); // Clear table on error
         showToast('Error connecting to the server.', 'error');
     } finally {
@@ -202,7 +202,7 @@ async function populateEditModal(categoryId) {
             currentEditCategoryId = null;
         }
     } catch (error) {
-        console.error('Error loading category for edit:', error);
+        // console.error('Error loading category for edit:', error);
         showToast('Error loading category data.', 'error');
         isEditMode = false; // Revert mode if load fails
         currentEditCategoryId = null;
@@ -269,7 +269,7 @@ async function handleSaveCategory() {
              showToast(response.data?.msg || `Failed to ${isEditMode ? 'update' : 'add'} category.`, 'error');
         }
     } catch (error) {
-        console.error('Error saving category:', error);
+        // console.error('Error saving category:', error);
         showToast(`Error saving category: ${error.response?.data?.msg || error.message}`, 'error');
     } finally {
         saveButton.disabled = false;
@@ -298,7 +298,7 @@ async function handleDeleteCategory(categoryId, categoryName) {
             showToast(response.data?.msg || 'Failed to delete category.', 'error');
         }
     } catch (error) {
-        console.error('Error deleting category:', error);
+        // console.error('Error deleting category:', error);
         showToast(`Error deleting category: ${error.response?.data?.msg || error.message}`, 'error');
     }
 }
@@ -331,7 +331,7 @@ async function handleBatchDelete() {
             showToast(response.data?.msg || 'Failed to delete categories.', 'error');
         }
     } catch (error) {
-        console.error('Error batch deleting categories:', error);
+        // console.error('Error batch deleting categories:', error);
          showToast(`Error deleting categories: ${error.response?.data?.msg || error.message}`, 'error');
     } finally {
         batchDeleteButton.disabled = false;

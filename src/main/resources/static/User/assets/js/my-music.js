@@ -32,7 +32,6 @@ async function initPage() {
         await populateCategoryFilter(); // Populate category filter first
         await loadUserSongs(); // Load initial data (page 1, default filters)
         setupEventListeners();
-        updateStatistics(); // Call function to load and display stats
     } catch (error) {
         console.error('Failed to initialize page:', error);
         showMessage('Failed to load data, please try again later', 'danger');
@@ -104,10 +103,12 @@ async function loadUserSongs() {
             if (pageInfo && pageInfo.list) {
                 renderSongsList(pageInfo.list);
                 renderPaginationControls(pageInfo);
+                updateFrontendStatistics(pageInfo.list); // <-- Add call to update stats based on current list
                 // currentPage = pageInfo.pageNum; // Update is handled by pagination controls now
             } else {
                  tableBody.innerHTML = '<tr><td colspan="8" class="text-center">No songs found matching your criteria.</td></tr>'; // Colspan is 8
                  renderPaginationControls(null);
+                 updateFrontendStatistics([]); // <-- Clear stats if no songs found
             }
         } else {
             throw new Error(response.data.msg || 'Failed to fetch song list');
@@ -363,42 +364,53 @@ function renderPaginationControls(pageInfo) {
 }
 
 /**
- * Update statistics cards (Removed Total Plays)
+ * Update statistics cards based on the currently loaded frontend list
+ * NOTE: This only reflects the songs in the current view (page/filter), not the total user stats.
  */
-async function updateStatistics() {
-    console.log("Updating statistics...");
-    if (!currentUserId) {
-        console.warn("Cannot update stats, currentUserId is not set.");
-        return;
+function updateFrontendStatistics(songs) {
+    console.log("Updating frontend statistics based on current list...");
+    let totalCount = 0;
+    let approvedCount = 0;
+    let pendingCount = 0;
+
+    if (songs && songs.length > 0) {
+        totalCount = songs.length; // Total is just the count in the current view
+        songs.forEach(song => {
+            if (song.status === 1) {
+                approvedCount++;
+            } else if (song.status === 0) {
+                pendingCount++;
+            }
+        });
     }
 
-    try {
-        // Call the dedicated statistics endpoint
-        const response = await api.get(`/user/${currentUserId}/stats`); 
+    // Update UI elements
+    // IMPORTANT: These selectors might need adjustment if your HTML structure changed.
+    // Assuming the card structure is still consistent:
+    // 1st card = Total (for this view), 2nd = Approved (this view), 3rd = Pending (this view)
+    const totalSongsEl = document.querySelector('.col-lg-4:nth-child(1) h2'); 
+    const approvedSongsEl = document.querySelector('.col-lg-4:nth-child(2) h2'); 
+    const pendingSongsEl = document.querySelector('.col-lg-4:nth-child(3) h2'); 
 
-        if (response.data && response.data.code === '200' && response.data.data) {
-            const stats = response.data.data;
+    if (totalSongsEl) totalSongsEl.textContent = totalCount;
+    if (approvedSongsEl) approvedSongsEl.textContent = approvedCount;
+    if (pendingSongsEl) pendingSongsEl.textContent = pendingCount;
 
-            // Update UI elements for the remaining 3 cards
-            const totalSongsEl = document.querySelector('.col-lg-4:nth-child(1) h2'); // Adjusted selector
-            const approvedSongsEl = document.querySelector('.col-lg-4:nth-child(2) h2'); // Adjusted selector
-            const pendingSongsEl = document.querySelector('.col-lg-4:nth-child(3) h2'); // Adjusted selector
-            // const totalPlaysEl = document.querySelector('.col-lg-3:nth-child(4) h2'); // REMOVED
-
-            if (totalSongsEl) totalSongsEl.textContent = stats.totalSongs ?? 0;
-            if (approvedSongsEl) approvedSongsEl.textContent = stats.approvedSongs ?? 0;
-            if (pendingSongsEl) pendingSongsEl.textContent = stats.pendingSongs ?? 0;
-            // if (totalPlaysEl) totalPlaysEl.textContent = formatNumber(stats.totalPlays ?? 0); // REMOVED
-            
-            console.log("Statistics updated (excluding plays):", stats);
-
-        } else {
-             console.warn('Could not fetch or parse statistics data:', response.data.msg || 'No data received');
-        }
-    } catch (error) {
-        console.error('Failed to update statistics via dedicated endpoint:', error);
-        showMessage('Failed to load statistics', 'danger');
+    // Add a note about the limitation (optional, could be added to the card title or elsewhere)
+    const totalSongsTitleEl = document.querySelector('.col-lg-4:nth-child(1) h5');
+    if (totalSongsTitleEl && !totalSongsTitleEl.textContent.includes('(Current View)')) {
+        totalSongsTitleEl.textContent += ' (Current View)';
     }
+     const approvedSongsTitleEl = document.querySelector('.col-lg-4:nth-child(2) h5');
+    if (approvedSongsTitleEl && !approvedSongsTitleEl.textContent.includes('(Current View)')) {
+        approvedSongsTitleEl.textContent += ' (Current View)';
+    }
+     const pendingSongsTitleEl = document.querySelector('.col-lg-4:nth-child(3) h5');
+    if (pendingSongsTitleEl && !pendingSongsTitleEl.textContent.includes('(Current View)')) {
+        pendingSongsTitleEl.textContent += ' (Current View)';
+    }
+
+    console.log(`Frontend Stats Updated: Total=${totalCount}, Approved=${approvedCount}, Pending=${pendingCount}`);
 }
 
 /**
@@ -494,7 +506,6 @@ async function deleteSong(songId) {
                 currentPage--;
             }
             loadUserSongs(); // Reload potentially adjusted current page
-            // updateStatistics(); // Consider if/how stats should be updated
         } else {
             throw new Error(response.data.msg || 'Deletion failed');
         }

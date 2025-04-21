@@ -1210,7 +1210,7 @@ function setImagePreview(previewElementId, textElementId, imageUrl, context = 'U
     const imagePreviewText = document.getElementById(textElementId);
 
     if (!imagePreview || !imagePreviewText) {
-        console.warn(`[${context} Modal] Image preview elements (#${previewElementId} or #${textElementId}) not found.`);
+        // console.warn(`[${context} Modal] Image preview elements (#${previewElementId} or #${textElementId}) not found.`);
         return;
     }
 
@@ -1259,7 +1259,7 @@ async function updateUserStatus(id, newStatus) {
             return false;
         }
     } catch (error) {
-        console.error('Error updating status:', error);
+        // console.error('Error updating status:', error);
         showToast('Failed to update status. Please try again.', 'error');
         return false;
     }
@@ -1273,7 +1273,7 @@ async function uploadUserAvatar(formData) {
         // 1. Get token from localStorage before making the call
         const token = localStorage.getItem('token');
         if (!token) {
-            console.error('Authentication token not found in localStorage.');
+            // console.error('Authentication token not found in localStorage.');
             showAlert('Authentication failed. Please log in again.', 'danger');
             // Optionally redirect to login
             // window.location.href = '../login.html'; 
@@ -1295,7 +1295,7 @@ async function uploadUserAvatar(formData) {
             return false;
         }
     } catch (error) {
-        console.error('Error uploading avatar:', error);
+        // console.error('Error uploading avatar:', error);
         showAlert('Failed to upload avatar. Please try again.', 'danger');
         return false;
     }
@@ -1350,7 +1350,7 @@ async function handleSaveUser() {
                 // Adjust based on actual backend response structure if needed
                 savedUserId = addResponse.data.data?.id || addResponse.data.data; // Example: get ID if nested
                 if (!savedUserId) {
-                     console.warn("Could not determine saved user ID from response:", addResponse.data);
+                     // console.warn("Could not determine saved user ID from response:", addResponse.data);
                      // Attempt to get user by username as fallback (might be slow)
                      const newUser = await getUserByUsername(userData.username);
                      savedUserId = newUser?.id;
@@ -1370,7 +1370,7 @@ async function handleSaveUser() {
              
              // Always send the targetUserId when uploading via admin panel (during edit)
              formData.append('targetUserId', savedUserId);
-             console.log(`Admin editing user: Appending targetUserId=${savedUserId} to avatar upload.`);
+             // console.log(`Admin editing user: Appending targetUserId=${savedUserId} to avatar upload.`);
              
              const avatarSuccess = await uploadUserAvatar(formData);
              if (!avatarSuccess) {
@@ -1381,7 +1381,7 @@ async function handleSaveUser() {
              }
         } else if (success && !isEdit && avatarFile) {
             // *** New Block: User added successfully, but avatar was selected. Inform admin to edit. ***
-            console.log("User added, but avatar upload skipped during add flow. Admin needs to edit.");
+            // console.log("User added, but avatar upload skipped during add flow. Admin needs to edit.");
             showToast("User added. Please edit the user to upload the avatar.", "info"); // Inform admin
             // We still consider the overall operation successful as the user was added.
         } else if (success && !avatarFile && isEdit) {

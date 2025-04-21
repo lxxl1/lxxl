@@ -6,6 +6,7 @@
 
 import { API_URL } from '../../../Common/js/config.js';
 import api from '../../../Common/js/api.js';
+import { playSongAudioPlayer } from './audio-player.js'; // Import the player function
 
 // Global variables
 let allSongs = [];
@@ -341,36 +342,18 @@ function playSong(songId) {
     }
     
     const displaySingers = song.singerNames || 'Unknown Artist';
-    
-    // Update the modal content
-    const modalPlayerName = document.getElementById('playing-song-name');
-    const modalPlayerArtist = document.getElementById('playing-song-artist');
-    const modalPlayerCover = document.getElementById('playing-song-cover');
-    const modalPlayerLyrics = document.getElementById('playing-song-lyrics');
-    const modalAudioSource = document.getElementById('audio-source');
-    const modalAudioPlayer = document.getElementById('audio-player');
+    const coverUrl = song.pic || 'assets/media/image/default-cover.jpg';
+    const audioUrl = song.url;
+    const songName = song.name || 'Unknown Song';
 
-    if (modalPlayerName) modalPlayerName.textContent = song.name;
-    if (modalPlayerArtist) modalPlayerArtist.textContent = displaySingers;
-    if (modalPlayerCover) modalPlayerCover.src = song.pic || 'assets/media/image/default-cover.jpg';
-    if (modalPlayerLyrics) modalPlayerLyrics.innerHTML = song.lyric || 'No lyrics available';
-    
-    // Set the audio source and play
-    if (modalAudioSource && modalAudioPlayer) {
-        modalAudioSource.src = song.url;
-        modalAudioPlayer.load();
-        modalAudioPlayer.play();
-        // Show the modal if it exists
-        if (typeof $ !== 'undefined' && $('#songPlayerModal').length) {
-            $('#songPlayerModal').modal('show');
-        }
-    } else {
-        // Fallback or alternative player logic if modal elements aren't found
-        console.warn('Modal player elements not found. Playing might rely on a different player.');
-        // If using the shared audio-player.js:
-        // import { playSongAudioPlayer } from './audio-player.js'; // Make sure imported
-        // playSongAudioPlayer(song.url, song.name, displaySingers, song.pic);
+    if (!audioUrl) {
+        console.error(`Audio URL is missing for song ID ${songId}`);
+        showMessage('Audio source not found for this song.', 'error');
+        return;
     }
+
+    // Call the unified audio player function
+    playSongAudioPlayer(audioUrl, songName, displaySingers, coverUrl);
     
     // Increment play count
     incrementPlayCount(songId);
