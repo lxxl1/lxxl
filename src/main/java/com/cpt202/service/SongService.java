@@ -130,14 +130,6 @@ public interface SongService {
     boolean updateUrl(Song song);
 
     /**
-     * 更新歌曲MV文件URL
-     * @param id 歌曲ID
-     * @param mvUrl 新的MV URL
-     * @return 是否成功
-     */
-    boolean updateMVUrl(int id, String mvUrl);
-
-    /**
      * 根据类别ID获取歌曲列表 (返回DTO列表)
      * @param categoryId 类别ID
      * @return 歌曲DTO列表

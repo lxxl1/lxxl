@@ -366,9 +366,8 @@ public class SongController {
         }
     }
 
-    /**
-     * 更新MV文件
-     */
+    // --- Removed /updateMVUrl Endpoint ---
+    /* // Commenting out the entire method to ensure no lingering calls
     @RequestMapping(value = "/updateMVUrl",method = RequestMethod.POST)
     public Result updateMVUrl(@RequestParam("file") MultipartFile mvFile, @RequestParam("id")int id){
         String mvUrl = null;
@@ -382,13 +381,19 @@ public class SongController {
              return Result.failure("MV file upload IO exception");
         }
 
-        boolean flag = songService.updateMVUrl(id, mvUrl); // Assuming service method exists
-        if (flag) {
-             return Result.success("Upload successful");
-        } else {
-             return Result.failure("Upload failed");
-        }
+        // This line caused the linter error because updateMVUrl was removed from SongService
+        // boolean flag = songService.updateMVUrl(id, mvUrl); // Assuming service method exists
+        log.warn("Attempted to call removed songService.updateMVUrl");
+        return Result.failure("MV update functionality is disabled."); // Return failure explicitly
+        
+        // Original logic below, now commented out
+        // if (flag) {
+        //     return Result.success("Upload successful");
+        // } else {
+        //     return Result.failure("Upload failed");
+        // }
     }
+    */
 
     /**
      * 根据主键查询歌曲详情
@@ -446,8 +451,9 @@ public class SongController {
 
     /**
      * 查询所有歌曲 (No change needed, returns basic info)
+     * Added /selectAll mapping to handle frontend call
      */
-    @RequestMapping(value = "/allSong",method = RequestMethod.GET)
+    @RequestMapping(value = {"/allSong", "/selectAll"}, method = RequestMethod.GET)
     public Result allSong(HttpServletRequest request){
         // Service method may need review
         return Result.success(songService.allSong());

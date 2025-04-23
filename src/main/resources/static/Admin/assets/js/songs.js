@@ -30,11 +30,40 @@ function escapeHTML(str) {
     });
 }
 
+/**
+ * Shows or hides a loading indicator element.
+ * TODO: Implement this based on your HTML structure.
+ * @param {boolean} show - True to show, false to hide.
+ */
+function showLoadingIndicator(show) {
+    // Option 1: Find a specific loading element by ID
+    const loadingElement = document.getElementById('loadingIndicator'); // Replace 'loadingIndicator' with your actual element ID
+    if (loadingElement) {
+        loadingElement.style.display = show ? 'block' : 'none'; // Or 'flex', etc.
+    } else {
+        console.warn("Loading indicator element not found. Please create an element with ID 'loadingIndicator' or adjust the function.");
+    }
+
+    // Option 2: Add/remove a class from the body or a container
+    /*
+    const container = document.getElementById('tableContainer'); // Example container ID
+    if(container){
+        if(show){
+            container.classList.add('is-loading');
+        } else {
+            container.classList.remove('is-loading');
+        }
+    }
+    */
+    console.log(`showLoadingIndicator called with: ${show}`); // Keep this for debugging
+}
+
 // Global variables
 let songsTable;
 let currentSongId = null;
 const API_BASE_URL = '/song';  // Base URL for all song APIs
 let allSongsData = []; // Store all fetched songs for filtering
+let currentFilterStatus = 'All'; // Added declaration and initial value
 let allSingersData = []; // Store all singers for selection modals
 let selectedAddSingers = new Map(); // Map to store selected singers for Add modal {id: name}
 let allCategoriesData = []; // Store all categories for selection modal
@@ -113,7 +142,7 @@ function setCurrentUserId() {
 async function fetchAllSongsDataForStats() {
     // console.log("Fetching all songs data for statistics...");
     try {
-        const response = await api.get(`${API_BASE_URL}/selectAll`);
+        const response = await api.get(`${API_BASE_URL}/allSong`);
         if (response.data && (response.data.code === '200' || response.data.code === 200) && Array.isArray(response.data.data)) {
             // console.log(`Fetched ${response.data.data.length} total songs for stats.`);
             return response.data.data || [];
@@ -135,7 +164,6 @@ async function fetchAllSongsDataForStats() {
  * @param {boolean} initialLoad - Flag indicating if it's the initial page load.
  */
 async function fetchAndDisplaySongs(initialLoad = false) {
-    showLoadingIndicator(true);
     if (initialLoad) {
         // console.log("Initial load: Fetching singers and categories first.");
         // Fetch supporting data only on initial load or when necessary
@@ -149,18 +177,18 @@ async function fetchAndDisplaySongs(initialLoad = false) {
     }
 
     // 1. Fetch All Songs Data for Stats (always fetch all for accurate stats)
-    allSongs = await fetchAllSongsDataForStats();
-    // console.log("Total songs fetched for stats:", allSongs.length);
+    allSongsData = await fetchAllSongsDataForStats();
+    // console.log("Total songs fetched for stats:", allSongsData.length);
 
     // 2. Update Statistics UI based on *all* songs
-    updateSongStatsUI(allSongs);
+    updateSongStatsUI(allSongsData);
 
     // 3. Get Applied Filters
     const filters = getAppliedFilters();
     // console.log("Applied Filters:", filters);
 
     // 4. Filter the songs based on the current view (All, Pending, Approved, Rejected) and filters
-    let filteredSongs = filterSongs(allSongs, filters);
+    let filteredSongs = filterSongs(allSongsData, filters);
     // console.log(`Filtered songs for current view '${currentFilterStatus || 'All'}':`, filteredSongs.length);
 
 
@@ -169,8 +197,6 @@ async function fetchAndDisplaySongs(initialLoad = false) {
 
     // 6. Update UI elements like filter counts (optional)
     // updateFilterCounts(allSongs); // Example: update counts next to filter buttons
-
-    showLoadingIndicator(false);
 }
 
 /**
@@ -672,7 +698,6 @@ function setupEventListeners() {
     // Update Files Form Submission (handles individual file updates)
     // We don't submit the whole form, but trigger uploads via buttons
     $('#updateSongFileBtn').on('click', () => handleUpdateFile('song'));
-    $('#updateMVFileBtn').on('click', () => handleUpdateFile('mv'));
     $('#updatePicFileBtn').on('click', () => handleUpdateFile('pic'));
 
 
@@ -946,13 +971,13 @@ async function handleEditSong() {
 
 
 /**
- * Handle updating a specific file (Song, MV, Picture) for a song.
- * @param {string} fileType - 'song', 'mv', or 'pic'.
+ * Handle updating a specific file (Song, Picture) for a song.
+ * @param {string} fileType - 'song' or 'pic'.
  */
 async function handleUpdateFile(fileType) {
     const songId = $('#updateSongId').val();
     let fileInputId, buttonId, endpointSuffix, progressBarId, progressTextId, progressContainerId;
-    
+
     switch (fileType) {
         case 'song':
             fileInputId = '#updateSongFile';
@@ -961,14 +986,6 @@ async function handleUpdateFile(fileType) {
             progressBarId = '#updateSongProgress';
             progressTextId = '#updateSongProgressText';
              progressContainerId = '#updateSongProgressContainer';
-            break;
-        case 'mv':
-            fileInputId = '#updateMVFile';
-            buttonId = '#updateMVFileBtn';
-            endpointSuffix = 'updateSongMV'; // API endpoint suffix for MV file
-            progressBarId = '#updateMVProgress';
-            progressTextId = '#updateMVProgressText';
-            progressContainerId = '#updateMVProgressContainer';
             break;
         case 'pic':
             fileInputId = '#updatePicFile';
@@ -983,7 +1000,7 @@ async function handleUpdateFile(fileType) {
             showToast("Invalid file type specified for update.", "error");
             return;
     }
-    
+
     const fileInput = $(fileInputId)[0];
     const submitButton = $(buttonId);
     const progressBar = $(progressBarId);
@@ -996,7 +1013,7 @@ async function handleUpdateFile(fileType) {
         showToast(`Error: Song ID missing. Cannot update ${fileType}.`, "error");
         return;
     }
-    
+
     if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
         // console.log(`No file selected for ${fileType}.`);
         showToast(`Please select a file to update the ${fileType}.`, 'warning');
@@ -1078,59 +1095,51 @@ function previewSong(songData) {
     // Populate the preview modal
     $('#previewTitle').text(songData.name || 'Song Preview');
     // Display singer names
-    $('#previewSinger').text(`Artist(s): ${songData.singerNames || 'N/A'}`); 
+    $('#previewSinger').text(`Artist(s): ${songData.singerNames || 'N/A'}`);
     $('#previewIntro').text(songData.introduction || 'No introduction available.');
-    
+
     // Set cover image (use a default if pic is missing)
     const coverUrl = songData.pic ? songData.pic : 'assets/images/default-song-cover.png'; // Ensure this default exists
     $('#previewCover').attr('src', coverUrl).show();
-    
+
     // Set audio source directly
     const audioPlayer = $('#previewAudio');
     if (songData.url) {
         audioPlayer.attr('src', songData.url);
         audioPlayer.show();
         // Optional: Auto-play or reset player state
-        // audioPlayer[0].load(); 
-        // audioPlayer[0].play(); 
+        // audioPlayer[0].load();
+        // audioPlayer[0].play();
     } else {
         audioPlayer.hide();
         audioPlayer.attr('src', ''); // Clear src if no URL
     }
-    
-    // Set MV source
+
+    // REMOVED: Set MV source and hide MV container
     const videoPlayer = $('#previewVideo');
     const mvContainer = $('#previewMVContainer');
-    if (songData.mvurl) {
-        // Assuming direct URL, update if different structure needed
-        videoPlayer.attr('src', songData.mvurl); 
-        videoPlayer[0].load(); // Important to load new source
-        mvContainer.show();
-    } else {
-        mvContainer.hide();
-        videoPlayer.attr('src', ''); // Clear src
-    }
-    
+    if (mvContainer) mvContainer.hide();
+    if (videoPlayer) videoPlayer.attr('src', '');
+
     // Set lyrics
     const lyricsContainer = $('#previewLyricsContainer');
     if (songData.lyric) {
-        $('#previewLyrics').text(songData.lyric); 
+        $('#previewLyrics').text(songData.lyric);
         lyricsContainer.show();
     } else {
         lyricsContainer.hide();
     }
-    
+
     // Show the modal
     const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
     previewModal.show();
 
-    // Stop audio/video when modal is closed to prevent background playback
+    // Stop audio when modal is closed to prevent background playback
     $('#previewModal').off('hidden.bs.modal').on('hidden.bs.modal', function () {
         audioPlayer[0]?.pause();
-        videoPlayer[0]?.pause();
+        // REMOVED: videoPlayer[0]?.pause();
         // Optional: Reset player source or time
-        // audioPlayer.attr('src', ''); 
-        // videoPlayer.attr('src', '');
+        // audioPlayer.attr('src', '');
     });
 }
 
@@ -1334,10 +1343,12 @@ function showUpdateFilesModal(songId) {
     $('#updateSongId').val(songId);
     // Reset file input fields
     $('#updateSongFile').val('');
-    $('#updateMVFile').val('');
     $('#updatePicFile').val('');
     // Hide progress bar
-    $('#updateProgress').hide();
+    $('#updateProgress').hide(); // Assuming a general progress bar, adjust if needed
+    // Hide individual progress bars
+    $('#updateSongProgressContainer').hide();
+    $('#updatePicProgressContainer').hide();
     // Show modal
     $('#updateFilesModal').modal('show');
 }
@@ -1447,15 +1458,13 @@ async function loadCategories() {
                         filterSelect.appendChild(option);
                     });
                     // console.log("Populated category filter dropdown.");
+                } else {
+                    filterSelect.innerHTML = '<option value="" disabled>No categories found</option>';
+                }
             } else {
-                    filterSelect.innerHTML = '<option value="" disabled>No categories found</option>';
-            }
-        } else {
-                    filterSelect.innerHTML = '<option value="" disabled>No categories found</option>';
-            }
-        } else {
                 // console.log("Category filter dropdown not found, skipping population.");
             }
+
             return true; // Indicate success
         } else {
             // console.error('Failed to load categories:', response.data?.msg);
@@ -1472,6 +1481,7 @@ async function loadCategories() {
         return false; // Indicate failure
     }
 }
+
 
 /**
  * Populate the category list in the Add Category Modal

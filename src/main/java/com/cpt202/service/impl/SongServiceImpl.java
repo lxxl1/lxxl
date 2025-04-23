@@ -437,22 +437,6 @@ public class SongServiceImpl implements SongService {
     }
 
     @Override
-    public boolean updateMVUrl(int id, String mvUrl) {
-        // Assumes SongMapper has an updateMVUrl method
-        // You might need to create a Song object or pass params directly depending on the mapper method signature
-        Song song = new Song();
-        song.setId(id);
-        // song.setMvurl(mvUrl); // If mvurl field exists in Song domain
-        // Or call mapper directly: return songMapper.updateMVUrl(id, mvUrl) > 0;
-        // For now, returning false as the domain/mapper method is uncertain
-        log.warn("updateMVUrl is not fully implemented in Service/Mapper yet for ID: {}", id);
-        // TODO: Implement this properly based on mapper
-        // Assuming a mapper method exists for demo:
-        // return songMapper.updateMVUrlById(id, mvUrl) > 0;
-        return false; // Placeholder - Requires Mapper changes
-    }
-
-    @Override
     public List<SongDTO> getSongsByCategoryId(Integer categoryId) {
         // Assumes SongMapper has a method like selectSongsByCategoryId
         // List<Song> songs = songMapper.selectSongsByCategoryId(categoryId);

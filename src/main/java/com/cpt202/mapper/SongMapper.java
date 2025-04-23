@@ -136,12 +136,6 @@ public interface SongMapper {
     int updateUrl(Song song);
 
     /**
-     * 更新歌曲MV文件URL
-     * 注意：假设Mapper层需要此方法。签名可能需要根据实际情况调整。
-     */
-    int updateMVUrlById(@Param("id") Integer id, @Param("mvUrl") String mvUrl);
-
-    /**
      * 根据类别ID查询歌曲列表
      */
     List<Song> selectSongsByCategoryId(@Param("categoryId") Integer categoryId);
