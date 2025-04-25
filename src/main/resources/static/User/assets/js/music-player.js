@@ -8,7 +8,7 @@ import api from '../../../Common/js/api.js';
 $(document).ready(function() {
     // Load initial data
     loadTotalSongsCount();
-    loadTopSongs();
+    // loadTopSongs(); // Comment out the call
     loadLatestSongs();
 
     // Setup event listeners
@@ -36,6 +36,7 @@ function loadTotalSongsCount() {
 /**
  * Load top songs (DTOs) for the dashboard
  */
+/* // Comment out the entire function
 function loadTopSongs() {
     api.get('/song/topSong') // Endpoint returns DTOs
         .then(response => {
@@ -48,10 +49,12 @@ function loadTopSongs() {
             console.error('Error fetching top songs', error);
         });
 }
+*/
 
 /**
  * Populate the top songs table with data (DTOs)
  */
+/* // Comment out the entire function
 function populateTopSongsTable(songs) { // Expects SongDTO[]
     const $topSongsTable = $('#top-songs-table tbody');
     $topSongsTable.empty();
@@ -89,6 +92,7 @@ function populateTopSongsTable(songs) { // Expects SongDTO[]
         viewSongDetails(songId);
     });
 }
+*/
 
 /**
  * Load the latest songs (DTOs) for the dashboard
@@ -188,11 +192,6 @@ function playSong(songId) {
             const songDetailDTO = response.data && response.data.code === '200' ? response.data.data : null;
             
             if (songDetailDTO) {
-                // Update play count first
-                 api.get('/song/addNums', { params: { songId: songId } })
-                    .then(() => console.log('Triggered play count increment for', songId))
-                    .catch(err => console.warn('Failed to trigger play count increment:', err));
-                
                 // Use DTO data
                 const displaySingers = songDetailDTO.singerNames || 'Unknown Artist';
                 openPlayerModal(songDetailDTO, displaySingers);

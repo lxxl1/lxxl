@@ -185,8 +185,13 @@ function renderSongResults() {
                             <p class="small text-muted mb-2 text-truncate">${displaySingers}</p>
                             <div class="d-flex justify-content-between mb-2">
                                 <small class="text-muted">
-                                    <i data-feather="play" class="width-15 height-15"></i> ${song.nums || 0}
+                                    <i data-feather="play" class="width-15 height-15"></i>
                                 </small>
+                                <div class="text-muted ml-auto">
+                                    <span class="ml-3">
+                                        <i data-feather="heart" class="width-15 height-15"></i> ${song.favoritesCount || 0}
+                                    </span>
+                                </div>
                             </div>
                         </div>
                         <button class="btn btn-primary btn-sm btn-block mt-auto play-song-btn" 
@@ -303,25 +308,8 @@ function playSong(songId) {
         return;
     }
     
-    // Call the unified audio player function
+    // Call the audio player function
     playSongAudioPlayer(audioUrl, songName, displaySingers, coverUrl);
-    
-    incrementPlayCount(songId);
-}
-
-/**
- * Increment the play count for a song
- * @param {string} songId - ID of the song
- */
-async function incrementPlayCount(songId) {
-    try {
-        await api.get(`/song/addNums?songId=${songId}`);
-        console.log('Play count incremented for song ID:', songId);
-        await loadAllSongs();
-        performSearch(searchQuery);
-    } catch (error) {
-        console.error('Error incrementing play count:', error);
-    }
 }
 
 /**

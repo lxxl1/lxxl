@@ -56,7 +56,7 @@ public class SingerController {
         singer.setBirth(birthDate);
         singer.setLocation(location);
         singer.setIntroduction(introduction);
-        boolean flag = singerService.insert(singer);
+        boolean flag = singerService.addSinger(singer);
         if(flag){
             return Result.success();
         }

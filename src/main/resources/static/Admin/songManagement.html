@@ -14,6 +14,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
     <!-- Toastify CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     <!-- Custom CSS -->
@@ -268,7 +271,7 @@
                     </div>
                  </div>
 
-                <!-- Action Buttons -->
+                <!-- Action Buttons
                 <div class="card mb-4 fade-in" style="animation-delay: 0.3s;">
                     <div class="card-body">
                         <div class="d-flex justify-content-end">
@@ -277,7 +280,7 @@
                              </button>
                         </div>
                     </div>
-                </div>
+                </div> -->
                 
                 <!-- Filter Options -->
                 <div class="card mb-4 fade-in" style="animation-delay: 0.3s;">
@@ -286,10 +289,6 @@
                     </div>
                     <div class="card-body">
                         <div class="row">
-                            <div class="col-md-3 mb-3">
-                                <label for="singerFilter" class="form-label">Artist ID</label>
-                                <input type="number" class="form-control" id="singerFilter" placeholder="Enter artist ID">
-                            </div>
                             <div class="col-md-3 mb-3">
                                 <label for="userIdFilter" class="form-label">Uploader User ID</label>
                                 <input type="number" class="form-control" id="userIdFilter" placeholder="Enter user ID">
@@ -309,8 +308,9 @@
                             </div>
                         </div>
                         <div class="d-flex justify-content-end">
-                            <button class="btn btn-secondary me-2" id="clearFilters">Clear Filters</button>
+                            
                             <button class="btn btn-primary" id="applyFilters">Apply Filters</button>
+                            <button class="btn btn-secondary me-2" id="clearFilters">Reset</button>
                         </div>
                     </div>
                 </div>
@@ -330,10 +330,10 @@
                                     <tr>
                                         <th>ID</th>
                                         <th>Song Name</th>
-                                        <th>Artist ID</th>
                                         <th>Cover</th>
-                                        <th>Introduction</th>
-                                        <th>Play Count</th>
+                                        <th>Artist(s)</th>
+                                        <th>Album</th>
+                                        <th>Last Updated</th>
                                         <th>Status</th>
                                         <th>Preview</th>
                                         <th>Actions</th>
@@ -351,139 +351,176 @@
     </div>
 
     <!-- Add Song Modal -->
-    <div class="modal fade" id="addSongModal" tabindex="-1" aria-labelledby="addSongModalLabel" aria-hidden="true">
+    <div class="modal fade" id="addSongModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="addSongModalLabel">Add New Song</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Add New Song</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form id="addSongForm" enctype="multipart/form-data">
-                        <div class="mb-3">
-                            <label for="name" class="form-label">Song Name <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="name" name="name" required>
-                        </div>
-
-                        <!-- Category Selection (MODIFIED to use Modal) -->
-                        <div class="mb-3">
-                            <label class="form-label">Category(s) <span class="text-danger">*</span></label>
-                            <div id="addSelectedCategoriesContainer" class="d-flex flex-wrap gap-1 mb-2 p-2 border rounded" style="min-height: 38px;">
-                                <span class="text-muted small">No categories selected</span>
-                            </div>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" 
-                                    id="addSelectCategoriesBtn"> 
-                                <i class="fas fa-plus"></i> Select Categories
-                            </button>
-                            <input type="hidden" id="addSelectedCategoryIds" name="categoryIds">
-                        </div>
-
-                        <!-- Singer Selection -->
-                        <div class="mb-3">
-                            <label>Artist(s) <span class="text-danger">*</span></label>
-                            <div id="addSelectedSingersContainer" class="d-flex flex-wrap gap-1 mb-2 p-2 border rounded" style="min-height: 38px;">
-                                <span class="text-muted small">No artists selected</span>
-                            </div>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" id="addSelectSingersBtn">
-                                <i class="fas fa-plus"></i> Select Artists
-                            </button>
-                            <input type="hidden" id="addSelectedSingerIds" name="singerIds">
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="introduction" class="form-label">Introduction <span class="text-danger">*</span></label>
-                            <textarea class="form-control" id="introduction" name="introduction" rows="3" required></textarea>
-                        </div>
-
-                        <!-- NEW: Image Upload Section -->
-                        <div class="mb-3">
-                            <label for="addImageFileInput">Cover Image (Optional)</label>
-                            <div class="d-flex align-items-center">
-                                <div id="addImagePreviewContainer" class="me-3 border rounded" style="width: 80px; height: 80px; background-color: #f8f9fa; background-size: cover; background-position: center; display: flex; justify-content: center; align-items: center;">
-                                    <span id="addImagePreviewText" class="text-muted small">Preview</span>
-                                    <img id="addImagePreview" src="#" alt="Image Preview" style="max-width: 100%; max-height: 100%; display: none;"/>
+                        <div class="row">
+                            <!-- Left column -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="addTitle" class="form-label">Song Title <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="addTitle" name="title" required>
                                 </div>
-                                <div>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="browseAddImageBtn">Browse Image</button>
-                                    <input type="file" class="d-none" id="addImageFileInput" accept="image/jpeg, image/png, image/gif">
-                                    <small class="form-text text-muted d-block mt-1">Max 5MB (JPEG, PNG, GIF).</small>
+                                
+                                <div class="mb-3">
+                                    <label for="addAlbum" class="form-label">Album Name</label>
+                                    <input type="text" class="form-control" id="addAlbum" name="album">
+                                    <small id="metadataLoadingIndicator" class="form-text text-muted" style="display: none;">
+                                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing metadata...
+                                    </small>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="addIntroduction" class="form-label">Description</label>
+                                    <textarea class="form-control" id="addIntroduction" name="introduction" rows="3"></textarea>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Artists <span class="text-danger">*</span></label>
+                                    <div id="addSelectedSingersContainer" class="mb-2 p-2 border rounded bg-light" style="min-height: 40px;">
+                                        <span class="text-muted small">No artists selected</span>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="addSelectSingerBtn">Select Artists</button>
+                                    <input type="hidden" id="addSelectedSingerIds" name="singerIds" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Categories <span class="text-danger">*</span></label>
+                                    <div id="addSelectedCategoriesContainer" class="mb-2 p-2 border rounded bg-light" style="min-height: 40px;">
+                                        <span class="text-muted small">No categories selected</span>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="addSelectCategoryBtn">Select Categories</button>
+                                    <input type="hidden" id="addSelectedCategoryIds" name="categoryIds" required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="addLyric" class="form-label">Lyrics</label>
+                                    <textarea class="form-control" id="addLyric" name="lyric" rows="4"></textarea>
                                 </div>
                             </div>
-                        </div>
-                        <!-- END: Image Upload Section -->
-
-                        <div class="mb-3">
-                            <label for="lyric" class="form-label">Lyrics (lyric)</label>
-                            <textarea class="form-control" id="lyric" name="lyric" rows="5"></textarea>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="file" class="form-label">Song File (file) <span class="text-danger">*</span></label>
-                            <input class="form-control" type="file" id="file" name="file" accept="audio/*" required>
-                            <small class="text-muted">Supported formats: MP3, WAV, FLAC (Max 50MB)</small>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <div class="progress" id="uploadProgress" style="display: none;">
-                                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                            
+                            <!-- Right column -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Cover Image <span class="text-danger">*</span></label>
+                                    <div class="d-flex mb-2">
+                                        <div class="cover-preview-container">
+                                            <img id="addCoverPreview" src="/Admin/assets/img/default-cover.jpg" class="img-thumbnail" 
+                                                style="width: 150px; height: 150px; object-fit: cover;">
+                                        </div>
+                                    </div>
+                                    <input type="file" class="form-control" id="addCoverFile" name="coverFile" accept="image/*" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Music File <span class="text-danger">*</span></label>
+                                    <input type="file" class="form-control" id="addMusicFile" name="musicFile" accept="audio/*" required>
+                                    <small class="text-muted">Supported formats: MP3, WAV, OGG, FLAC (Max: 50MB)</small>
+                                </div>
+                                
+                                <div id="uploadProgress" class="progress mt-3 d-none">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 
+                                         aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%">0%</div>
+                                </div>
                             </div>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="submitAddSong">Upload</button>
+                    <button type="button" class="btn btn-success" id="submitAddSongBtn">Add Song</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Loading Indicator -->
+    <div id="loadingOverlay" class="position-fixed top-0 start-0 w-100 h-100 d-none" 
+         style="background-color: rgba(0,0,0,0.5); z-index: 2000; display: flex; justify-content: center; align-items: center;">
+        <div class="spinner-border text-light" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1060;"></div>
+
     <!-- Edit Song Modal -->
     <div class="modal fade" id="editSongModal" tabindex="-1" aria-labelledby="editSongModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <div class="modal-header">
+                <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title" id="editSongModalLabel">Edit Song Details</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="editSongForm">
+                    <form id="editSongForm" enctype="multipart/form-data">
                         <input type="hidden" id="editSongId" name="id">
                         <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="editName" class="form-label">Song Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="editName" name="name" required>
+                            <!-- Left column -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editName" class="form-label">Song Title <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="editName" name="name" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="editAlbum" class="form-label">Album Name</label>
+                                    <input type="text" class="form-control" id="editAlbum" name="album">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="editIntroduction" class="form-label">Description</label>
+                                    <textarea class="form-control" id="editIntroduction" name="introduction" rows="3"></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Artists <span class="text-danger">*</span></label>
+                                    <div id="editSelectedSingersContainer" class="mb-2 p-2 border rounded bg-light" style="min-height: 40px;">
+                                        <span class="text-muted small">Loading artists...</span>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="editSelectSingerBtn">Select Artists</button>
+                                    <input type="hidden" id="editSelectedSingerIds" name="singerIds" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Categories <span class="text-danger">*</span></label>
+                                    <div id="editSelectedCategoriesContainer" class="mb-2 p-2 border rounded bg-light" style="min-height: 40px;">
+                                        <span class="text-muted small">Loading categories...</span>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="editSelectCategoryBtn">Select Categories</button>
+                                    <input type="hidden" id="editSelectedCategoryIds" name="categoryIds" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="editLyric" class="form-label">Lyrics</label>
+                                    <textarea class="form-control" id="editLyric" name="lyric" rows="4"></textarea>
+                                </div>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="editSingers" class="form-label">Artist(s) <span class="text-danger">*</span></label>
-                                <select class="form-control" id="editSingers" name="singerIds" multiple required>
-                                    <option value="" disabled>Loading artists...</option>
-                                </select>
+                            <!-- Right column -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Current Cover Image</label>
+                                    <div class="d-flex mb-2">
+                                        <div class="cover-preview-container">
+                                            <img id="editCoverPreview" src="/Admin/assets/img/default-cover.jpg" class="img-thumbnail"
+                                                style="width: 150px; height: 150px; object-fit: cover;">
+                                        </div>
+                                    </div>
+                                     <small class="text-muted">To update the cover or music file, use the "Update Files" button in the table.</small>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Current Music File</label>
+                                    <p class="text-muted small mb-1" id="editCurrentMusicFile">N/A</p>
+                                </div>
                             </div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="editIntroduction" class="form-label">Introduction</label>
-                            <textarea class="form-control" id="editIntroduction" name="introduction" rows="3"></textarea>
-                        </div>
-                        <div class="mb-3">
-                            <label for="editCategory" class="form-label">Category(s) <span class="text-danger">*</span></label>
-                            <select class="form-control" id="editCategory" name="categoryIds" multiple required>
-                                <option value="" disabled selected>Select category/categories</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="editLyric" class="form-label">Lyrics</label>
-                            <textarea class="form-control" id="editLyric" name="lyric" rows="5"></textarea>
-                        </div>
-                        <div class="mb-3">
-                            <p class="text-muted">Current Song File: <span id="currentSongFile"></span></p>
-                            <p class="text-muted">Current MV File: <span id="currentMVFile"></span></p>
-                            <p class="text-info">To update files, please use the "Update Files" button</p>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-info d-none" id="debugEditForm" onclick="console.log('Form data:', {title: document.getElementById('editName').value, titleField: document.getElementById('editName')})">Debug</button>
                     <button type="button" class="btn btn-primary" id="submitEditSong">Save Changes</button>
                 </div>
             </div>
@@ -494,31 +531,39 @@
     <div class="modal fade" id="updateFilesModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Update Files</h5>
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title">Update Song Files</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <input type="hidden" id="updateSongId">
-                    <div class="mb-3">
-                        <label for="updateSongFile" class="form-label">Song File</label>
-                        <input type="file" class="form-control" id="updateSongFile" accept="audio/*">
-                        <button type="button" class="btn btn-primary mt-2" id="submitUpdateSong">Update Song File</button>
+                    
+                    <!-- Update Song File Section -->
+                    <div class="mb-4 border p-3 rounded">
+                        <label for="updateSongFile" class="form-label fw-bold">Replace Song File</label>
+                        <input type="file" class="form-control mb-2" id="updateSongFile" accept="audio/*">
+                        <small class="text-muted d-block mb-2">Select a new audio file (MP3, WAV, etc. Max 50MB).</small>
+                        <div id="updateSongProgressContainer" class="progress mb-2" style="height: 10px; display: none;">
+                            <div id="updateSongProgress" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <div id="updateSongProgressText" class="form-text mb-2" style="height: 1.2em;"></div> <!-- Placeholder for text -->
+                        <button type="button" class="btn btn-primary btn-sm w-100" id="updateSongFileBtn">
+                            <i class="fas fa-upload me-1"></i> Update Song File
+                        </button>
                     </div>
-                    <hr>
-                    <div class="mb-3">
-                        <label for="updateMVFile" class="form-label">Music Video File</label>
-                        <input type="file" class="form-control" id="updateMVFile" accept="video/*">
-                        <button type="button" class="btn btn-primary mt-2" id="submitUpdateMV">Update MV File</button>
-                    </div>
-                    <hr>
-                    <div class="mb-3">
-                        <label for="updatePicFile" class="form-label">Cover Image</label>
-                        <input type="file" class="form-control" id="updatePicFile" accept="image/*">
-                        <button type="button" class="btn btn-primary mt-2" id="submitUpdatePic">Update Cover Image</button>
-                    </div>
-                    <div class="progress mb-3" id="updateProgress" style="display: none;">
-                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+
+                    <!-- Update Cover Image Section -->
+                     <div class="mb-3 border p-3 rounded">
+                        <label for="updatePicFile" class="form-label fw-bold">Replace Cover Image</label>
+                        <input type="file" class="form-control mb-2" id="updatePicFile" accept="image/*">
+                         <small class="text-muted d-block mb-2">Select a new cover image (JPG, PNG, etc. Max 5MB).</small>
+                         <div id="updatePicProgressContainer" class="progress mb-2" style="height: 10px; display: none;">
+                             <div id="updatePicProgress" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                         </div>
+                         <div id="updatePicProgressText" class="form-text mb-2" style="height: 1.2em;"></div> <!-- Placeholder for text -->
+                        <button type="button" class="btn btn-primary btn-sm w-100" id="updatePicFileBtn">
+                            <i class="fas fa-image me-1"></i> Update Cover Image
+                        </button>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -641,10 +686,64 @@
     </div>
     <!-- End Add Singer Selection Modal -->
 
-    <!-- Bootstrap Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Edit Category Selection Modal (for Edit Song) -->
+    <div class="modal fade" id="editCategoryModal" tabindex="-1" aria-labelledby="editCategoryModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editCategoryModalLabel">Select Category(s) for Song</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <input type="text" id="editCategorySearchInput" class="form-control" placeholder="Search categories...">
+                    </div>
+                    <div id="editCategoryListContainer" style="max-height: 400px; overflow-y: auto;">
+                        <!-- Category list will be loaded here -->
+                        <p class="text-center text-muted">Loading categories...</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirmEditCategorySelection">Confirm Selection</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- End Edit Category Selection Modal -->
+
+    <!-- Edit Singer Selection Modal (for Edit Song) -->
+    <div class="modal fade" id="editSingerModal" tabindex="-1" aria-labelledby="editSingerModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editSingerModalLabel">Select Artist(s) for Song</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <input type="text" id="editSingerSearchInput" class="form-control" placeholder="Search artists...">
+                    </div>
+                    <div id="editSingerListContainer" style="max-height: 400px; overflow-y: auto;">
+                        <!-- Singer list will be loaded here -->
+                        <p class="text-center text-muted">Loading artists...</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirmEditSingerSelection">Confirm Selection</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- End Edit Singer Selection Modal -->
+
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <!-- Axios -->
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <!-- DataTables JS -->

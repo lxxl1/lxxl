@@ -1,8 +1,10 @@
 package com.cpt202.service;
 
 import com.cpt202.domain.Song;
+import com.cpt202.domain.SongCategory;
 import com.cpt202.dto.SongDTO;
 import com.cpt202.dto.SongDetailDTO;
+import com.cpt202.dto.SongStatsDTO;
 import com.github.pagehelper.PageInfo;
 
 import java.util.List;
@@ -24,9 +26,10 @@ public interface SongService {
      * 修改歌曲，并更新歌手关联
      * @param song 歌曲基本信息
      * @param singerIds 新的歌手ID列表
+     * @param categoryIds 新的类别ID列表
      * @return 是否成功
      */
-    boolean update(Song song, List<Integer> singerIds);
+    boolean update(Song song, List<Integer> singerIds, List<Integer> categoryIds);
 
     /**
      * 删除歌曲（会自动删除歌曲-歌手关联）
@@ -61,11 +64,6 @@ public interface SongService {
      * @return 歌曲列表
      */
     List<Song> getSongsBySingerId(Integer singerId);
-
-    /**
-     * 查询播放次数排前列的歌曲 (返回DTO列表)
-     */
-    List<SongDTO> topSong();
 
     /**
      * 更新歌曲审核状态
@@ -135,4 +133,9 @@ public interface SongService {
      * @return 歌曲DTO列表
      */
     List<SongDTO> getSongsByCategoryId(Integer categoryId);
+
+    /**
+     * 获取歌曲统计数据
+     */
+    SongStatsDTO getSongStatistics();
 }

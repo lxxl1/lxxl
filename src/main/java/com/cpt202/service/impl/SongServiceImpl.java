@@ -3,6 +3,7 @@ package com.cpt202.service.impl;
 import com.cpt202.domain.Singer;
 import com.cpt202.dto.SongDTO;
 import com.cpt202.dto.SongDetailDTO;
+import com.cpt202.dto.SongStatsDTO;
 import com.cpt202.mapper.*;
 import com.cpt202.domain.Song;
 import com.cpt202.service.SongService;
@@ -87,46 +88,74 @@ public class SongServiceImpl implements SongService {
     }
 
     /**
-     * 修改歌曲，并更新歌手关联
+     * 修改歌曲，并更新歌手和分类关联
      *
-     * @param song 歌曲基本信息 (ID must be present)
+     * @param song 歌曲基本信息 (ID must be present, only contains fields to be updated)
      * @param singerIds 新的歌手ID列表
+     * @param categoryIds 新的分类ID列表
      */
     @Override
     @Transactional
-    public boolean update(Song song, List<Integer> singerIds) {
+    public boolean update(Song song, List<Integer> singerIds, List<Integer> categoryIds) {
         if (song.getId() == null) {
             log.error("Cannot update song, ID is missing.");
             return false;
         }
         Integer songId = song.getId();
 
-        // 1. Update song basic info
+        // 1. Update song basic info using the mapper which handles partial updates
+        // The input 'song' object should ONLY have non-null values for fields that need updating.
         boolean songUpdateSuccess = songMapper.update(song) > 0;
         if (!songUpdateSuccess) {
             // Log warning, maybe the song didn't exist or no fields changed
-            log.warn("Song update did not affect any rows for ID: {}", songId);
-            // Decide if this should be considered a failure
+            log.warn("Song update (basic info) did not affect any rows for ID: {}. May indicate no changes or non-existent ID.", songId);
+            // If no metadata changed AND associations didn't change, we might return false or log differently.
         }
 
-        // 2. Update singer associations
+        // 2. Update singer associations (delete old, insert new)
+        boolean singersChanged = false;
         try {
-            // Delete existing associations
+            List<Integer> existingSingerIds = songSingerMapper.selectSingerIdsBySongId(songId);
+            // Check if the new list is different from the existing one
+            if (!Objects.equals(existingSingerIds, singerIds)) {
             songSingerMapper.deleteBySongId(songId);
-            // Insert new associations if provided
             if (!CollectionUtils.isEmpty(singerIds)) {
                 songSingerMapper.insertBatch(songId, singerIds);
                 log.info("Updated singer associations for song ID {} to: {}", songId, singerIds);
+                 }
+                 singersChanged = true;
             }
         } catch (Exception e) {
             log.error("Error updating singer associations for song ID {}: {}", songId, e.getMessage());
-            // Rollback transaction
-            throw new RuntimeException("Failed to update singer associations", e);
+            throw new RuntimeException("Failed to update singer associations for song ID: " + songId, e);
         }
         
-        // Category and Tag associations should be handled separately if needed.
+        // 3. Update category associations (delete old, insert new)
+        boolean categoriesChanged = false;
+        try {
+            List<Integer> existingCategoryIds = songCategoryMapper.selectCategoryIdsBySongId(songId);
+             // Check if the new list is different from the existing one
+            if (!Objects.equals(existingCategoryIds, categoryIds)) {
+                songCategoryMapper.deleteBySongId(songId);
+                if (!CollectionUtils.isEmpty(categoryIds)) {
+                    for (Integer categoryId : categoryIds) {
+                        SongCategory songCategory = new SongCategory();
+                        songCategory.setSongId(songId);
+                        songCategory.setCategoryId(categoryId);
+                        songCategoryMapper.insert(songCategory); // Assuming insert handles one at a time
+                    }
+                    log.info("Updated category associations for song ID {} to: {}", songId, categoryIds);
+                }
+                categoriesChanged = true;
+            }
+        } catch (Exception e) {
+            log.error("Error updating category associations for song ID {}: {}", songId, e.getMessage());
+            throw new RuntimeException("Failed to update category associations for song ID: " + songId, e);
+        }
 
-        return true; // Return true assuming the main update is the key criteria
+        // Return true if song info OR singers OR categories were potentially updated
+        // The mapper update returning 0 rows doesn't necessarily mean failure if associations changed.
+        return songUpdateSuccess || singersChanged || categoriesChanged;
     }
 
     /**
@@ -163,6 +192,7 @@ public class SongServiceImpl implements SongService {
 
         // Fetch associated singer IDs
         List<Integer> singerIds = songSingerMapper.selectSingerIdsBySongId(id);
+        dto.setSingerIds(singerIds);
         List<SongDetailDTO.SingerInfo> singerInfoList = new ArrayList<>();
 
         if (!CollectionUtils.isEmpty(singerIds)) {
@@ -180,7 +210,16 @@ public class SongServiceImpl implements SongService {
         }
         dto.setSingers(singerInfoList);
         
-        // TODO: Fetch and add category and tag info similar to songOfUserId method if needed
+        // Fetch associated category IDs
+        List<Integer> categoryIds = songCategoryMapper.selectCategoryIdsBySongId(id);
+        dto.setCategoryIds(categoryIds);
+
+        // Fetch associated tag IDs
+        List<Integer> tagIds = songTagMapper.selectTagIdsBySongId(id);
+        dto.setTagIds(tagIds);
+
+        // Note: Fetching and setting names (categoryNames, tagNames, singerNames)
+        // is handled by convertSongToDTO. We are just setting the IDs here for the detail view.
 
         return dto;
     }
@@ -231,12 +270,12 @@ public class SongServiceImpl implements SongService {
     /**
      * 查询播放次数排前列的歌曲 (返回DTO列表)
      */
-     @Override
-     public List<SongDTO> topSong() {
-         List<Song> songs = songMapper.topSong();
-         return convertSongListToDTOList(songs);
-     }
-     
+//     @Override
+//     public List<SongDTO> topSong() {
+//         List<Song> songs = songMapper.topSong();
+//         return convertSongListToDTOList(songs);
+//     }
+
      @Override
      public boolean updateStatus(Integer songId, Integer status) {
          return songMapper.updateStatus(songId, status) > 0;
@@ -423,6 +462,25 @@ public class SongServiceImpl implements SongService {
     }
     
     // --- New Methods Implementation ---
+
+    @Override
+    public SongStatsDTO getSongStatistics() {
+        SongStatsDTO stats = new SongStatsDTO();
+        try {
+            stats.setTotalSongs(songMapper.countTotalSongs());
+            stats.setPendingSongs(songMapper.countSongsByStatus(0)); // 0: Pending
+            stats.setApprovedSongs(songMapper.countSongsByStatus(1)); // 1: Approved
+            stats.setRejectedSongs(songMapper.countSongsByStatus(2)); // 2: Rejected
+        } catch (Exception e) {
+            log.error("Error fetching song statistics", e);
+            // Return default/zeroed stats in case of error
+            stats.setTotalSongs(0L);
+            stats.setPendingSongs(0L);
+            stats.setApprovedSongs(0L);
+            stats.setRejectedSongs(0L);
+        }
+        return stats;
+    }
 
     @Override
     public boolean updatePic(Song song) {

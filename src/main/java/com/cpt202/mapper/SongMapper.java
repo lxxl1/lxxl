@@ -17,6 +17,17 @@ public interface SongMapper {
       * 根据用户id查询歌曲
       */
      public List<Song> songOfUserId(Integer userId);
+
+     /**
+      * 计算总歌曲数
+      */
+     Long countTotalSongs();
+
+     /**
+      * 根据状态计算歌曲数
+      */
+     Long countSongsByStatus(@Param("status") Integer status);
+
     /**
      *增加
      */
@@ -123,6 +134,9 @@ public interface SongMapper {
      * 计算指定用户所有歌曲的总播放量 (如果没有任何歌曲，SUM可能返回NULL) - REMOVED
      */
     // Long sumTotalPlaysByUserId(@Param("userId") Integer userId);
+
+    // TODO: Remove sumNumsByUserId if the XML query is removed
+    // Integer sumNumsByUserId(@Param("userId") Integer userId);
 
     // Methods required by Service implementation
     /**

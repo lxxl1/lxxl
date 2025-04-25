@@ -13,11 +13,7 @@ import { API_URL } from '../../../Common/js/config.js'; // Adjust path if needed
 import api from '../../../Common/js/api.js'; // Adjust path if needed
 
 // --- Global Variables ---
-let currentPage = 1;
-const pageSize = 10; // Or get from a config/UI element
-let currentSearchTerm = '';
-let isEditMode = false;
-let currentEditCategoryId = null;
+let allCategoriesData = []; // 存储所有分类数据
 const selectedCategoryIds = new Set();
 let categoriesTable; // Variable for DataTable instance
 
@@ -44,74 +40,197 @@ function showToast(message, type = 'info') {
         }
         Toastify({
             text: message, duration: 3000, close: true, gravity: 'top', position: 'right',
-            backgroundColor: backgroundColor, stopOnFocus: true
+            style: { background: backgroundColor },
+            stopOnFocus: true
         }).showToast();
     } else {
-        // console.log(`${type.toUpperCase()}: ${message}`);
+        console.log(`${type.toUpperCase()}: ${message}`);
         if (type === 'error') alert(message); // Fallback for errors
     }
+}
+
+/**
+ * Escape special characters in a string for use in a regular expression
+ */
+function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 // --- Core Functions ---
 
 /**
- * Fetch categories from the API based on page number and search term.
- * @param {number} pageNum - The page number to fetch.
- * @param {string} searchTerm - The search term to filter by (optional).
+ * Fetch all categories from the API at once.
  */
-async function fetchCategories(pageNum = 1, searchTerm = '') {
-    currentPage = pageNum;
-    currentSearchTerm = searchTerm.trim();
-    // Ensure DataTable is initialized
-    if (!categoriesTable) {
-        // console.error('DataTable not initialized yet.');
-        return;
-    }
-
-    // Show processing indicator (DataTables might have its own)
-    // categoriesTable.processing(true);
+async function loadAllCategories() {
+    showToast('Loading categories...', 'info');
+    $('#categoriesTable').addClass('loading');
 
     try {
-        const params = {
-            pageNum: currentPage,
-            pageSize: pageSize,
-            name: currentSearchTerm // Pass search term as 'name' parameter
-        };
-        // console.log("Fetching categories with params:", params); // Debugging
-        const response = await api.get('/category/selectPage', { params });
-        // console.log("API Response:", response); // Debugging
-
-        if (response.data && (response.data.code === '200' || response.data.code === 200) && response.data.data) {
-            const pageInfo = response.data.data;
-            // console.log("PageInfo:", pageInfo); // Debugging
-            renderTable(pageInfo.list || []); // Update DataTable
-            updateSelectAllCheckboxState(); // Ensure header checkbox reflects current page state
-            updateBatchDeleteButtonVisibility(); // Update based on selections
+        // 请求所有分类数据
+        const response = await api.get('/category/selectAll');
+        
+        if (response.data && (response.data.code === '200' || response.data.code === 200)) {
+            allCategoriesData = response.data.data || [];
+            console.log(`Loaded ${allCategoriesData.length} categories`);
+            
+            // 初始化DataTable
+            initializeDataTable();
+            
+            // 更新全选复选框状态
+            updateSelectAllCheckboxState();
+            updateBatchDeleteButtonVisibility();
+            
+            showToast(`Loaded ${allCategoriesData.length} categories successfully`, 'success');
         } else {
-            // console.error('Failed to fetch categories or unexpected data format:', response.data);
-            // Show error in table (DataTables might handle this)
-            categoriesTable.clear().draw(); // Clear table on error
-            // Optionally add a row indicating error
+            console.error('Failed to fetch categories:', response.data);
             showToast(response.data?.msg || 'Failed to load categories.', 'error');
+            allCategoriesData = [];
+            initializeDataTable(); // 初始化空表格
         }
     } catch (error) {
-        // console.error('Error fetching categories:', error);
-        categoriesTable.clear().draw(); // Clear table on error
+        console.error('Error fetching categories:', error);
         showToast('Error connecting to the server.', 'error');
+        allCategoriesData = [];
+        initializeDataTable(); // 初始化空表格
     } finally {
-        // categoriesTable.processing(false); // Hide processing indicator
+        $('#categoriesTable').removeClass('loading');
     }
 }
 
 /**
- * Render the category table using DataTables API.
- * @param {Array} categories - Array of category objects.
+ * 前端搜索过滤功能
+ * @param {string} searchTerm - 搜索关键词
  */
-function renderTable(categories) {
-    if (!categoriesTable) return;
-    categoriesTable.clear();
-    categoriesTable.rows.add(categories);
-    categoriesTable.draw();
+function filterCategories(searchTerm) {
+    const term = searchTerm.trim().toLowerCase();
+    
+    // 显示搜索中状态
+    $('#categoriesTable').addClass('loading');
+    showToast('Searching...', 'info');
+    
+    if (!categoriesTable) {
+        console.error('DataTable not initialized');
+        return;
+    }
+    
+    // 使用DataTable的搜索功能
+    categoriesTable.search(term).draw();
+    
+    // 获取过滤后的结果数量
+    const filteredCount = categoriesTable.rows({ search: 'applied' }).count();
+    
+    // 更新UI状态
+    $('#categoriesTable').removeClass('loading');
+    
+    if (term) {
+        if (filteredCount > 0) {
+            showToast(`Found ${filteredCount} categories matching "${term}"`, 'success');
+        } else {
+            showToast(`No categories found matching "${term}"`, 'info');
+        }
+    } else {
+        showToast(`Showing all ${allCategoriesData.length} categories`, 'info');
+    }
+    
+    // 更新全选复选框状态
+    updateSelectAllCheckboxState();
+}
+
+/**
+ * Initialize the DataTable
+ */
+function initializeDataTable() {
+    // 如果表格已经初始化，先销毁
+    if (categoriesTable) {
+        categoriesTable.destroy();
+    }
+    
+    categoriesTable = $('#categoriesTable').DataTable({
+        data: allCategoriesData,
+        columns: [
+            { 
+                data: null,
+                render: function(data, type, row) {
+                    const isSelected = selectedCategoryIds.has(row.id);
+                    return `<input type="checkbox" class="form-check-input row-checkbox" value="${row.id}" ${isSelected ? 'checked' : ''}>`;
+                },
+                orderable: false,
+                className: 'text-center dt-body-center'
+            },
+            { data: 'id', className: 'dt-body-left' },
+            { 
+                data: 'name', 
+                render: function(data, type, row) {
+                    if (type === 'display' && data) {
+                        // 搜索高亮
+                        const searchTerm = categoriesTable ? categoriesTable.search() : '';
+                        if (searchTerm && searchTerm.length > 0) {
+                            const regex = new RegExp(`(${escapeRegExp(searchTerm)})`, 'gi');
+                            return escapeHTML(data).replace(regex, '<span class="search-highlight">$1</span>');
+                        }
+                    }
+                    return escapeHTML(data);
+                }
+            },
+            { 
+                data: null,
+                render: function(data, type, row) {
+                    return `
+                        <button class="btn btn-sm btn-primary edit-btn me-1" data-id="${row.id}" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger delete-btn" data-id="${row.id}" data-name="${escapeHTML(row.name)}" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    `;
+                },
+                orderable: false,
+                className: 'text-center dt-body-center'
+            }
+        ],
+        responsive: true,
+        order: [[1, 'asc']], // Default sort by ID
+        language: {
+            search: "", // Use placeholder
+            searchPlaceholder: "Search categories...",
+            emptyTable: `
+                <div class="empty-table-message">
+                    <i class="fas fa-folder-open"></i>
+                    <p>No categories found</p>
+                    <p class="small">Try adding a new category</p>
+                </div>
+            `,
+            info: "Showing _START_ to _END_ of _TOTAL_ categories",
+            infoEmpty: "No categories available",
+            infoFiltered: "(filtered from _MAX_ total categories)",
+            lengthMenu: "Show _MENU_ categories",
+            zeroRecords: `
+                <div class="empty-table-message">
+                    <i class="fas fa-search"></i>
+                    <p>No matching categories found</p>
+                    <p class="small">Try adjusting your search criteria</p>
+                </div>
+            `,
+            paginate: { 
+               first: "&laquo;",
+               last: "&raquo;",
+               next: "&rsaquo;",
+               previous: "&lsaquo;"
+            }
+        },
+        pagingType: "full_numbers", 
+        dom: '<"row"<"col-sm-12"tr>>' + 
+             '<"row mt-3"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+        drawCallback: function(settings) {
+            // 重新初始化工具提示
+            $('[data-bs-toggle="tooltip"]').tooltip('dispose').tooltip();
+            // 更新全选复选框状态
+            updateSelectAllCheckboxState();
+        }
+    });
+    
+    // 隐藏DataTable默认的搜索框，使用我们自定义的搜索框
+    $('.dataTables_filter').hide();
 }
 
 /**
@@ -142,7 +261,7 @@ function resetCategoryModal() {
  * Populate the category modal for editing.
  * @param {number} categoryId - The ID of the category to edit.
  */
-async function populateEditModal(categoryId) {
+function populateEditModal(categoryId) {
     resetCategoryModal(); // Start with a clean slate
     isEditMode = true;
     currentEditCategoryId = categoryId;
@@ -159,52 +278,42 @@ async function populateEditModal(categoryId) {
     if (modalTitle) modalTitle.textContent = 'Edit Category';
     if (categoryIdInput) categoryIdInput.value = categoryId;
 
-    try {
-        showToast('Loading category data...', 'info');
-        const response = await api.get(`/category/selectById/${categoryId}`);
-        if (response.data && (response.data.code === '200' || response.data.code === 200) && response.data.data) {
-            const category = response.data.data;
-
-            // Attempt to find the category name in the standard options
-            let foundStandard = false;
-            if (categoryTypeSelect) {
-                for (let option of categoryTypeSelect.options) {
-                    if (option.value === category.name && option.value !== 'Custom') {
-                        option.selected = true;
-                        foundStandard = true;
-                        break;
-                    }
+    // 从本地数据查找分类
+    const category = allCategoriesData.find(cat => cat.id === categoryId);
+    
+    if (category) {
+        // 尝试在标准选项中找到分类名称
+        let foundStandard = false;
+        if (categoryTypeSelect) {
+            for (let option of categoryTypeSelect.options) {
+                if (option.value === category.name && option.value !== 'Custom') {
+                    option.selected = true;
+                    foundStandard = true;
+                    break;
                 }
             }
-
-            // If not found in standard options, assume it's custom
-            if (!foundStandard && categoryTypeSelect) {
-                const customOption = categoryTypeSelect.querySelector('option[value="Custom"]');
-                if (customOption) customOption.selected = true;
-                if (customCategoryDiv) customCategoryDiv.style.display = 'block';
-                if (customCategoryNameInput) customCategoryNameInput.value = category.name;
-            } else {
-                 if (customCategoryDiv) customCategoryDiv.style.display = 'none'; // Hide if standard
-            }
-
-            // Populate description
-            if (categoryDescriptionInput) {
-                categoryDescriptionInput.value = category.description || ''; // Set description or empty string
-            }
-
-            // Optionally disable type selection during edit if needed
-            // if (categoryTypeSelect) categoryTypeSelect.disabled = true;
-
-            modal.show();
-        } else {
-            showToast(response.data?.msg || 'Failed to load category details.', 'error');
-            isEditMode = false; // Revert mode if load fails
-            currentEditCategoryId = null;
         }
-    } catch (error) {
-        // console.error('Error loading category for edit:', error);
-        showToast('Error loading category data.', 'error');
-        isEditMode = false; // Revert mode if load fails
+
+        // 如果在标准选项中未找到，假定它是自定义的
+        if (!foundStandard && categoryTypeSelect) {
+            const customOption = categoryTypeSelect.querySelector('option[value="Custom"]');
+            if (customOption) customOption.selected = true;
+            if (customCategoryDiv) customCategoryDiv.style.display = 'block';
+            if (customCategoryNameInput) customCategoryNameInput.value = category.name;
+        } else {
+            if (customCategoryDiv) customCategoryDiv.style.display = 'none'; // 如果是标准选项则隐藏
+        }
+
+        // 填充描述
+        if (categoryDescriptionInput) {
+            categoryDescriptionInput.value = category.description || '';
+        }
+
+        modal.show();
+        showToast('Category loaded for editing', 'success');
+    } else {
+        showToast('Could not find category with ID: ' + categoryId, 'error');
+        isEditMode = false;
         currentEditCategoryId = null;
     }
 }
@@ -264,12 +373,14 @@ async function handleSaveCategory() {
             const modalElement = document.getElementById('categoryModal');
             const modal = bootstrap.Modal.getInstance(modalElement);
             modal?.hide();
-            fetchCategories(isEditMode ? currentPage : 1); // Refresh current or go to first page
+            
+            // 重新加载所有分类数据
+            await loadAllCategories();
         } else {
              showToast(response.data?.msg || `Failed to ${isEditMode ? 'update' : 'add'} category.`, 'error');
         }
     } catch (error) {
-        // console.error('Error saving category:', error);
+        console.error('Error saving category:', error);
         showToast(`Error saving category: ${error.response?.data?.msg || error.message}`, 'error');
     } finally {
         saveButton.disabled = false;
@@ -293,12 +404,15 @@ async function handleDeleteCategory(categoryId, categoryName) {
         if (response.data && (response.data.code === '200' || response.data.code === 200)) {
             showToast('Category deleted successfully!', 'success');
             selectedCategoryIds.delete(categoryId); // Remove from selection if present
-            fetchCategories(currentPage); // Refresh current page
+            
+            // 从本地数据中移除并更新表格
+            allCategoriesData = allCategoriesData.filter(cat => cat.id !== categoryId);
+            initializeDataTable();
         } else {
             showToast(response.data?.msg || 'Failed to delete category.', 'error');
         }
     } catch (error) {
-        // console.error('Error deleting category:', error);
+        console.error('Error deleting category:', error);
         showToast(`Error deleting category: ${error.response?.data?.msg || error.message}`, 'error');
     }
 }
@@ -326,12 +440,14 @@ async function handleBatchDelete() {
         if (response.data && (response.data.code === '200' || response.data.code === 200)) {
             showToast(`${idsToDelete.length} categories deleted successfully!`, 'success');
             selectedCategoryIds.clear();
-            fetchCategories(1); // Go back to first page after batch delete
+            
+            // 重新加载所有分类数据
+            await loadAllCategories();
         } else {
             showToast(response.data?.msg || 'Failed to delete categories.', 'error');
         }
     } catch (error) {
-        // console.error('Error batch deleting categories:', error);
+        console.error('Error batch deleting categories:', error);
          showToast(`Error deleting categories: ${error.response?.data?.msg || error.message}`, 'error');
     } finally {
         batchDeleteButton.disabled = false;
@@ -373,76 +489,23 @@ function updateSelectAllCheckboxState() {
 }
 
 /**
- * Initialize the DataTable
+ * Debounce function to limit how often a function can run
+ * @param {Function} func - The function to debounce
+ * @param {number} wait - Wait time in milliseconds
+ * @returns {Function} - Debounced function
  */
-function initializeDataTable() {
-    categoriesTable = $('#categoriesTable').DataTable({
-        // Server-side processing is likely needed if data volume is large
-        // For now, assuming client-side data rendering after fetch
-        // processing: true, 
-        // serverSide: true, 
-        // ajax: function (data, callback, settings) { ... }, // Requires backend changes
-        columns: [
-            { 
-                data: null,
-                render: function(data, type, row) {
-                    const isSelected = selectedCategoryIds.has(row.id);
-                    return `<input type="checkbox" class="form-check-input row-checkbox" value="${row.id}" ${isSelected ? 'checked' : ''}>`;
-                },
-                orderable: false,
-                className: 'text-center dt-body-center'
-            },
-            { data: 'id', className: 'dt-body-left' },
-            { data: 'name', render: escapeHTML },
-            { 
-                data: null,
-                render: function(data, type, row) {
-                    return `
-                        <button class="btn btn-sm btn-primary edit-btn me-1" data-id="${row.id}" title="Edit">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn btn-sm btn-danger delete-btn" data-id="${row.id}" data-name="${escapeHTML(row.name)}" title="Delete">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    `;
-                },
-                orderable: false,
-                className: 'text-center dt-body-center'
-            }
-        ],
-        responsive: true,
-        order: [[1, 'asc']], // Default sort by ID
-        language: {
-            search: "", // Use placeholder
-            searchPlaceholder: "Search categories...",
-            emptyTable: "No categories found",
-            info: "Showing _START_ to _END_ of _TOTAL_ categories",
-            infoEmpty: "No categories available",
-            infoFiltered: "(filtered from _MAX_ total categories)",
-            lengthMenu: "Show _MENU_ categories",
-            zeroRecords: "No matching categories found",
-            paginate: { // Use Bootstrap 5 classes if needed 
-               first:    "&laquo;",
-               last:     "&raquo;",
-               next:     "&rsaquo;",
-               previous: "&lsaquo;"
-             }
-        },
-        pagingType: "full_numbers", // Example pagination type
-        // Adjust DOM structure if needed, e.g., remove default search box if using custom one
-        dom: '<"row"<"col-sm-12"tr>>' + 
-             '<"row mt-3"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
-        drawCallback: function(settings) {
-            // Re-initialize tooltips after table draw if needed
-            $('[data-bs-toggle="tooltip"]').tooltip('dispose').tooltip();
-            // Update select all checkbox state after draw
-            updateSelectAllCheckboxState();
-            // Re-attach listeners might be needed if using complex selectors not handled by delegation
-        }
-    });
+function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+        const context = this;
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(context, args), wait);
+    };
 }
 
 // --- Event Listeners ---
+let isEditMode = false;
+let currentEditCategoryId = null;
 
 function setupEventListeners() {
     const addCategoryBtn = document.getElementById('addCategoryBtn');
@@ -473,10 +536,10 @@ function setupEventListeners() {
         const target = event.target;
 
         if ($(this).hasClass('edit-btn')) {
-            const id = $(this).data('id');
+            const id = parseInt($(this).data('id'), 10);
             populateEditModal(id);
         } else if ($(this).hasClass('delete-btn')) {
-            const id = $(this).data('id');
+            const id = parseInt($(this).data('id'), 10);
             const name = $(this).data('name');
             handleDeleteCategory(id, name);
         } else if ($(this).hasClass('row-checkbox')) {
@@ -491,17 +554,55 @@ function setupEventListeners() {
         }
     });
 
-    // Search Button
+    // Search Button Click
     categorySearchBtn?.addEventListener('click', () => {
-        fetchCategories(1, categorySearchInput.value);
+        const searchTerm = categorySearchInput.value.trim();
+        filterCategories(searchTerm);
     });
 
-    // Search Input Enter Key
-    categorySearchInput?.addEventListener('keypress', (event) => {
-        if (event.key === 'Enter') {
-            fetchCategories(1, categorySearchInput.value);
+    // 搜索输入框 - 输入时搜索（使用防抖动提高性能）
+    if (categorySearchInput) {
+        const debouncedSearch = debounce(() => {
+            const searchTerm = categorySearchInput.value.trim();
+            filterCategories(searchTerm);
+        }, 300); // 300ms防抖时间
+        
+        categorySearchInput.addEventListener('input', debouncedSearch);
+        
+        // 回车键立即搜索
+        categorySearchInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                const searchTerm = categorySearchInput.value.trim();
+                filterCategories(searchTerm);
+            }
+        });
+        
+        // 添加清除按钮功能
+        const clearSearchBtn = document.createElement('button');
+        clearSearchBtn.className = 'btn btn-outline-secondary';
+        clearSearchBtn.type = 'button';
+        clearSearchBtn.innerHTML = '<i class="fas fa-times"></i>';
+        clearSearchBtn.title = 'Clear search';
+        clearSearchBtn.style.display = 'none';
+        
+        // 将清除按钮插入到输入组中
+        const inputGroup = categorySearchInput.parentElement;
+        if (inputGroup && inputGroup.classList.contains('input-group')) {
+            inputGroup.insertBefore(clearSearchBtn, categorySearchBtn);
         }
-    });
+        
+        // 根据搜索输入显示/隐藏清除按钮
+        categorySearchInput.addEventListener('input', () => {
+            clearSearchBtn.style.display = categorySearchInput.value ? 'block' : 'none';
+        });
+        
+        // 点击时清除搜索并重置表格
+        clearSearchBtn.addEventListener('click', () => {
+            categorySearchInput.value = '';
+            filterCategories('');
+            clearSearchBtn.style.display = 'none';
+        });
+    }
 
     // Category Type Selection Change (in modal)
     categoryTypeSelect?.addEventListener('change', function() {
@@ -516,33 +617,30 @@ function setupEventListeners() {
      // Select All Checkbox
      selectAllCheckbox?.addEventListener('change', function() {
          const isChecked = this.checked;
-         const rowCheckboxes = document.querySelectorAll('#categoryTableBody .row-checkbox');
+         const displayedRows = categoriesTable.rows({ search: 'applied' }).nodes();
+         const rowCheckboxes = Array.from(displayedRows).map(node => node.querySelector('.row-checkbox'));
+         
          rowCheckboxes.forEach(checkbox => {
-             const categoryId = parseInt(checkbox.value, 10);
-             checkbox.checked = isChecked;
-             if (isChecked) {
-                 selectedCategoryIds.add(categoryId);
-             } else {
-                 selectedCategoryIds.delete(categoryId);
+             if (checkbox) {
+                 const categoryId = parseInt(checkbox.value, 10);
+                 checkbox.checked = isChecked;
+                 if (isChecked) {
+                     selectedCategoryIds.add(categoryId);
+                 } else {
+                     selectedCategoryIds.delete(categoryId);
+                 }
              }
          });
+         
          updateBatchDeleteButtonVisibility();
      });
 
      // Batch Delete Button
      batchDeleteBtn?.addEventListener('click', handleBatchDelete);
-
-    initializeDataTable(); // Initialize DataTable on DOM ready
 }
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
-    // Basic auth check simulation (replace with actual logic if needed)
-    // if (!localStorage.getItem('adminToken')) {
-    //     window.location.href = 'login.html'; // Redirect if not logged in
-    //     return;
-    // }
-
     setupEventListeners();
-    fetchCategories(); // Initial fetch (page 1, no search term)
+    loadAllCategories(); // 一次性加载所有分类数据
 }); 

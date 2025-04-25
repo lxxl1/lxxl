@@ -13,6 +13,7 @@ import java.util.List;
 @ToString(callSuper = true)
 public class SongDetailDTO extends Song {
     private String categoryNames; // 类别名称，逗号分隔
+    private List<Integer> categoryIds; // Added: 类别ID列表
     private List<Integer> tagIds; // 标签ID列表
     private String tagNames;      // 标签名称，逗号分隔
     private List<Integer> singerIds; // 歌手ID列表

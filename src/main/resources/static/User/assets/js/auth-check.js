@@ -7,51 +7,51 @@ import { updateUserHeader } from '../../../Common/js/utils.js';
 
 // 立即执行函数 - 页面加载时自动执行权限检查
 (function() {
-    console.log('Performing authentication check...');
+    // console.log('Performing authentication check...');
     
     // 验证用户是否已登录，未登录则跳转到登录页面
     if (!checkAuthentication()) {
-        console.log('User not authenticated, redirecting to login page...');
+        // console.log('User not authenticated, redirecting to login page...');
         return; // checkAuthentication内部会自动重定向到登录页面
     }
     
     // 检查用户是否具有正确的角色
     if (!checkUserRole()) {
-        console.log('User does not have the correct role, redirecting...');
+        // console.log('User does not have the correct role, redirecting...');
         return; // checkUserRole内部会处理重定向
     }
     
-    console.log('Authentication check passed.');
+    // console.log('Authentication check passed.');
     
     // 页面加载完成后执行
     document.addEventListener('DOMContentLoaded', function() {
         // 将更新逻辑放入 setTimeout 以确保 DOM 完全准备好
         setTimeout(() => {
-            console.log('[AuthCheck] Running delayed header update...');
+            // console.log('[AuthCheck] Running delayed header update...');
             // 从 localStorage 获取用户信息
             const userString = localStorage.getItem('user');
-            console.log('[AuthCheck] Raw user string from localStorage (delayed):', userString);
+            // console.log('[AuthCheck] Raw user string from localStorage (delayed):', userString);
             let user = null;
             try {
                 user = JSON.parse(userString);
-                console.log('[AuthCheck] Parsed user object (delayed):', user);
+                // console.log('[AuthCheck] Parsed user object (delayed):', user);
             } catch (e) {
-                console.error('[AuthCheck] Error parsing user data from localStorage (delayed):', e);
+                // console.error('[AuthCheck] Error parsing user data from localStorage (delayed):', e);
             }
             
             if (user) {
                 // 在调用前检查元素是否存在
                 const usernameEl = document.getElementById('header-username');
                 const avatarEl = document.getElementById('header-avatar');
-                console.log('[AuthCheck] Checking for header elements before update (delayed):');
-                console.log('[AuthCheck] Found #header-username (delayed):', usernameEl ? 'Yes' : 'No');
-                console.log('[AuthCheck] Found #header-avatar (delayed):', avatarEl ? 'Yes' : 'No');
+                // console.log('[AuthCheck] Checking for header elements before update (delayed):');
+                // console.log('[AuthCheck] Found #header-username (delayed):', usernameEl ? 'Yes' : 'No');
+                // console.log('[AuthCheck] Found #header-avatar (delayed):', avatarEl ? 'Yes' : 'No');
                 
                 // 调用导入的 updateUserHeader 函数来更新 Header
-                console.log('[AuthCheck] Calling updateUserHeader with user (delayed):', user);
+                // console.log('[AuthCheck] Calling updateUserHeader with user (delayed):', user);
                 updateUserHeader(user);
             } else {
-                console.warn('[AuthCheck] User data is null or parsing failed after authentication passed (delayed).');
+                // console.warn('[AuthCheck] User data is null or parsing failed after authentication passed (delayed).');
                 // 可选：如果严格要求，可以在这里重定向到登录
                 // redirectToLogin();
             }
@@ -71,7 +71,7 @@ function setupLogoutButton() {
         if (dropdownItem) { 
              button.addEventListener('click', function(e) {
                 e.preventDefault();
-                console.log('[Logout Button Clicked]');
+                // console.log('[Logout Button Clicked]');
                 logout(); // Call logout function from auth.js
             });
         }
@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Check if token exists
         const token = localStorage.getItem('token');
         if (!token) {
-            console.log('[AuthCheck Token] No token found, redirecting.');
+            // console.log('[AuthCheck Token] No token found, redirecting.');
             redirectToLogin();
             return;
         }
@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         //     console.log('[AuthCheck Token] Token verified successfully.');
         // }
     } catch (error) {
-        console.error('Token verification check failed:', error);
+        // console.error('Token verification check failed:', error);
         // redirectToLogin(); // Decide if token verification failure should force logout
     }
 });
@@ -112,6 +112,6 @@ function redirectToLogin() {
     localStorage.removeItem('role');
     
     // Redirect to login page
-    console.log('[Redirecting] To login page...');
+    // console.log('[Redirecting] To login page...');
     window.location.href = '../login.html';
 } 

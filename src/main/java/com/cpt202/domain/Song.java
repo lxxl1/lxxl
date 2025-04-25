@@ -28,8 +28,8 @@ public class Song implements Serializable {
     private String lyric;
     /*歌曲地址*/
     private String url;
-    /*歌曲播放次数*/
-    private Integer nums;
     /*审核状态：0-待审核，1-审核通过，2-审核不通过*/
     private Integer status;
+    /* 专辑 */
+    private String album;
 }

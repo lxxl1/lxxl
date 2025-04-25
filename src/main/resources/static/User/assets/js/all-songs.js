@@ -169,6 +169,11 @@ function renderSongs() {
                                 </small>
                             </div>
                         </div>
+                        <div class="text-muted ml-auto">
+                            <span class="ml-3">
+                                <i data-feather="heart" class="width-15 height-15"></i> ${song.favoritesCount || 0}
+                            </span>
+                        </div>
                         <button class="btn btn-primary btn-sm btn-block mt-auto play-song-btn" 
                                 data-song-id="${song.id}" 
                                 data-song-url="${song.url || ''}" 
@@ -352,29 +357,8 @@ function playSong(songId) {
         return;
     }
 
-    // Call the unified audio player function
+    // Call the audio player function
     playSongAudioPlayer(audioUrl, songName, displaySingers, coverUrl);
-    
-    // Increment play count
-    incrementPlayCount(songId);
-}
-
-/**
- * Increment the play count for a song
- * @param {string} songId - ID of the song
- */
-async function incrementPlayCount(songId) {
-    try {
-        await api.get(`/song/addNums?songId=${songId}`);
-        console.log('Play count incremented for song ID:', songId);
-        // Reload data and re-render after incrementing
-        await loadAllSongs(); // Ensure this fetches DTOs
-        filteredSongs = [...approvedSongs]; // Update filtered list based on reloaded data
-        renderSongs(); // Re-render current page
-        setupPagination(); // Re-setup pagination based on potentially changed filtered list
-    } catch (error) {
-        console.error('Error incrementing play count:', error);
-    }
 }
 
 /**

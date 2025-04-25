@@ -5,7 +5,7 @@
 
 // 当DOM内容加载完成后初始化
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('初始化音频播放器...');
+    // console.log('初始化音频播放器...');
     initAudioPlayer();
 });
 
@@ -32,7 +32,7 @@ function initAudioPlayer() {
         
         // 检查必要元素
         if (!audioPlayer || !playPauseButton) {
-            console.error('找不到必要的音频播放器元素');
+            // console.error('找不到必要的音频播放器元素');
             return;
         }
         
@@ -91,7 +91,7 @@ function initAudioPlayer() {
             
             // 错误处理
             audioPlayer.addEventListener('error', (e) => {
-                console.error('音频播放错误:', e);
+                // console.error('音频播放错误:', e);
                 showMessage('播放出错，请尝试其他歌曲', 'error');
             });
         }
@@ -99,9 +99,9 @@ function initAudioPlayer() {
         // 收集当前页面上的所有歌曲
         collectSongs();
         
-        console.log('音频播放器初始化完成');
+        // console.log('音频播放器初始化完成');
     } catch (error) {
-        console.error('初始化音频播放器出错:', error);
+        // console.error('初始化音频播放器出错:', error);
     }
 }
 
@@ -127,9 +127,9 @@ function collectSongs() {
             }
         });
         
-        console.log(`收集了 ${playlist.length} 首歌曲`);
+        // console.log(`收集了 ${playlist.length} 首歌曲`);
     } catch (error) {
-        console.error('收集歌曲列表出错:', error);
+        // console.error('收集歌曲列表出错:', error);
     }
 }
 
@@ -152,7 +152,7 @@ function togglePlayPause() {
                         playPauseButton.innerHTML = '<i class="fas fa-pause"></i>';
                     }
                 }).catch(error => {
-                    console.error('播放失败:', error);
+                    // console.error('播放失败:', error);
                 });
             }
         } else {
@@ -165,7 +165,7 @@ function togglePlayPause() {
             }
         }
     } catch (error) {
-        console.error('播放/暂停切换出错:', error);
+        // console.error('播放/暂停切换出错:', error);
     }
 }
 
@@ -182,7 +182,7 @@ function playPrevious() {
         
         playSongAtIndex(currentSongIndex);
     } catch (error) {
-        console.error('播放上一首出错:', error);
+        // console.error('播放上一首出错:', error);
     }
 }
 
@@ -199,7 +199,7 @@ function playNext() {
         
         playSongAtIndex(currentSongIndex);
     } catch (error) {
-        console.error('播放下一首出错:', error);
+        // console.error('播放下一首出错:', error);
     }
 }
 
@@ -234,13 +234,13 @@ function playSongAtIndex(index) {
                     playPauseButton.innerHTML = '<i class="fas fa-pause"></i>';
                 }
             }).catch(error => {
-                console.error('播放失败:', error);
+                // console.error('播放失败:', error);
             });
         }
         
         currentSongIndex = index;
     } catch (error) {
-        console.error('播放歌曲出错:', error);
+        // console.error('播放歌曲出错:', error);
     }
 }
 
@@ -266,7 +266,7 @@ function setVolume(value) {
             }
         }
     } catch (error) {
-        console.error('设置音量出错:', error);
+        // console.error('设置音量出错:', error);
     }
 }
 
@@ -295,7 +295,7 @@ function toggleMute() {
             }
         }
     } catch (error) {
-        console.error('切换静音出错:', error);
+        // console.error('切换静音出错:', error);
     }
 }
 
@@ -320,7 +320,7 @@ function updateProgress() {
         // 更新时间显示
         currentTimeDisplay.textContent = formatTime(currentTime);
     } catch (error) {
-        console.error('更新进度条出错:', error);
+        // console.error('更新进度条出错:', error);
     }
 }
 
@@ -333,7 +333,7 @@ function formatTime(seconds) {
         const remainingSeconds = Math.floor(seconds % 60);
         return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
     } catch (error) {
-        console.error('格式化时间出错:', error);
+        // console.error('格式化时间出错:', error);
         return '0:00';
     }
 }
@@ -343,7 +343,7 @@ function showMessage(message, type = 'info') {
     try {
         const alertsContainer = document.getElementById('alerts');
         if (!alertsContainer) {
-            console.error('找不到提示容器元素');
+            // console.error('找不到提示容器元素');
             return;
         }
         
@@ -373,7 +373,7 @@ function showMessage(message, type = 'info') {
             }
         }, 5000);
     } catch (error) {
-        console.error('显示消息出错:', error);
+        // console.error('显示消息出错:', error);
     }
 }
 
@@ -387,7 +387,7 @@ function showPlayer() {
             playerVisible = true;
         }
     } catch (error) {
-        console.error('显示播放器出错:', error);
+        // console.error('显示播放器出错:', error);
     }
 }
 
@@ -401,7 +401,7 @@ function hidePlayer() {
             playerVisible = false;
         }
     } catch (error) {
-        console.error('隐藏播放器出错:', error);
+        // console.error('隐藏播放器出错:', error);
     }
 }
 
@@ -420,11 +420,11 @@ export function playSongAudioPlayer(url, name, artist, cover) {
     try {
         const audioPlayer = document.getElementById('audioPlayer');
         if (!audioPlayer) {
-            console.error('Audio player element not found');
+            // console.error('Audio player element not found');
             return;
         }
 
-        console.log(`Attempting to play: ${name} from ${url}`); // Debug log
+        // console.log(`Attempting to play: ${name} from ${url}`); // Debug log
 
         // 显示播放器
         showPlayer();
@@ -436,7 +436,7 @@ export function playSongAudioPlayer(url, name, artist, cover) {
 
         // Stop current playback before loading new source
         if (!audioPlayer.paused) {
-            console.log('Pausing current playback before loading new song.'); // Debug log
+            // console.log('Pausing current playback before loading new song.'); // Debug log
             audioPlayer.pause();
         }
 
@@ -447,15 +447,15 @@ export function playSongAudioPlayer(url, name, artist, cover) {
         if (currentTimeDisplay) currentTimeDisplay.textContent = '0:00';
 
         // Set the new source
-        console.log('Setting new audio source.'); // Debug log
+        // console.log('Setting new audio source.'); // Debug log
         audioPlayer.src = url;
 
         // Explicitly load the new source
-        console.log('Explicitly loading new source.'); // Debug log
+        // console.log('Explicitly loading new source.'); // Debug log
         audioPlayer.load();
 
         // Play the audio
-        console.log('Calling play().'); // Debug log
+        // console.log('Calling play().'); // Debug log
         const playPromise = audioPlayer.play();
 
         if (playPromise !== undefined) {
@@ -466,11 +466,11 @@ export function playSongAudioPlayer(url, name, artist, cover) {
                 if (playPauseButton) {
                     playPauseButton.innerHTML = '<i class="fas fa-pause"></i>';
                 }
-                console.log(`Playback started successfully for: ${name}`); // Debug log
+                // console.log(`Playback started successfully for: ${name}`); // Debug log
             })
             .catch(error => {
                 // Playback failed or was interrupted.
-                console.error(`Playback error for ${name}:`, error);
+                // console.error(`Playback error for ${name}:`, error);
                 // Avoid setting isPlaying to false here, as the state might be indeterminate
                 showMessage(`无法播放歌曲: ${name}. ${error.message}`, 'error');
                 // 如果播放失败，隐藏播放器
@@ -487,11 +487,11 @@ export function playSongAudioPlayer(url, name, artist, cover) {
              const newSong = { url, name, artist, cover };
              playlist.push(newSong);
              currentSongIndex = playlist.length - 1;
-             console.log("Added new song to playlist and set as current.");
+             // console.log("Added new song to playlist and set as current.");
         }
 
     } catch (error) {
-        console.error('Error in playSongAudioPlayer:', error);
+        // console.error('Error in playSongAudioPlayer:', error);
         showMessage('播放器发生内部错误', 'error');
         // 如果出现错误，隐藏播放器
         hidePlayer();

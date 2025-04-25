@@ -23,6 +23,25 @@
         <result column="lyric" jdbcType="LONGVARCHAR" property="lyric"/>
     </resultMap>
 
+    <!-- 新增：定义 SongDTO 的 ResultMap -->
+    <resultMap id="SongDTOResultMap" type="com.cpt202.dto.SongDTO" extends="ResultMapWithBLOBs">
+        <!-- Base Song fields are inherited from ResultMapWithBLOBs -->
+        
+        <!-- Mappings for additional fields in SongDTO -->
+        <!-- 这些字段的值需要在相应的 SELECT 语句中通过 JOIN 或子查询提供 -->
+        <!-- 如果查询不直接提供这些列，MyBatis 不会填充它们，除非使用 association/collection -->
+        
+        <!-- 假设 SELECT 语句会返回这些聚合/连接后的列 -->
+        <result column="category_names" jdbcType="VARCHAR" property="categoryNames"/> 
+        <result column="tag_names" jdbcType="VARCHAR" property="tagNames"/>
+        <result column="singer_names" jdbcType="VARCHAR" property="singerNames"/>
+        
+        <!-- 列表字段通常通过 <collection> 映射处理，需要特定的查询 -->
+        <!-- 如果你的查询直接返回逗号分隔的 ID 字符串，可以使用上面的 VARCHAR 映射 -->
+        <!-- 如果你想映射成 List<Integer>，需要更复杂的 resultMap 或在 Service 层处理 -->
+        <!-- 这里暂时不添加 collection 映射，假设 Service 层会处理 ID 列表 -->
+    </resultMap>
+
     <sql id="Base_Column_List">
         id
         ,name,introduction,create_time,update_time,pic,url,status,user_id
@@ -61,6 +80,9 @@
             <if test="status != null">
                 status,
             </if>
+            <if test="album != null">
+                album,
+            </if>
         </trim>
         <trim prefix=" values (" suffix=")" suffixOverrides=",">
             <if test="id != null">
@@ -88,30 +110,36 @@
             <if test="status != null">
                 #{status},
             </if>
+            <if test="album != null">
+                #{album},
+            </if>
         </trim>
     </insert>
 
     <update id="update" parameterType="com.cpt202.domain.Song">
         update song
         <set>
+            <!-- Update name only if provided and not null -->
             <if test="name != null">
                 name = #{name},
             </if>
+            <!-- Update introduction only if provided and not null -->
             <if test="introduction != null">
                 introduction = #{introduction},
             </if>
+            <!-- Always update the update_time -->
             update_time = now(),
-            <if test="pic != null">
-                pic = #{pic},
-            </if>
+            <!-- Update lyric only if provided and not null -->
             <if test="lyric != null">
                 lyric = #{lyric},
             </if>
-            <if test="url != null">
-                url = #{url},
-            </if>
+            <!-- Update status only if provided and not null (though typically handled by audit) -->
             <if test="status != null">
                 status = #{status},
+            </if>
+            <!-- Update album only if provided and not null -->
+            <if test="album != null">
+                album = #{album},
             </if>
         </set>
         where id = #{id}
@@ -155,12 +183,14 @@
         where status = #{status}
     </select>
 
-    <select id="topSong" resultMap="ResultMapWithBLOBs">
-        select
-        <include refid="Blob_Column_List"/>
-        from song
-        order by create_time desc
-    </select>
+    <!-- 查询播放次数排前列的歌曲 (REMOVED) -->
+<!--    <select id="topSong" resultMap="ResultMapWithBLOBs">-->
+<!--        select-->
+<!--        <include refid="Blob_Column_List"/>-->
+<!--        from song-->
+        <!-- ORDER BY nums DESC --> <!-- 原来的排序依据 -->
+<!--        order by create_time desc-->
+<!--    </select>-->
 
     <select id="songOfName" resultMap="ResultMapWithBLOBs"
             parameterType="java.lang.String">
@@ -205,20 +235,33 @@
         <if test="categoryId != null">
             LEFT JOIN song_category sc ON s.id = sc.song_id
         </if>
-        WHERE s.user_id = #{userId}
-        <if test="categoryId != null">
-            AND sc.category_id = #{categoryId}
-        </if>
-        <if test="status != null">
-            AND s.status = #{status}
-        </if>
-        <if test="searchTerm != null and searchTerm != ''">
-            <!-- Use CONCAT for standard SQL LIKE syntax with parameter -->
-            AND s.name LIKE CONCAT('%', #{searchTerm}, '%') 
-            <!-- Alternative for MySQL: AND s.name LIKE #{searchTerm} (if % added in service) -->
-        </if>
-        <!-- 你可能还需要添加排序，例如按创建时间降序 -->
+        <!-- 使用 <where> 标签自动处理开头的 AND/OR -->
+        <where> 
+            <!-- 仅当 userId 不为 null 时才应用 user_id 过滤 -->
+            <if test="userId != null">
+                s.user_id = #{userId}
+            </if>
+            <if test="categoryId != null">
+                AND sc.category_id = #{categoryId}
+            </if>
+            <if test="status != null">
+                AND s.status = #{status}
+            </if>
+            <if test="searchTerm != null and searchTerm != ''">
+                AND s.name LIKE CONCAT('%', #{searchTerm}, '%') 
+            </if>
+        </where>
         ORDER BY s.create_time DESC
+    </select>
+
+    <!-- Calculate Total Songs -->
+    <select id="countTotalSongs" resultType="long">
+        SELECT COUNT(*) FROM song
+    </select>
+
+    <!-- Calculate Songs by Status -->
+    <select id="countSongsByStatus" resultType="long">
+        SELECT COUNT(*) FROM song WHERE status = #{status}
     </select>
 
     <!-- 统计：用户总歌曲数 -->
@@ -235,14 +278,10 @@
         WHERE user_id = #{userId} AND status = #{status}
     </select>
 
-    <!-- 统计：用户总播放量 - REMOVED -->
-    <!-- 
-    <select id="sumTotalPlaysByUserId" resultType="java.lang.Long">
-        SELECT SUM(nums) 
-        FROM song
-        WHERE user_id = #{userId}
+    <!-- 统计：用户歌曲总数 -->
+    <select id="countSongsByUserId" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM song WHERE user_id = #{userId}
     </select>
-    -->
 
     <!-- ==================== Added Statements ==================== -->
 
@@ -279,6 +318,31 @@
         <!-- 你可能需要添加额外的过滤条件，例如歌曲状态 -->
         <!-- AND s.status = 1 -->
         ORDER BY s.create_time DESC
+    </select>
+
+    <!-- 根据用户ID分页查询歌曲，并包含类别、标签、歌手信息 -->
+    <select id="selectSongsByUserIdPaged" resultMap="SongDTOResultMap">
+        SELECT
+        <!-- ... existing xml ... -->
+    </select>
+
+    <!-- 实现管理页面的歌曲分页查询，支持按名称、用户ID和状态筛选 -->
+    <select id="selectPage" resultMap="ResultMapWithBLOBs">
+        select
+        <include refid="Blob_Column_List"/>
+        from song
+        <where>
+            <if test="name != null and name != ''">
+                and name like concat('%', #{name}, '%')
+            </if>
+            <if test="userId != null">
+                and user_id = #{userId}
+            </if>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+        </where>
+        order by create_time desc
     </select>
 
 </mapper>

@@ -502,4 +502,80 @@ div.dataTables_wrapper div.dataTables_paginate {
     border-radius: 50%;
     animation: spinAnimation 1s linear infinite;
     z-index: 10;
+}
+
+/* Category Search Styling */
+.loading {
+    position: relative;
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.loading:after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 40px;
+    height: 40px;
+    margin-top: -20px;
+    margin-left: -20px;
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    border-top-color: #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Search input enhancements */
+.search-container {
+    position: relative;
+}
+
+#categorySearchInput {
+    padding-right: 40px; /* Space for the clear button */
+    transition: all 0.3s ease;
+}
+
+#categorySearchInput:focus {
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    border-color: #86b7fe;
+}
+
+/* Highlight search matches */
+.search-highlight {
+    background-color: #ffff99;
+    padding: 2px;
+    font-weight: bold;
+}
+
+/* Clear button styling */
+.input-group .btn-outline-secondary {
+    border-color: #ced4da;
+    color: #6c757d;
+}
+
+.input-group .btn-outline-secondary:hover {
+    background-color: #f8f9fa;
+    color: #343a40;
+}
+
+/* Empty state styling */
+.empty-table-message {
+    padding: 3rem 1rem;
+    text-align: center;
+    color: #6c757d;
+    background: #f8f9fa;
+    border-radius: 0.25rem;
+}
+
+.empty-table-message i {
+    font-size: 3rem;
+    color: #adb5bd;
+    margin-bottom: 1rem;
 } 

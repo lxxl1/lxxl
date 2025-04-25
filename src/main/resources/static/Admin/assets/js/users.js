@@ -88,33 +88,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load current admin name
     loadAdminInfo();
     
-    // Add search and filter container if it doesn't exist
-    const tableContainer = document.querySelector('#usersTable')?.parentElement;
-    if (tableContainer) {
-        const controlsHtml = `
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <div class="input-group">
-                        <input type="text" id="searchInput" class="form-control" placeholder="Search users...">
-                        <button class="btn btn-primary">
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <select id="statusFilter" class="form-select">
-                        <option value="">All Status</option>
-                        <option value="Active">Active</option>
-                        <option value="Inactive">Inactive</option>
-                        <option value="Suspended">Suspended</option>
-                    </select>
-                </div>
-            </div>
-        `;
-        
-        tableContainer.insertAdjacentHTML('beforebegin', controlsHtml);
-    }
-    
     // Add table header button if it doesn't exist
     const cardHeader = document.querySelector('.card-header');
     if (cardHeader && !cardHeader.querySelector('.btn-primary')) {
@@ -285,7 +258,13 @@ function initializeDataTable() {
                  return new bootstrap.Tooltip(tooltipTriggerEl);
             });
             updateBulkActionButtons(); // Update button state after draw
-        }
+        },
+        // Disable DataTables default search box as we use custom filtering
+        searching: false,
+        // Disable default ordering control if needed, or set default order
+        // ordering: false,
+        order: [[1, 'asc']], // Default order by username
+        // Enable processing indicator
     });
 }
 
@@ -465,38 +444,55 @@ function updateStatsUI(stats) {
 }
 
 /**
- * Load users from the API
+ * Load users from the API and update the table and stats.
+ * Reads filter values from the NEW static filter inputs.
  */
-async function loadUsers(searchQuery = '', statusFilter = '') {
+async function loadUsers(searchQueryParam = null, statusFilterParam = null) {
+    // Get filter values from the NEW static inputs
+    const searchQuery = searchQueryParam !== null ? searchQueryParam : $('#userNameFilter').val().trim();
+    const statusFilterValue = statusFilterParam !== null ? statusFilterParam : $('#userStatusFilter').val();
+    let statusForApi = ''; // Default to empty string for API (usually means 'all')
+
+    // Map status text/value to the numeric value expected by API if necessary
+    // Assuming API expects numeric status: 0=Active, 1=Inactive, 2=Suspended
+    if (statusFilterValue === '0') {
+        statusForApi = '0';
+    } else if (statusFilterValue === '1') { // Handle Inactive
+        statusForApi = '1';
+    } else if (statusFilterValue === '2') { // Handle Suspended
+        statusForApi = '2';
+    }
+    // If statusFilterValue is empty (''), statusForApi remains empty
+
+    console.log(`Loading users with search: '${searchQuery}', status: '${statusForApi}'`);
+
     try {
-        const params = new URLSearchParams();
-        if (searchQuery) params.append('username', searchQuery);
-        if (statusFilter) params.append('status', statusFilter);
-        
-        const response = await api.get(`/user/select/all?${params.toString()}`);
-        
-        if (response.data.code === '200') {
-            const users = response.data.data;
-            // 先更新用户表格
-            updateUserTable(users);
-            // 然后更新统计信息
-            updateUserStats(users);
-            return users;
-        } else {
-            showAlert('Failed to load user data: ' + response.data.msg, 'danger');
-            return [];
-        }
+        // Fetch paginated data (assuming loadUsersPaginated handles search/status)
+        // Pass the correct status value for the API
+        await loadUsersPaginated(1, 10, searchQuery, statusForApi);
+
+        // Fetch all data for stats calculation (pass same filters)
+        await loadUsersForStats(searchQuery, statusForApi);
+
     } catch (error) {
-        console.error('Error loading user data:', error);
-        showAlert('Failed to load user data. Please try again later.', 'danger');
-        return [];
+        console.error("Error loading user data:", error);
+        showToast("Failed to load user data.", "error");
+        // Optionally clear table or show error message in table
+        if (usersTable) {
+            usersTable.clear().draw();
+        }
     }
 }
 
 /**
- * Load users with pagination
+ * Load users for pagination
  */
 async function loadUsersPaginated(pageNum = 1, pageSize = 10, searchQuery = '', statusFilter = '') {
+    if (!usersTable) {
+        console.error("DataTable not initialized.");
+        return;
+    }
+
     try {
         const params = new URLSearchParams();
         params.append('pageNum', pageNum);
@@ -698,137 +694,92 @@ async function deleteBatchUsers(ids) {
  * Setup event listeners for the page
  */
 function setupEventListeners() {
-    // Search button
-    const searchButton = document.querySelector('button.btn-primary i.fas.fa-search');
-    if (searchButton && searchButton.parentElement) {
-        searchButton.parentElement.addEventListener('click', function() {
-            const searchQuery = document.getElementById('searchInput')?.value || '';
-            const statusFilter = document.getElementById('statusFilter')?.value || '';
+    // Modal related listeners
+    $('#userModal').on('hidden.bs.modal', function () {
+        resetUserModal();
+    });
             
-            // 加载用户数据并更新统计
-            loadUsers(searchQuery, statusFilter);
-            
-            // 添加搜索状态指示
-            if (searchQuery || statusFilter) {
-                // 如果还没有筛选指示器，添加一个
-                if (!document.getElementById('filterIndicator')) {
-                    const indicator = document.createElement('div');
-                    indicator.id = 'filterIndicator';
-                    indicator.className = 'alert alert-info alert-dismissible fade show mt-3';
-                    indicator.innerHTML = `
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-filter me-2"></i>
-                            <div>
-                                <strong>Filter Applied</strong>
-                                <span class="filter-terms"></span>
-                            </div>
-                            <button type="button" class="btn-close ms-auto" id="clearFilter"></button>
-                        </div>
-                    `;
-                    const searchContainer = document.querySelector('.card-body .row');
-                    searchContainer.insertAdjacentElement('afterend', indicator);
-                    
-                    // 添加清除筛选的事件
-                    document.getElementById('clearFilter').addEventListener('click', function() {
-                        document.getElementById('searchInput').value = '';
-                        document.getElementById('statusFilter').value = '';
-                        loadUsers();
-                        indicator.remove();
-                    });
-                }
-                
-                // 更新筛选条件文本
-                const filterTerms = [];
-                if (searchQuery) filterTerms.push(`Search: "${searchQuery}"`);
-                if (statusFilter) filterTerms.push(`Status: ${statusFilter}`);
-                
-                document.querySelector('.filter-terms').textContent = ` - ${filterTerms.join(', ')}`;
-            }
-        });
-    }
-    
-    // Add user button
-    const addUserButton = document.querySelector('.card-header .btn-primary');
-    if (addUserButton) {
-        addUserButton.addEventListener('click', function() {
-            openAddUserModal();
-        });
-    }
-    
-    // Save user button (in modal)
-    const saveUserBtn = document.getElementById('saveUserBtn');
-    if (saveUserBtn) {
-        saveUserBtn.addEventListener('click', handleSaveUser);
-    }
-    
-    // Status filter dropdown change
-    const statusFilter = document.getElementById('statusFilter');
-    if (statusFilter) {
-        statusFilter.addEventListener('change', function() {
-            const searchQuery = document.getElementById('searchInput')?.value || '';
-            loadUsers(searchQuery, this.value);
-        });
-    }
-    
-    // Enter key in search input
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) {
-        searchInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                const searchButton = document.querySelector('button.btn-primary i.fas.fa-search');
-                if (searchButton && searchButton.parentElement) {
-                    searchButton.parentElement.click();
-                }
-            }
-        });
-    }
-    
-    // Table row selection
-    const usersTable = $('#usersTable');
-    if (usersTable.length) {
-        usersTable.on('change', '.user-select', function() {
-            const userId = $(this).val();
+    // Save User button in modal
+    $('#saveUserBtn').on('click', handleSaveUser);
+
+    // DataTable event delegation for action buttons
+    $('#usersTable tbody').on('click', 'button.edit-user', function() {
+        const row = usersTable.row($(this).parents('tr')).data();
+        openEditUserModal(row);
+    });
+    $('#usersTable tbody').on('click', 'button.delete-user', function() {
+        const row = usersTable.row($(this).parents('tr')).data();
+        confirmDeleteUser(row.id, row.username);
+    });
+    $('#usersTable tbody').on('click', 'button.toggle-status', function() {
+        const row = usersTable.row($(this).parents('tr')).data();
+        confirmAndUpdateStatus(row.id, row.status);
+    });
+
+    // DataTable event delegation for checkboxes
+    $('#usersTable tbody').on('change', 'input.user-select', function() {
+        const userId = parseInt($(this).val());
             if (this.checked) {
-                if (!selectedUsers.includes(userId)) {
                     selectedUsers.push(userId);
-                }
             } else {
                 selectedUsers = selectedUsers.filter(id => id !== userId);
             }
             updateBulkActionButtons();
         });
         
-        // View user
-        usersTable.on('click', '.view-user', async function() {
-            const userId = $(this).data('id');
-            const user = await getUserById(userId);
-            if (user) {
-                showUserDetails(user);
+    // Select All checkbox listener
+    $('#selectAllCheckbox').on('change', function() {
+        const isChecked = this.checked;
+        $('.user-select').prop('checked', isChecked);
+        selectedUsers = [];
+        if (isChecked) {
+            usersTable.rows().data().each(function(user) {
+                selectedUsers.push(user.id);
+            });
+        }
+        updateBulkActionButtons();
+        });
+        
+    // Batch Delete button listener
+    $('#batchDeleteBtn').on('click', function() {
+        if (selectedUsers.length > 0) {
+            confirmDeleteBatch(selectedUsers);
+        }
+    });
+
+    // Add User button listener (assuming it exists in the header now)
+    $(document).on('click', '.card-header .btn-primary', function() {
+        openAddUserModal();
+        });
+        
+    // NEW Filter Button Listeners
+    $('#applyUserFiltersBtn').on('click', function() {
+        loadUsers(); // Load users based on current filter inputs
+    });
+
+    $('#resetUserFiltersBtn').on('click', function() {
+        $('#userNameFilter').val('');
+        $('#userStatusFilter').val('');
+        // Clear any other filters here if added (e.g., role)
+        // $('#userRoleFilter').val('');
+        loadUsers('', ''); // Load all users after resetting
+    });
+
+    // Avatar file input change listener
+    $('#userAvatarFile').on('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                setImagePreview('userAvatarPreview', 'avatarPreviewText', e.target.result, 'Modal');
             }
-        });
-        
-        // Edit user
-        usersTable.on('click', '.edit-user', async function() {
-            const userId = $(this).data('id');
-            const user = await getUserById(userId);
-            if (user) {
-                openEditUserModal(user);
-            }
-        });
-        
-        // Delete user
-        usersTable.on('click', '.delete-user', function() {
-            const userId = $(this).data('id');
-            confirmDeleteUser(userId);
-        });
-        
-        // Toggle user status
-        usersTable.on('click', '.toggle-status', function() {
-            const userId = $(this).data('id');
-            const currentStatus = $(this).data('status');
-            confirmAndUpdateStatus(userId, currentStatus);
-        });
-    }
+            reader.readAsDataURL(file);
+        } else {
+            // If no file is selected (e.g., user cancels), reset to default or previous state
+            // For simplicity, let's reset to default if no file is chosen
+            resetImagePreview('userAvatarPreview', 'avatarPreviewText', 'Modal');
+        }
+    });
 }
 
 /**

@@ -94,8 +94,7 @@ function displaySongDetails(songDetailDTO) {
     // Update song details
     $('#song-name').text(songDetailDTO.name);
     $('#song-cover').attr('src', songDetailDTO.pic || 'assets/media/image/default-cover.jpg');
-    $('#song-description').text(songDetailDTO.introduction || 'No description available');
-    $('#play-count').text(songDetailDTO.nums || 0); // Use nums field
+    $('#song-introduction').text(songDetailDTO.introduction);
     
     // Update Artist Name(s)
     const displaySingers = songDetailDTO.singerNames || 'Unknown Artist';
@@ -115,10 +114,9 @@ function displaySongDetails(songDetailDTO) {
     
     // Update lyrics
     if (songDetailDTO.lyric && songDetailDTO.lyric.trim()) {
-        // Consider formatting lyrics better if needed (e.g., replace \n with <br>)
-        $('#song-lyrics').html(songDetailDTO.lyric.replace(/\n/g, '<br>')); 
+        $('#lyric-content').html(songDetailDTO.lyric.replace(/\n/g, '<br>')); // Format lyrics
     } else {
-        $('#song-lyrics').text('No lyrics available for this song.');
+        $('#lyric-content').text('No lyrics available for this song.');
     }
     
     // Check if music video is available
@@ -249,30 +247,8 @@ function setupEventListeners(songId) {
             return;
         }
         
-        // Increment play count API call
-        $.ajax({
-            url: '/song/addNums',
-            type: 'GET',
-            data: { songId: songId },
-            success: function() {
-                console.log('Play count increment triggered for song ID:', songId);
-                // Update UI count immediately
-                const currentPlayCount = parseInt($('#play-count').text()) || 0;
-                $('#play-count').text(currentPlayCount + 1);
-                // Update the DTO's count as well if needed
-                // songDetailDTO.nums = currentPlayCount + 1;
-                // $(this).data('song', songDetailDTO); // Re-setting data might not be necessary here
-            },
-            error: function() {
-                 console.warn('Failed to trigger play count increment for song ID:', songId);
-            }
-        });
-        
-        // Get singer names from DTO
-        const displaySingers = songDetailDTO.singerNames || 'Unknown Artist';
-        
         // Call the global audio player function
-        playSongAudioPlayer(songDetailDTO.url, songDetailDTO.name, displaySingers, songDetailDTO.pic);
+        playSongAudioPlayer(songDetailDTO.url, songDetailDTO.name, songDetailDTO.singerNames, songDetailDTO.pic);
         
         // Remove the call to open the modal
         // openPlayerModal(songDetailDTO, displaySingers); 
@@ -318,3 +294,23 @@ function openPlayerModal(songData, singerNames) {
     // ... old modal code ...
 }
 */ 
+
+// Function to increment play count
+async function incrementPlayCount(songId) {
+    console.log(`Attempting to increment play count for song ID: ${songId}`);
+//        try {
+//            const response = await api.get('/song/addNums', {
+//                params: { songId: songId }
+//            });
+//            if (response.data && response.data.code === '200') {
+//                console.log('Play count incremented successfully.');
+//                // Update the displayed count locally if needed
+//                // const currentPlayCount = parseInt($('#play-count').text()) || 0;
+//                // $('#play-count').text(currentPlayCount + 1);
+//            } else {
+//                console.error('Failed to increment play count:', response.data.msg);
+//            }
+//        } catch (error) {
+//            console.error('Error calling addNums endpoint:', error);
+//        }
+} 

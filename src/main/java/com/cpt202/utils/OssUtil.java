@@ -67,4 +67,20 @@ public class OssUtil {
                 return "application/octet-stream";
         }
     }
+
+    /**
+     * 删除OSS上的文件
+     * @param fileUrl 文件的完整URL
+     * @return 是否删除成功
+     */
+    public boolean deleteFile(String fileUrl) {
+        // 从URL中提取Object Key (例如: song/xxxx.mp3)
+        // 实现从阿里云OSS删除文件的逻辑
+        // 例如: ossClient.deleteObject(bucketName, objectKey);
+        // 返回删除结果
+        // 注意: 需要添加异常处理
+        System.out.println("Placeholder: Deleting file from OSS: " + fileUrl);
+        // 替换为实际的删除逻辑和返回结果
+        return true; // 暂时返回true
+    }
 } 

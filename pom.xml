@@ -180,6 +180,14 @@
                 </exclusion>
             </exclusions>
         </dependency>
+
+        <!-- Add jaudiotagger for MP3 metadata reading -->
+        <dependency>
+            <groupId>org</groupId>
+            <artifactId>jaudiotagger</artifactId>
+            <version>2.0.3</version>
+        </dependency>
+        <!-- End jaudiotagger dependency -->
     </dependencies>
 
     <build>

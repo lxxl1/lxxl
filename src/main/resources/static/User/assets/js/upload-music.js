@@ -303,6 +303,14 @@ function initUploadFunctionality() {
                     showMessage('File is too large. Please select a music file under 50MB', 'danger');
                     this.value = ''; // Clear the input
                     browseButton.textContent = 'Browse Files';
+                    return;
+                }
+                
+                // New code: Process MP3 metadata
+                if (file.name.toLowerCase().endsWith('.mp3')) {
+                    processMP3Metadata(file);
+                } else {
+                    showMessage('Selected file is not an MP3. Metadata extraction is only available for MP3 files.', 'warning');
                 }
             } else {
                 browseButton.textContent = 'Browse Files';
@@ -382,152 +390,12 @@ function initDragAndDrop() {
             const event = new Event('change');
             fileInput.dispatchEvent(event);
             
+            // New code: Process MP3 metadata - Not needed here as we're triggering the change event above
+            // which will run the metadata processing in the change event listener
+            
             showMessage('File is ready to upload', 'success');
         }
     }
-}
-
-/**
- * Initialize form submission
- */
-function initFormSubmit() {
-    const form = document.getElementById('uploadMusicForm');
-    if (!form) {
-        console.error("Upload form not found.");
-        return;
-    }
-    
-    form.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        if (!validateForm()) {
-            return;
-        }
-        
-        const progressBar = document.getElementById('uploadProgress');
-        const progressBarInner = progressBar ? progressBar.querySelector('.progress-bar') : null;
-        const submitButton = document.getElementById('uploadButton');
-
-        if (progressBar) progressBar.style.display = 'block';
-        if (progressBarInner) {
-            progressBarInner.style.width = '0%';
-            progressBarInner.setAttribute('aria-valuenow', 0);
-        }
-        if (submitButton) submitButton.disabled = true;
-        
-        const formData = new FormData();
-        
-        const musicFile = document.getElementById('musicFileInput').files[0];
-        if (musicFile) {
-            formData.append('file', musicFile);
-        } else {
-            showMessage('Music file missing.', 'danger');
-            if (submitButton) submitButton.disabled = false;
-            if (progressBar) progressBar.style.display = 'none';
-            return;
-        }
-        
-        // Append Image File
-        const imageFile = document.getElementById('imageFileInput').files[0];
-        if (imageFile) {
-            formData.append('imageFile', imageFile);
-        }
-        
-        formData.append('name', document.getElementById('songName').value);
-        formData.append('userId', currentUserId);
-        
-        // CORRECTED SINGER ID HANDLING: Use 'singerIds' key and value from multi-select input
-        const selectedIdsValue = document.getElementById('selectedSingerIds').value;
-        if (selectedIdsValue) { // Ensure singers are selected
-            formData.append('singerIds', selectedIdsValue); // Use correct key and value
-        } else {
-            // If your application requires at least one singer, handle the error here
-            showMessage('Please select at least one artist', 'danger');
-            if (submitButton) submitButton.disabled = false;
-            if (progressBar) progressBar.style.display = 'none';
-            return; // Stop the submission
-            // If no singer is acceptable, you might send an empty string or omit the parameter
-            // depending on backend handling. For now, we require a singer.
-        }
-        
-        if (selectedUploadCategoryIds.size > 0) {
-            formData.append('categoryIds', Array.from(selectedUploadCategoryIds).join(','));
-        } else {
-            showMessage('No category selected.', 'danger');
-             if (submitButton) submitButton.disabled = false;
-            if (progressBar) progressBar.style.display = 'none';
-            return; 
-        }
-        
-        const introduction = document.getElementById('introduction').value;
-        if (introduction) {
-            formData.append('introduction', introduction);
-        }
-        
-        const lyric = document.getElementById('lyric').value;
-        if (lyric) {
-            formData.append('lyric', lyric);
-        }
-        
-        // Add selected tag IDs
-        if (selectedUploadTagIds.size > 0) {
-            formData.append('tagIds', Array.from(selectedUploadTagIds).join(',')); 
-        }
-        
-        // Upload
-        try {
-            showMessage('Uploading your music, please wait...', 'info');
-            
-            const response = await axios.post(`${API_URL}/song/add`, formData, {
-                headers: {
-                    // Axios sets Content-Type automatically for FormData
-                },
-                onUploadProgress: progressEvent => {
-                    if (progressBarInner && progressEvent.total) {
-                        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-                        progressBarInner.style.width = percentCompleted + '%';
-                        progressBarInner.setAttribute('aria-valuenow', percentCompleted);
-                    }
-                }
-            });
-            
-            if (response.data.code === '200') {
-                showMessage('Music uploaded successfully! Redirecting...', 'success');
-                form.reset();
-                selectedUploadCategoryIds.clear();
-                selectedUploadTagIds.clear();
-                selectedSingers.clear(); // Clear selected singers too
-                updateSelectedSingersDisplay(); // Update display to show cleared state
-                loadCategories();
-                loadUserTags();
-                document.getElementById('browseFilesBtn').textContent = 'Browse Files';
-                resetImagePreview(); // <-- Reset image preview on success
-                
-                setTimeout(() => {
-                    window.location.href = 'my-music.html';
-                }, 1500); 
-            } else {
-                showMessage(`Upload failed: ${response.data.msg || 'Unknown error'}`, 'danger');
-                console.error('Upload failed:', response.data);
-                 if (submitButton) submitButton.disabled = false; // Re-enable button on failure
-            }
-        } catch (error) {
-            console.error('Error uploading music:', error);
-            let errorMsg = 'Error uploading music. Please try again.';
-            if (error.response && error.response.data && error.response.data.msg) {
-                errorMsg = `Upload error: ${error.response.data.msg}`;
-            } else if (error.message) {
-                 errorMsg = `Upload error: ${error.message}`;
-            }
-            showMessage(errorMsg, 'danger');
-             if (submitButton) submitButton.disabled = false; // Re-enable button on error
-        } finally {
-            // Hide progress bar only on error/failure, success redirects
-            if (!(response && response.data.code === '200')) {
-                 if (progressBar) progressBar.style.display = 'none';
-            }
-        }
-    });
 }
 
 /**
@@ -877,6 +745,374 @@ function initializeFormElements() {
         // REMOVED: browseBtn.addEventListener('click', function() { ... });
         // REMOVED: fileInput.addEventListener('change', function(e) { ... });
     }
+}
+
+/**
+ * New function: Process MP3 metadata by sending to the backend
+ */
+function processMP3Metadata(file) {
+    // Create loading overlay
+    console.log("[processMP3Metadata] Attempting to show loading overlay..."); // New Log
+    showLoadingOverlay('Reading MP3 metadata...');
+    
+    // --- NEW: Show local spinner next to Select Artists button ---
+    const selectBtn = document.getElementById('selectSingersBtn');
+    if (selectBtn) {
+        // Remove previous spinner if any
+        const existingSpinner = document.getElementById('artist-metadata-spinner');
+        if (existingSpinner) {
+            existingSpinner.remove();
+        }
+        // Create and insert new spinner
+        const spinner = document.createElement('span');
+        spinner.id = 'artist-metadata-spinner';
+        spinner.className = 'spinner-border spinner-border-sm text-secondary ms-2'; // Added margin
+        spinner.setAttribute('role', 'status');
+        spinner.setAttribute('aria-hidden', 'true');
+        selectBtn.parentNode.insertBefore(spinner, selectBtn.nextSibling);
+    }
+    // ---------------------------------------------------------
+
+    // Create form data for file upload
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    // Call the new metadata processing endpoint
+    axios.post(`${API_URL}/song/process-metadata`, formData, {
+        headers: {
+            // Axios sets Content-Type automatically for FormData
+        }
+    })
+    .then(response => {
+        console.log("[processMP3Metadata] Axios request succeeded. Attempting to hide overlay..."); // New Log
+        hideLoadingOverlay();
+        
+        if (response.data && response.data.code === '200' && response.data.data) {
+            const metadata = response.data.data;
+            console.log('Extracted metadata:', metadata);
+            
+            // Auto-fill form with the extracted metadata
+            autoFillFormWithMetadata(metadata);
+            
+            showMessage('MP3 metadata extracted successfully! Form has been auto-filled.', 'success');
+        } else {
+            console.warn('Metadata extraction response not in expected format:', response.data);
+            showMessage('Could not read valid metadata from the MP3.', 'warning');
+        }
+    })
+    .catch(error => {
+        console.log("[processMP3Metadata] Axios request failed. Attempting to hide overlay..."); // New Log
+        hideLoadingOverlay();
+        console.error('Error processing MP3 metadata:', error);
+        let errorMsg = 'Could not process MP3 metadata. Please fill the form manually.';
+        
+        if (error.response && error.response.data && error.response.data.msg) {
+            errorMsg = `Metadata processing error: ${error.response.data.msg}`;
+        } else if (error.message) {
+            errorMsg = `Metadata processing error: ${error.message}`;
+        }
+        
+        showMessage(errorMsg, 'warning');
+    })
+    .finally(() => {
+        // Optionally add a log here if needed, but hide is called in then/catch
+        console.log("[processMP3Metadata] Axios request finished (finally block). Hide should have been called."); // New Log
+    });
+}
+
+/**
+ * Auto-fill form fields with extracted metadata
+ */
+function autoFillFormWithMetadata(metadata) {
+    // Fill song name if available
+    if (metadata.title && metadata.title.trim() !== '') {
+        const songNameInput = document.getElementById('songName');
+        if (songNameInput) {
+            songNameInput.value = metadata.title.trim();
+            console.log('Auto-filled song name:', metadata.title);
+        }
+    }
+    
+    // Fill album into introduction if available
+    if (metadata.album && metadata.album.trim() !== '') {
+        const albumInput = document.getElementById('albumName'); // Find new album input
+        if (albumInput) {
+            albumInput.value = metadata.album.trim();
+            console.log('Auto-filled album name:', metadata.album);
+        }
+    }
+    
+    // Auto-select singer if singerId is available
+    if (metadata.singerId) {
+        try {
+            // Clear current singer selection
+            selectedSingers.clear();
+            
+            // Find the singer in allSingers array to get the name
+            const matchingSinger = allSingers.find(s => s && s.id === metadata.singerId);
+            let singerName = null;
+            
+            if (matchingSinger) {
+                singerName = matchingSinger.name;
+                console.log('Found existing singer in local list:', singerName);
+            } else if (metadata.recognizedArtistName && metadata.recognizedArtistName.trim() !== '') {
+                // *** Fallback: Singer not found locally, but backend sent name ***
+                singerName = metadata.recognizedArtistName.trim();
+                console.log('Singer ID not found in local list, using name from metadata:', singerName);
+                 // Optional: Trigger a refresh of the singer list in the background?
+                 // loadSingers(); // Could cause UI flicker if modal is open
+            } else {
+                 console.warn('Could not find singer with ID:', metadata.singerId, 'and no recognized name provided.');
+            }
+            
+            // If we have a singer ID and a name (either found locally or from metadata)
+            if (singerName) {
+                 // Add to the selected singers map
+                 selectedSingers.set(String(metadata.singerId), singerName);
+                
+                 // Update the hidden singer ID fields
+                 document.getElementById('selectedSingerIds').value = String(metadata.singerId);
+                
+                 // Backward compatibility for single singer ID
+                 const singleSingerIdInput = document.getElementById('singerId');
+                 if (singleSingerIdInput) {
+                     singleSingerIdInput.value = String(metadata.singerId);
+                 }
+                
+                 // Update the display
+                 updateSelectedSingersDisplay();
+                
+                 console.log('Auto-selected singer:', singerName, 'with ID:', metadata.singerId);
+                 showMessage(`Auto-selected singer: ${singerName}`, 'info');
+            } else {
+                 // This case means ID existed but we couldn't find or get a name
+                 console.error('Could not associate singer ID:', metadata.singerId, 'with a name.');
+                 showMessage(`Found singer ID ${metadata.singerId} in MP3 metadata, but could not find their name in the system. Please select the artist manually.`, 'warning');
+            }
+
+        } catch (e) {
+            console.error('Error auto-selecting singer:', e);
+            showMessage('Error during auto-selection of singer.', 'danger');
+        }
+    } else if (metadata.recognizedArtistName && metadata.recognizedArtistName.trim() !== '') {
+        // If there's no singerId but there is a recognized artist name
+        showMessage(`Recognized artist name from MP3: ${metadata.recognizedArtistName}, but the backend could not associate an ID. Please select the artist manually.`, 'info');
+    }
+    
+    // ---- Corrected: Hide the specific spinner ----
+    const readingIndicator = document.getElementById('artist-metadata-spinner'); // Use the correct ID
+    if (readingIndicator) {
+        readingIndicator.remove(); // Remove the spinner entirely
+        console.log('Removed artist metadata spinner.');
+    }
+    // ------------------------------------------------
+}
+
+/**
+ * Show loading overlay while processing metadata
+ */
+function showLoadingOverlay(message = '加载中...') {
+    console.log("[showLoadingOverlay] Entered function. Message:", message); // New Log
+    // Check if overlay already exists
+    let overlay = document.getElementById('metadata-loading-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'metadata-loading-overlay';
+        overlay.className = 'position-fixed d-flex flex-column align-items-center justify-content-center';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.width = '100%';
+        overlay.style.height = '100%';
+        overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+        overlay.style.zIndex = '9999';
+        
+        const spinner = document.createElement('div');
+        spinner.className = 'spinner-border text-light mb-3';
+        spinner.setAttribute('role', 'status');
+        
+        const messageEl = document.createElement('div');
+        messageEl.className = 'text-light';
+        messageEl.id = 'metadata-loading-message';
+        messageEl.textContent = message;
+        
+        overlay.appendChild(spinner);
+        overlay.appendChild(messageEl);
+        document.body.appendChild(overlay);
+        console.log("[showLoadingOverlay] Created and appended new overlay."); // New Log
+    } else {
+        // Update message if overlay exists
+        const messageEl = document.getElementById('metadata-loading-message');
+        if (messageEl) {
+            messageEl.textContent = message;
+        }
+        overlay.style.display = 'flex';
+        console.log("[showLoadingOverlay] Set existing overlay display to flex."); // New Log
+    }
+    // Log the actual style right after setting
+    console.log("[showLoadingOverlay] Current overlay style.display:", overlay ? overlay.style.display : "Not found"); // New Log
+}
+
+/**
+ * Hide loading overlay
+ */
+function hideLoadingOverlay() {
+    console.log("[hideLoadingOverlay] Entered function."); // New Log
+    const overlay = document.getElementById('metadata-loading-overlay');
+    if (overlay) {
+        // overlay.style.display = 'none'; // Keep this commented out or remove
+        overlay.remove(); // Use remove() instead of setting display to none
+        console.log("[hideLoadingOverlay] Removed overlay element from DOM."); // Updated Log
+        // console.log("[hideLoadingOverlay] Current overlay style.display:", overlay.style.display); // This log is no longer relevant after removal
+    } else {
+        console.warn("[hideLoadingOverlay] Overlay element not found when trying to remove."); // Updated Log
+    }
+}
+
+/**
+ * Initialize form submission
+ */
+function initFormSubmit() {
+    const form = document.getElementById('uploadMusicForm');
+    if (!form) {
+        console.error("Upload form not found.");
+        return;
+    }
+    
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        if (!validateForm()) {
+            return;
+        }
+        
+        const progressBar = document.getElementById('uploadProgress');
+        const progressBarInner = progressBar ? progressBar.querySelector('.progress-bar') : null;
+        const submitButton = document.getElementById('uploadButton');
+
+        if (progressBar) progressBar.style.display = 'block';
+        if (progressBarInner) {
+            progressBarInner.style.width = '0%';
+            progressBarInner.setAttribute('aria-valuenow', 0);
+        }
+        if (submitButton) submitButton.disabled = true;
+        
+        const formData = new FormData();
+        
+        const musicFile = document.getElementById('musicFileInput').files[0];
+        if (musicFile) {
+            formData.append('file', musicFile);
+        } else {
+            showMessage('Music file missing.', 'danger');
+            if (submitButton) submitButton.disabled = false;
+            if (progressBar) progressBar.style.display = 'none';
+            return;
+        }
+        
+        // Append Image File
+        const imageFile = document.getElementById('imageFileInput').files[0];
+        if (imageFile) {
+            formData.append('imageFile', imageFile);
+        }
+        
+        formData.append('name', document.getElementById('songName').value);
+        formData.append('userId', currentUserId);
+        
+        // CORRECTED SINGER ID HANDLING: Use 'singerIds' key and value from multi-select input
+        const selectedIdsValue = document.getElementById('selectedSingerIds').value;
+        if (selectedIdsValue) { // Ensure singers are selected
+            formData.append('singerIds', selectedIdsValue); // Use correct key and value
+        } else {
+            // If your application requires at least one singer, handle the error here
+            showMessage('Please select at least one artist', 'danger');
+            if (submitButton) submitButton.disabled = false;
+            if (progressBar) progressBar.style.display = 'none';
+            return; // Stop the submission
+            // If no singer is acceptable, you might send an empty string or omit the parameter
+            // depending on backend handling. For now, we require a singer.
+        }
+        
+        if (selectedUploadCategoryIds.size > 0) {
+            formData.append('categoryIds', Array.from(selectedUploadCategoryIds).join(','));
+        } else {
+            showMessage('No category selected.', 'danger');
+             if (submitButton) submitButton.disabled = false;
+            if (progressBar) progressBar.style.display = 'none';
+            return; 
+        }
+        
+        const introduction = document.getElementById('introduction').value;
+        if (introduction) {
+            formData.append('introduction', introduction);
+        }
+        
+        const lyric = document.getElementById('lyric').value;
+        if (lyric) {
+            formData.append('lyric', lyric);
+        }
+        
+        // Add selected tag IDs
+        if (selectedUploadTagIds.size > 0) {
+            formData.append('tagIds', Array.from(selectedUploadTagIds).join(',')); 
+        }
+        
+        // Get Album from new input field
+        const albumValue = document.getElementById('albumName').value.trim();
+        formData.append('album', albumValue); // Add album parameter
+        
+        // Upload
+        try {
+            showMessage('Uploading your music, please wait...', 'info');
+            
+            const response = await axios.post(`${API_URL}/song/add`, formData, {
+                headers: {
+                    // Axios sets Content-Type automatically for FormData
+                },
+                onUploadProgress: progressEvent => {
+                    if (progressBarInner && progressEvent.total) {
+                        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                        progressBarInner.style.width = percentCompleted + '%';
+                        progressBarInner.setAttribute('aria-valuenow', percentCompleted);
+                    }
+                }
+            });
+            
+            if (response.data.code === '200') {
+                showMessage('Music uploaded successfully! Redirecting...', 'success');
+                form.reset();
+                selectedUploadCategoryIds.clear();
+                selectedUploadTagIds.clear();
+                selectedSingers.clear(); // Clear selected singers too
+                updateSelectedSingersDisplay(); // Update display to show cleared state
+                loadCategories();
+                loadUserTags();
+                document.getElementById('browseFilesBtn').textContent = 'Browse Files';
+                resetImagePreview(); // <-- Reset image preview on success
+                
+                setTimeout(() => {
+                    window.location.href = 'my-music.html';
+                }, 1500); 
+            } else {
+                showMessage(`Upload failed: ${response.data.msg || 'Unknown error'}`, 'danger');
+                console.error('Upload failed:', response.data);
+                 if (submitButton) submitButton.disabled = false; // Re-enable button on failure
+            }
+        } catch (error) {
+            console.error('Error uploading music:', error);
+            let errorMsg = 'Error uploading music. Please try again.';
+            if (error.response && error.response.data && error.response.data.msg) {
+                errorMsg = `Upload error: ${error.response.data.msg}`;
+            } else if (error.message) {
+                 errorMsg = `Upload error: ${error.message}`;
+            }
+            showMessage(errorMsg, 'danger');
+             if (submitButton) submitButton.disabled = false; // Re-enable button on error
+        } finally {
+            // Hide progress bar only on error/failure, success redirects
+            if (!(response && response.data.code === '200')) {
+                 if (progressBar) progressBar.style.display = 'none';
+            }
+        }
+    });
 }
 
 // ... existing code ... 

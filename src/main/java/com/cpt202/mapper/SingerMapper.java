@@ -59,6 +59,13 @@ public interface SingerMapper {
      * @return Singer对象列表
      */
     List<Singer> selectByIds(@Param("ids") List<Integer> ids);
+
+    /**
+     * 根据歌手名字精确查询（忽略大小写）
+     * @param name 歌手名
+     * @return 匹配的Singer对象，如果没有找到则返回null
+     */
+    Singer findByNameIgnoreCase(@Param("name") String name);
 }
 
 

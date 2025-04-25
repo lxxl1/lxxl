@@ -27,7 +27,7 @@ function getCurrentUserId() {
 // Utility function to escape HTML (add this if not already present)
 function escapeHTML(str) {
     if (!str) return '';
-    return str.replace(/[&<>'"/]/g, 
+    return str.replace(/[&<>"'/]/g, 
         tag => ({
             '&': '&amp;',
             '<': '&lt;',
@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Initialize all data - Added loadCurrentUserSongs
         await Promise.all([
             loadAllSongs(),      
-            loadCurrentUserSongs(), // <-- Add this call
+            loadCurrentUserSongs(), // <-- Re-enabled loading user songs
             loadAllCategories(),
             loadAllSingers()
         ]);
@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Update UI components
         updateStatistics(); // Will now use currentUserSongsData for one stat
         renderFeaturedArtists(); 
-        renderMyApprovedMusic(); // Will now use currentUserSongsData
+        // Note: renderMyMusic is called inside loadCurrentUserSongs after data is fetched
         
         // Setup event listeners
         setupEventListeners();
@@ -73,7 +73,7 @@ async function loadAllSongs() {
         if (response.data && response.data.code === '200' && response.data.data) {
             allSongs = response.data.data;
             approvedSongs = allSongs.filter(song => song.status === 1);
-            console.log('Loaded all approved songs (global):', approvedSongs);
+            console.log('Loaded all approved songs (global): ', approvedSongs);
             // Update statistics after loading these global songs
             updateStatistics(); 
             return true;
@@ -96,18 +96,20 @@ async function loadAllSongs() {
 /**
  * NEW: Load songs specifically for the current logged-in user
  */
+// <-- Re-enabled entire function -->
 async function loadCurrentUserSongs() {
     const currentUserId = getCurrentUserId();
     if (currentUserId === null) {
         console.warn('Cannot load current user songs: User ID not found.');
         currentUserSongsData = [];
         updateStatistics(); // Update stats even if user load fails
-        renderMyApprovedMusic(); // Render empty state for user music
+        renderMyMusic(); // Render empty state for user music
         return false;
     }
 
     try {
-        // Use the same endpoint as my-music.js, but request a large page size
+        // Use the /selectbyuser endpoint, requesting a large page size
+        console.log(`Fetching songs for user ID: ${currentUserId}`);
         const response = await api.get('/song/selectbyuser', { 
             params: { 
                 userId: currentUserId,
@@ -115,26 +117,28 @@ async function loadCurrentUserSongs() {
                 pageSize: 999     // Request a large number to get all songs
             }
         });
+        console.log("Response from /song/selectbyuser:", response);
+
         if (response.data && response.data.code === '200' && response.data.data) {
             // Correctly extract the list from the paginated response
             currentUserSongsData = response.data.data && response.data.data.list ? response.data.data.list : [];
-            console.log(`Loaded ${currentUserSongsData.length} songs for current user ID: ${currentUserId}`);
+            console.log(`Loaded ${currentUserSongsData.length} songs for current user ID: ${currentUserId}`, currentUserSongsData);
             // Update stats and render user music section *after* user songs are loaded
             updateStatistics(); 
-            renderMyApprovedMusic();
+            renderMyMusic(); // <-- Call the rendering function here
             return true;
         } else {
              console.warn('Could not load current user songs or no songs found:', response.data);
              currentUserSongsData = [];
              updateStatistics();
-             renderMyApprovedMusic();
+             renderMyMusic();
              return false;
         }
     } catch (error) {
         console.error('Error loading current user songs:', error);
         currentUserSongsData = [];
         updateStatistics();
-        renderMyApprovedMusic();
+        renderMyMusic();
         return false;
     }
 }
@@ -202,14 +206,15 @@ function updateStatistics() {
     }
     
     // Update My Approved Songs count using currentUserSongsData, filtered for approved
+    // <-- Re-enabled this section -->
     const myApprovedSongsElement = document.getElementById('my-approved-songs-count');
     if (myApprovedSongsElement) {
         // Filter the user-specific data for approved songs
         const userApprovedSongs = currentUserSongsData.filter(song => song.status === 1);
         myApprovedSongsElement.textContent = userApprovedSongs.length; 
         // Update card title to clarify it's user's songs
-        const mySongsTitleElement = myApprovedSongsElement.nextElementSibling; // Get the <h5> tag
-        if (mySongsTitleElement && mySongsTitleElement.tagName === 'H5') {
+        const mySongsTitleElement = myApprovedSongsElement.closest('.card-body').querySelector('h5'); // Find h5 within card body
+        if (mySongsTitleElement) {
             mySongsTitleElement.textContent = "My Approved Songs"; 
         }
     } else {
@@ -266,18 +271,20 @@ function renderFeaturedArtists() {
 }
 
 /**
- * MODIFIED: Render My Approved Music section (3 random user songs)
+ * MODIFIED: Render My Music section (3 random user songs)
  * Uses the global currentUserSongsData list.
  */
-function renderMyApprovedMusic() {
+// <-- Re-enabled entire function, renamed, and logic modified -->
+function renderMyMusic() {
     const container = document.getElementById('my-approved-music-container');
     if (!container) {
         console.error('Element with ID my-approved-music-container not found.');
         return;
     }
 
-    // Filter the fetched user songs for approved ones
+    // Filter the fetched user songs for approved ones (status === 1)
     const userApprovedSongs = currentUserSongsData.filter(song => song.status === 1);
+    console.log('User approved songs for rendering:', userApprovedSongs);
 
     if (!userApprovedSongs || userApprovedSongs.length === 0) {
         container.innerHTML = '<p class="text-center text-muted">You have no approved music yet.</p>';
@@ -287,6 +294,7 @@ function renderMyApprovedMusic() {
     // Shuffle the approved songs and take the first 3
     const shuffledApprovedSongs = [...userApprovedSongs].sort(() => 0.5 - Math.random());
     const randomMySongs = shuffledApprovedSongs.slice(0, 3);
+    console.log('Random 3 user songs:', randomMySongs);
 
     // Use list group structure 
     let html = '<div class="list-group list-group-flush">'; 
@@ -384,32 +392,12 @@ function handlePlayButtonClick(event) {
         return;
     }
 
-    // Call the global player function
-    playSongAudioPlayer(songUrl, songName, artistName, coverUrl);
-
-    // Increment play count (fire and forget)
-    incrementPlayCount(songId);
-}
-
-/**
- * Increment the play count for a song and refresh relevant UI parts
- * @param {string} songId - ID of the song
- */
-async function incrementPlayCount(songId) {
-    try {
-        await api.get(`/song/addNums?songId=${songId}`);
-        console.log('Play count incremented for song ID:', songId);
-
-        // OPTIONAL: Reload song data if needed for other parts of the page, 
-        // but the sections we modified don't directly depend on play count display.
-        // Consider if reloading `loadMySongs` is necessary if play counts were shown there.
-        // const songsLoaded = await loadMySongs(); 
-        // if (songsLoaded) {
-        //     renderMyApprovedMusic(); 
-        // }
-
-    } catch (error) {
-        console.error('Error incrementing play count:', error);
+    if (songId) {
+        console.log('Attempting to play song ID:', songId);
+        // Call the global audio player function
+        playSongAudioPlayer(songUrl, songName, artistName, coverUrl);
+        // Note: Play count increment logic should be handled elsewhere, possibly via an API call
+        // Example: incrementPlayCount(songId);
     }
 }
 
